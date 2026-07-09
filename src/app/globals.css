@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/*
+ * Brand tokens — sourced from branding-guide.md
+ * Tailwind v4 uses CSS-based theme config (@theme) instead of tailwind.config.ts.
+ * These generate utilities like bg-brand-blue, text-brand-orange, border-border, etc.
+ */
+@theme inline {
+  /* Fonts (wired to next/font variables in styles/fonts.ts) */
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-signature: var(--font-caveat);
+
+  /* Primary brand colors */
+  --color-brand-blue: #1c76b5;
+  --color-brand-blue-dark: #14507d;
+  --color-brand-blue-light: #5fa3d6;
+  --color-brand-blue-tint: #eaf3fa;
+
+  --color-brand-orange: #f7941d;
+  --color-brand-orange-dark: #c5740f;
+  --color-brand-orange-light: #fbc07d;
+  --color-brand-orange-tint: #fef3e4;
+
+  --color-brand-ink: #000000;
+  --color-brand-slate: #1a1a1a;
+  --color-brand-paper: #ffffff;
+
+  /* Text */
+  --color-text-body: #3f3f46;
+  --color-text-muted: #71717a;
+
+  /* Borders */
+  --color-border-DEFAULT: #e4e4e7;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #3f3f46;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+  color: var(--color-brand-ink);
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono), monospace;
+}
+
+/* Visible keyboard focus states everywhere — accessibility floor per branding-guide.md */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-brand-blue);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Article typography for Hashnode-rendered HTML — hand-rolled since this
+   project doesn't pull in @tailwindcss/typography for one content type. */
+.prose-article {
+  color: var(--color-text-body);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  max-width: 100%;
+}
+
+.prose-article > * + * {
+  margin-top: 1.25em;
+}
+
+.prose-article h1,
+.prose-article h2,
+.prose-article h3,
+.prose-article h4 {
+  color: var(--color-brand-ink);
+  font-weight: 700;
+  scroll-margin-top: 5.5rem; /* keeps anchored headings clear of the sticky nav */
+}
+
+.prose-article h2 {
+  font-size: 1.5rem;
+  margin-top: 2.25em;
+}
+
+.prose-article h3 {
+  font-size: 1.25rem;
+  margin-top: 1.75em;
+}
+
+.prose-article a {
+  color: var(--color-brand-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-article a:hover {
+  color: var(--color-brand-blue-dark);
+}
+
+.prose-article code {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.875em;
+  background: var(--color-brand-blue-tint);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+
+.prose-article pre {
+  border-radius: 8px;
+  padding: 1.25em;
+  overflow-x: auto;
+  font-size: 0.875rem;
+}
+
+.prose-article pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.prose-article img {
+  border-radius: 8px;
+  width: 100%;
+  height: auto;
+}
+
+.prose-article blockquote {
+  border-left: 3px solid var(--color-brand-orange);
+  padding-left: 1em;
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.prose-article ul,
+.prose-article ol {
+  padding-left: 1.5em;
+}
+
+.prose-article li + li {
+  margin-top: 0.4em;
+}
+
+.prose-article table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.prose-article th,
+.prose-article td {
+  border: 1px solid var(--color-border-DEFAULT);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
