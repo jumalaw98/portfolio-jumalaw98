@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -15,12 +14,6 @@ interface TimelineNodeProps {
  */
 export function TimelineNode({ accent = false }: TimelineNodeProps) {
   const shouldReduceMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
 
   return (
     <motion.span
@@ -30,7 +23,8 @@ export function TimelineNode({ accent = false }: TimelineNodeProps) {
         accent ? "bg-brand-orange ring-brand-orange-light" : "bg-brand-blue ring-brand-blue-light",
       )}
       style={{ boxShadow: "0 0 0 4px white" }}
-      initial={mounted && !shouldReduceMotion ? { scale: 0, opacity: 0 } : undefined}
+      suppressHydrationWarning
+      initial={!shouldReduceMotion ? { scale: 0, opacity: 0 } : undefined}
       whileInView={shouldReduceMotion ? undefined : { scale: 1, opacity: 1 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.3, ease: "easeOut" }}

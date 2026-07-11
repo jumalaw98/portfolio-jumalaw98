@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "analyze": "set ANALYZE=true&&next build --webpack"
+    "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
     "framer-motion": "^12.42.2",
@@ -27,6 +27,7 @@
     "@types/prismjs": "^1.26.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "prettier": "^3.9.5",

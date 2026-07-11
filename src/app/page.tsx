@@ -7,11 +7,6 @@ import { CredibilityStrip } from "@/components/sections/CredibilityStrip";
 import { RevealSection } from "@/components/ui/RevealSection";
 import { mvpProjects } from "@/content/projects";
 
-// Animation note: the Hero renders statically (no entrance animation) since
-// it's almost certainly the Largest Contentful Paint element on this page —
-// animating it risks delaying LCP for no real UX gain, and it's already in
-// the viewport on load so there's nothing to "reveal" via scroll anyway.
-// Everything below the fold fades in once as it scrolls into view.
 export default function HomePage() {
   const featuredProjects = mvpProjects.filter((p) => p.featured);
 

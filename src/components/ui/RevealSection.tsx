@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
 interface RevealSectionProps {
@@ -15,24 +15,19 @@ interface RevealSectionProps {
  * using it (e.g. About) can stay Server Components otherwise — only this
  * leaf ships the animation JS.
  *
- * The `initial` prop is deferred until after client mount to prevent a React
- * hydration mismatch — Framer Motion's internal ref resolution differs
- * between server and client, so we avoid rendering `initial` styles on the
- * server entirely.
+ * `suppressHydrationWarning` is set on the motion element because Framer
+ * Motion may render inline styles during SSR that differ from the client
+ * hydration pass. The prop silences those harmless mismatches while keeping
+ * the entrance animation intact from first paint.
  */
 export function RevealSection({ children, className, delay = 0 }: RevealSectionProps) {
   const shouldReduceMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
 
   return (
     <motion.div
       className={className}
-      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 20 } : undefined}
+      suppressHydrationWarning
+      initial={!shouldReduceMotion ? { opacity: 0, y: 20 } : undefined}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.5, delay, ease: "easeOut" }}
