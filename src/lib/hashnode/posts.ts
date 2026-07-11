@@ -99,11 +99,7 @@ export function getAllTagsFromPosts(posts: BlogPost[]) {
 }
 
 /** Up to `limit` other posts sharing at least one tag with `post`, most-recent first. */
-export function getRelatedPosts(
-  post: BlogPost,
-  allPosts: BlogPost[],
-  limit = 3,
-): BlogPost[] {
+export function getRelatedPosts(post: BlogPost, allPosts: BlogPost[], limit = 3): BlogPost[] {
   const tagSlugs = new Set(post.tags.map((t) => t.slug));
 
   return allPosts

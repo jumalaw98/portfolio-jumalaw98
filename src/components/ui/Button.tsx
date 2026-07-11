@@ -6,12 +6,9 @@ type Variant = "primary" | "secondary" | "ghost";
 
 const variantClasses: Record<Variant, string> = {
   // Orange is reserved for the primary action per branding-guide.md color usage rules
-  primary:
-    "bg-brand-orange text-white hover:bg-brand-orange-dark",
-  secondary:
-    "bg-brand-blue text-white hover:bg-brand-blue-dark",
-  ghost:
-    "border border-border text-text-body hover:border-brand-blue hover:text-brand-blue",
+  primary: "bg-brand-orange text-white hover:bg-brand-orange-dark",
+  secondary: "bg-brand-blue text-white hover:bg-brand-blue-dark",
+  ghost: "border border-border text-text-body hover:border-brand-blue hover:text-brand-blue",
 };
 
 const baseClasses =
@@ -28,8 +25,7 @@ interface ButtonAsLink extends CommonProps {
 }
 
 interface ButtonAsButton
-  extends CommonProps,
-    Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> {
+  extends CommonProps, Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> {
   href?: undefined;
 }
 

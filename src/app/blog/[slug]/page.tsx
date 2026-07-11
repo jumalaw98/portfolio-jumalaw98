@@ -53,9 +53,7 @@ export async function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }));
 }
 
-export async function generateMetadata({
-  params,
-}: BlogPostPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
   const { post } = await resolvePost(slug);
 
@@ -141,8 +139,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <Container className="max-w-3xl">
           {usingPlaceholders ? (
             <p className="mb-4 rounded-md border border-brand-orange-light bg-brand-orange-tint px-4 py-2 text-sm text-brand-orange-dark">
-              Placeholder post — connect <code>HASHNODE_PUBLICATION_HOST</code> to
-              show real Hashnode content here.
+              Placeholder post — connect <code>HASHNODE_PUBLICATION_HOST</code> to show real
+              Hashnode content here.
             </p>
           ) : null}
 
@@ -162,12 +160,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             ))}
           </div>
 
-          <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-            {post.title}
-          </h1>
-          {post.subtitle ? (
-            <p className="mt-3 text-lg text-text-muted">{post.subtitle}</p>
-          ) : null}
+          <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{post.title}</h1>
+          {post.subtitle ? <p className="mt-3 text-lg text-text-muted">{post.subtitle}</p> : null}
 
           <div className="mt-6 flex items-center gap-3">
             {post.author.profilePictureUrl ? (
@@ -184,8 +178,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             <div className="text-sm">
               <p className="font-medium text-brand-ink">{post.author.name}</p>
               <p className="text-text-muted">
-                {formatBlogDate(post.publishedAt)} ·{" "}
-                {formatReadTime(post.readTimeInMinutes)}
+                {formatBlogDate(post.publishedAt)} · {formatReadTime(post.readTimeInMinutes)}
               </p>
             </div>
           </div>

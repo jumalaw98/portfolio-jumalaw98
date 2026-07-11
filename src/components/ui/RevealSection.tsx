@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
 interface RevealSectionProps {
@@ -14,6 +14,11 @@ interface RevealSectionProps {
  * scrolls into view. Kept as a small, isolated client component so pages
  * using it (e.g. About) can stay Server Components otherwise — only this
  * leaf ships the animation JS.
+ *
+ * `suppressHydrationWarning` is set on the motion element because Framer
+ * Motion may render inline styles during SSR that differ from the client
+ * hydration pass. The prop silences those harmless mismatches while keeping
+ * the entrance animation intact from first paint.
  */
 export function RevealSection({ children, className, delay = 0 }: RevealSectionProps) {
   const shouldReduceMotion = useReducedMotion();
@@ -21,7 +26,8 @@ export function RevealSection({ children, className, delay = 0 }: RevealSectionP
   return (
     <motion.div
       className={className}
-      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 20 }}
+      suppressHydrationWarning
+      initial={!shouldReduceMotion ? { opacity: 0, y: 20 } : undefined}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.5, delay, ease: "easeOut" }}

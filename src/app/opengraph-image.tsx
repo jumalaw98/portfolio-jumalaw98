@@ -12,52 +12,48 @@ export const contentType = "image/png";
 // (project case studies, blog posts) override this via their own metadata.
 export default function OpengraphImage() {
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#1C76B5",
+        color: "#FFFFFF",
+        fontFamily: "sans-serif",
+      }}
+    >
       <div
         style={{
-          width: "100%",
-          height: "100%",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#1C76B5",
-          color: "#FFFFFF",
-          fontFamily: "sans-serif",
+          width: 120,
+          height: 120,
+          borderRadius: 9999,
+          border: "6px solid #F7941D",
+          fontSize: 48,
+          fontWeight: 700,
+          marginBottom: 40,
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 120,
-            height: 120,
-            borderRadius: 9999,
-            border: "6px solid #F7941D",
-            fontSize: 48,
-            fontWeight: 700,
-            marginBottom: 40,
-          }}
-        >
-          JLW
-        </div>
-        <div style={{ fontSize: 56, fontWeight: 700, textAlign: "center" }}>
-          {SITE_NAME}
-        </div>
-        <div
-          style={{
-            fontSize: 28,
-            marginTop: 16,
-            color: "#EAF3FA",
-            textAlign: "center",
-            maxWidth: 800,
-          }}
-        >
-          {SITE_TAGLINE}
-        </div>
+        JLW
       </div>
-    ),
+      <div style={{ fontSize: 56, fontWeight: 700, textAlign: "center" }}>{SITE_NAME}</div>
+      <div
+        style={{
+          fontSize: 28,
+          marginTop: 16,
+          color: "#EAF3FA",
+          textAlign: "center",
+          maxWidth: 800,
+        }}
+      >
+        {SITE_TAGLINE}
+      </div>
+    </div>,
     { ...size },
   );
 }

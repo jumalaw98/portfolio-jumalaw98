@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { Globe, Calendar, MessageCircle } from "lucide-react";
@@ -21,15 +22,21 @@ const LOGO_PALETTE = [
 
 export function LeadershipCard({ role, index = 0 }: LeadershipCardProps) {
   const shouldReduceMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
   const links = role.links;
   const hasLinks = Boolean(
     links?.website || links?.github || links?.linkedin || links?.meetup || links?.discord,
   );
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
   return (
     <motion.article
       className="group flex h-full flex-col rounded-lg border border-border bg-white p-6"
-      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
+      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
@@ -81,7 +88,10 @@ export function LeadershipCard({ role, index = 0 }: LeadershipCardProps) {
         <ul className="mt-3 flex flex-col gap-1.5">
           {role.responsibilities.map((item) => (
             <li key={item} className="flex gap-2 text-sm text-text-body">
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-brand-orange" aria-hidden="true" />
+              <span
+                className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-brand-orange"
+                aria-hidden="true"
+              />
               {item}
             </li>
           ))}

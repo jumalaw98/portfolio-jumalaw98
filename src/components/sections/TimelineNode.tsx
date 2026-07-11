@@ -23,7 +23,8 @@ export function TimelineNode({ accent = false }: TimelineNodeProps) {
         accent ? "bg-brand-orange ring-brand-orange-light" : "bg-brand-blue ring-brand-blue-light",
       )}
       style={{ boxShadow: "0 0 0 4px white" }}
-      initial={shouldReduceMotion ? undefined : { scale: 0, opacity: 0 }}
+      suppressHydrationWarning
+      initial={!shouldReduceMotion ? { scale: 0, opacity: 0 } : undefined}
       whileInView={shouldReduceMotion ? undefined : { scale: 1, opacity: 1 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.3, ease: "easeOut" }}

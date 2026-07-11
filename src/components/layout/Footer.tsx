@@ -18,9 +18,7 @@ export function Footer() {
       <Container className="flex flex-col gap-8 py-12 md:flex-row md:items-start md:justify-between">
         <div className="max-w-sm">
           <p className="text-base font-semibold text-brand-ink">{SITE_TAGLINE}</p>
-          <p className="mt-3 font-signature text-2xl text-brand-blue">
-            — Lawrence (jumalaw98)
-          </p>
+          <p className="mt-3 font-signature text-2xl text-brand-blue">— Lawrence (jumalaw98)</p>
         </div>
 
         <nav className="flex flex-wrap gap-x-6 gap-y-2">

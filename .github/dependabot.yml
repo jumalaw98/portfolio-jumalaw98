@@ -1,0 +1,90 @@
+# ──────────────────────────────────────────────────────────────────
+# Dependabot — Automated Dependency Updates
+# ──────────────────────────────────────────────────────────────────
+# Creates PRs for out-of-date dependencies. Each PR includes CI
+# checks automatically, so you can merge safely after green CI.
+#
+# Best practices:
+#   - Daily checks (fast feedback on security patches)
+#   - Group non-breaking updates to reduce PR noise
+#   - Maximum 10 open PRs to avoid inbox overload
+#   - Assign reviewers so someone owns the update
+# ──────────────────────────────────────────────────────────────────
+
+version: 2
+updates:
+  # ── npm dependencies ──────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "07:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "automerge"
+    reviewers:
+      - "jumalaw98"
+    versioning-strategy: increase
+    groups:
+      # Group non-breaking dependency updates into a single PR
+      # to reduce noise. Breaking changes still get individual PRs.
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      nextjs:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+          - "@next/*"
+      typescript-eslint:
+        patterns:
+          - "typescript"
+          - "@typescript-eslint/*"
+          - "eslint"
+      tailwind:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+        exclude-patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+          - "next"
+          - "eslint-config-next"
+          - "@next/*"
+          - "typescript"
+          - "@typescript-eslint/*"
+          - "eslint"
+          - "tailwindcss"
+          - "@tailwindcss/*"
+
+  # ── GitHub Actions self-update ────────────────────────────────
+  # Dependabot will automatically maintain full commit SHA pins
+  # and update the tag suffix comments (e.g. # v4.3.1) as well.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      actions:
+        patterns:
+          - "*"

@@ -20,8 +20,8 @@ export default function ProjectsPage() {
       <div className="max-w-2xl">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Projects</h1>
         <p className="mt-4 text-lg text-text-body">
-          Each case study below covers ownership and decisions, not just screenshots —
-          the problem, the constraints, and why things were built the way they were.
+          Each case study below covers ownership and decisions, not just screenshots — the problem,
+          the constraints, and why things were built the way they were.
         </p>
       </div>
 

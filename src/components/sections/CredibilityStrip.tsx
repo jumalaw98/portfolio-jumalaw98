@@ -12,9 +12,7 @@ export function CredibilityStrip() {
               <dd className="font-display text-2xl font-bold text-white sm:text-3xl">
                 {stat.value}
               </dd>
-              <p className="mt-1 text-xs text-brand-blue-light sm:text-sm">
-                {stat.label}
-              </p>
+              <p className="mt-1 text-xs text-brand-blue-light sm:text-sm">{stat.label}</p>
             </div>
           ))}
         </dl>

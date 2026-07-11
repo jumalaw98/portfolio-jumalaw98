@@ -64,13 +64,15 @@ export function SpeakingCard({ talk, priority = false }: SpeakingCardProps) {
         </h3>
         <p className="mt-1 text-sm font-medium text-brand-blue-dark">{talk.event}</p>
 
-        <p className="mt-3 flex-1 text-sm leading-relaxed text-text-body">
-          {talk.description}
-        </p>
+        <p className="mt-3 flex-1 text-sm leading-relaxed text-text-body">{talk.description}</p>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {talk.tags.map((tag) => (
-            <Badge key={tag} tone="blue" className="transition-colors group-hover:bg-brand-blue-light group-hover:text-white">
+            <Badge
+              key={tag}
+              tone="blue"
+              className="transition-colors group-hover:bg-brand-blue-light group-hover:text-white"
+            >
               {tag}
             </Badge>
           ))}

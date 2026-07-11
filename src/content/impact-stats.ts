@@ -2,13 +2,7 @@ import { communityRoles } from "./community";
 import { speakingEngagements } from "./community";
 import { mvpProjects } from "./projects";
 
-export type ImpactStatIconKey =
-  | "users"
-  | "mic"
-  | "building"
-  | "calendar"
-  | "rocket"
-  | "globe";
+export type ImpactStatIconKey = "users" | "mic" | "building" | "calendar" | "rocket" | "globe";
 
 export interface ImpactStat {
   icon: ImpactStatIconKey;

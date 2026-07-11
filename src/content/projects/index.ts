@@ -14,9 +14,7 @@ export const allProjects: Project[] = [
   kommunitiAfrica,
 ];
 
-export const mvpProjects: Project[] = allProjects.filter(
-  (p) => p.status === "live",
-);
+export const mvpProjects: Project[] = allProjects.filter((p) => p.status === "live");
 
 export function getProjectBySlug(slug: string): Project | undefined {
   return allProjects.find((p) => p.slug === slug);

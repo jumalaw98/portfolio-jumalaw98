@@ -106,8 +106,7 @@ export function ContactForm() {
 
       {state === "error" ? (
         <p className="text-sm text-red-600">
-          Something went wrong sending that — try again, or email directly using the
-          address below.
+          Something went wrong sending that — try again, or email directly using the address below.
         </p>
       ) : null}
 

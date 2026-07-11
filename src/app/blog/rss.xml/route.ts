@@ -15,9 +15,8 @@ function escapeXml(value: string): string {
 
 export async function GET() {
   const livePosts = await getAllPosts();
-  const posts = !isHashnodeConfigured() || livePosts.length === 0
-    ? placeholderBlogPosts
-    : livePosts;
+  const posts =
+    !isHashnodeConfigured() || livePosts.length === 0 ? placeholderBlogPosts : livePosts;
 
   const sorted = [...posts].sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),

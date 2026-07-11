@@ -1,19 +1,18 @@
 import Image from "next/image";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
-import { PLACEHOLDER_IMAGES } from "@/lib/placeholder-images";
 
 interface HeroProps {
   headline: string;
   subline: string;
-  headshotSrc?: string; // TODO: swap to /images/headshot.jpg once the real photo is ready
+  headshotSrc?: string;
 }
 
 export function Hero({
   headline,
   subline,
-  headshotSrc = PLACEHOLDER_IMAGES.headshot,
-}: HeroProps) {
+  headshotSrc = "https://ik.imagekit.io/lawz/law/jumalaw98.jpg",
+}: Readonly<HeroProps>) {
   return (
     <section className="border-b border-border bg-brand-blue-tint">
       <Container className="grid gap-10 py-20 md:grid-cols-[1.2fr_0.8fr] md:items-center md:py-28">

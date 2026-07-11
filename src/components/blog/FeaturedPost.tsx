@@ -36,9 +36,7 @@ export function FeaturedPost({ post }: FeaturedPostProps) {
           <h2 className="mt-4 text-2xl font-bold leading-snug text-brand-ink group-hover:text-brand-blue sm:text-3xl">
             {post.title}
           </h2>
-          {post.subtitle ? (
-            <p className="mt-2 text-text-muted">{post.subtitle}</p>
-          ) : null}
+          {post.subtitle ? <p className="mt-2 text-text-muted">{post.subtitle}</p> : null}
           <p className="mt-3 text-text-body">{post.brief}</p>
 
           <div className="mt-5 flex items-center gap-4 text-sm text-text-muted">

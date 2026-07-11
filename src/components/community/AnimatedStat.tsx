@@ -55,7 +55,8 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
     <motion.div
       ref={ref}
       className="rounded-lg border border-border bg-white p-6 text-center"
-      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
+      suppressHydrationWarning
+      initial={!shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
       animate={isInView && !shouldReduceMotion ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
     >
@@ -70,9 +71,7 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
           <span className="ml-1 text-xs font-normal text-text-muted">(approx.)</span>
         ) : null}
       </p>
-      {stat.description ? (
-        <p className="mt-1 text-xs text-text-muted">{stat.description}</p>
-      ) : null}
+      {stat.description ? <p className="mt-1 text-xs text-text-muted">{stat.description}</p> : null}
     </motion.div>
   );
 }
