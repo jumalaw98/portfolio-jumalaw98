@@ -15,10 +15,7 @@ export async function POST(request: Request) {
   };
 
   if (!name || !email || !message) {
-    return NextResponse.json(
-      { error: "Missing required fields." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
   }
 
   const resendApiKey = process.env.RESEND_API_KEY;
@@ -26,10 +23,11 @@ export async function POST(request: Request) {
 
   if (!resendApiKey) {
     // No API key configured yet — log for local dev instead of failing silently.
-    console.warn(
-      "RESEND_API_KEY not set — contact form submission was received but not emailed.",
-      { name, email, intent },
-    );
+    console.warn("RESEND_API_KEY not set — contact form submission was received but not emailed.", {
+      name,
+      email,
+      intent,
+    });
     return NextResponse.json({ ok: true, delivered: false });
   }
 
@@ -49,10 +47,7 @@ export async function POST(request: Request) {
   });
 
   if (!response.ok) {
-    return NextResponse.json(
-      { error: "Failed to send message." },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: "Failed to send message." }, { status: 502 });
   }
 
   return NextResponse.json({ ok: true, delivered: true });

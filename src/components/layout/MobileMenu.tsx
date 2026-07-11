@@ -32,11 +32,7 @@ export function MobileMenu({ pathname, onNavigate }: MobileMenuProps) {
             </Link>
           );
         })}
-        <Button
-          href={PRIMARY_CTA.href}
-          variant="primary"
-          className="mt-2 w-full"
-        >
+        <Button href={PRIMARY_CTA.href} variant="primary" className="mt-2 w-full">
           {PRIMARY_CTA.label}
         </Button>
       </Container>

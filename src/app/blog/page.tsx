@@ -75,8 +75,8 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       <div className="max-w-2xl">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Blog</h1>
         <p className="mt-4 text-lg text-text-body">
-          Technical lessons from real deployments, and what running technical
-          communities across East Africa has taught me about shipping software.{" "}
+          Technical lessons from real deployments, and what running technical communities across
+          East Africa has taught me about shipping software.{" "}
           <a
             href={SOCIAL_LINKS.hashnode}
             target="_blank"
@@ -90,8 +90,8 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
       {usingPlaceholders ? (
         <p className="mt-8 rounded-md border border-brand-orange-light bg-brand-orange-tint px-4 py-3 text-sm text-brand-orange-dark">
-          Showing placeholder posts — set <code>HASHNODE_PUBLICATION_HOST</code> in
-          your environment to pull the real, live feed from Hashnode.
+          Showing placeholder posts — set <code>HASHNODE_PUBLICATION_HOST</code> in your environment
+          to pull the real, live feed from Hashnode.
         </p>
       ) : null}
 
@@ -112,15 +112,10 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
       {/* Visually hidden — keeps the heading hierarchy valid even when no
           featured post renders (e.g. while filtering by tag/search). */}
-      <h2 className="sr-only">
-        {tag || q ? "Filtered Articles" : "All Articles"}
-      </h2>
+      <h2 className="sr-only">{tag || q ? "Filtered Articles" : "All Articles"}</h2>
 
       <RevealSection className="mt-8">
-        <BlogGrid
-          posts={gridPosts}
-          emptyMessage="No articles match that search or tag yet."
-        />
+        <BlogGrid posts={gridPosts} emptyMessage="No articles match that search or tag yet." />
       </RevealSection>
     </Container>
   );

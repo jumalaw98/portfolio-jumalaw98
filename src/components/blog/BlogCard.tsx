@@ -20,6 +20,10 @@ export function BlogCard({ post, priority = false, index = 0 }: BlogCardProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Intentionally set after mount to avoid hydration mismatches with
+    // framer-motion's `initial` prop — the component server-renders with
+    // no animation state, then enables entrance animations on the client.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -40,7 +44,10 @@ export function BlogCard({ post, priority = false, index = 0 }: BlogCardProps) {
             }
       }
     >
-      <Link href={`/blog/${post.slug}`} className="group block h-full overflow-hidden rounded-lg border border-border bg-white">
+      <Link
+        href={`/blog/${post.slug}`}
+        className="group block h-full overflow-hidden rounded-lg border border-border bg-white"
+      >
         {post.coverImageUrl ? (
           <div className="relative aspect-video w-full overflow-hidden">
             <Image
@@ -65,12 +72,8 @@ export function BlogCard({ post, priority = false, index = 0 }: BlogCardProps) {
             </div>
           ) : null}
 
-          <h3 className="text-lg font-semibold leading-snug text-brand-ink">
-            {post.title}
-          </h3>
-          {post.subtitle ? (
-            <p className="mt-1 text-sm text-text-muted">{post.subtitle}</p>
-          ) : null}
+          <h3 className="text-lg font-semibold leading-snug text-brand-ink">{post.title}</h3>
+          {post.subtitle ? <p className="mt-1 text-sm text-text-muted">{post.subtitle}</p> : null}
           <p className="mt-2 flex-1 text-sm text-text-body">{post.brief}</p>
 
           <div className="mt-4 flex items-center justify-between text-xs text-text-muted">

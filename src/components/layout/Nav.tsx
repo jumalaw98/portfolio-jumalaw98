@@ -54,9 +54,7 @@ export function Nav() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "relative py-1 text-sm font-medium transition-colors",
-                  active
-                    ? "text-brand-blue"
-                    : "text-text-body hover:text-brand-blue",
+                  active ? "text-brand-blue" : "text-text-body hover:text-brand-blue",
                 )}
               >
                 {link.label}

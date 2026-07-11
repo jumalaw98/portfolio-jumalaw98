@@ -29,6 +29,7 @@ export function LeadershipCard({ role, index = 0 }: LeadershipCardProps) {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -87,7 +88,10 @@ export function LeadershipCard({ role, index = 0 }: LeadershipCardProps) {
         <ul className="mt-3 flex flex-col gap-1.5">
           {role.responsibilities.map((item) => (
             <li key={item} className="flex gap-2 text-sm text-text-body">
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-brand-orange" aria-hidden="true" />
+              <span
+                className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-brand-orange"
+                aria-hidden="true"
+              />
               {item}
             </li>
           ))}

@@ -31,13 +31,13 @@ Open http://localhost:3000.
 See `.env.local.example`. None are required to run the site locally — the
 contact form and blog integration degrade gracefully without them (see below).
 
-| Variable | Used for |
-|---|---|
-| `NEXT_PUBLIC_SITE_URL` | Canonical URLs, sitemap, OG metadata. Defaults to a placeholder until the domain is chosen. |
-| `HASHNODE_PUBLICATION_HOST` | V2 blog integration (`lib/hashnode.ts`). Not yet wired into a page. |
-| `RESEND_API_KEY` | Contact form email delivery. Without it, submissions are logged to the server console instead of emailed — useful for local testing. |
-| `CONTACT_RECEIVER_EMAIL` | Where contact form emails go. Falls back to the address in `lib/constants.ts`. |
-| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Analytics, V2. |
+| Variable                       | Used for                                                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SITE_URL`         | Canonical URLs, sitemap, OG metadata. Defaults to a placeholder until the domain is chosen.                                          |
+| `HASHNODE_PUBLICATION_HOST`    | V2 blog integration (`lib/hashnode.ts`). Not yet wired into a page.                                                                  |
+| `RESEND_API_KEY`               | Contact form email delivery. Without it, submissions are logged to the server console instead of emailed — useful for local testing. |
+| `CONTACT_RECEIVER_EMAIL`       | Where contact form emails go. Falls back to the address in `lib/constants.ts`.                                                       |
+| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Analytics, V2.                                                                                                                       |
 
 ## What's stubbed vs. real
 
@@ -99,6 +99,7 @@ webhook), and swapping `SearchBox`'s query logic for a real search call without
 touching the rest of the page.
 
 **Future scalability notes:**
+
 - Pagination isn't wired up yet — `getAllPosts()` fetches up to 50 posts in one
   request, which comfortably covers a personal blog's near-term volume. Past
   that, switch to Hashnode's cursor-based pagination (`pageInfo.endCursor`,
@@ -110,6 +111,7 @@ touching the rest of the page.
   like giscus or utterances would be the simplest addition if wanted.
 
 **Placeholders — drop in when ready, no code changes needed:**
+
 - `src/lib/placeholder-images.ts` — swap each Unsplash URL for a real local asset path (headshot, project screenshots)
 - `public/resume/lawrence-juma-resume.pdf` — Resume page download button
 - `public/logo/logo-full.svg`, `logo-mark.svg` — favicon source + nav mark
@@ -117,6 +119,7 @@ touching the rest of the page.
 
 **Still-open content items** (tracked in `portfolio-content.md`'s own open-items
 list, carried into code as `TODO`/`[TBD]` markers — grep for `TBD` or `TODO`):
+
 1. SheCodeAfrica Nairobi start year (`src/content/timeline.ts`, `src/content/community.ts`)
 2. DevFest Kisumu vs. DevFest Western Kenya naming (`src/content/community.ts`)
 3. "M-PESA Integration" session view count/link (`src/content/community.ts`)
@@ -133,6 +136,7 @@ The standalone `/resume` page has been merged into `/about` as a section
 still work.
 
 **Content review — what was duplicated and how it was resolved:**
+
 - **Skills** appeared twice: as prose in About's old "What I Do Today" and as
   a tag list in Resume's "Quick Skills Summary." Now there's one canonical
   **Skills & Expertise** section (the tag list); the old prose was tightened
@@ -151,6 +155,7 @@ Skills & Expertise → **Resume** (`#resume`) → Education → Certifications �
 Community Leadership → Personal Note → Call to Action.
 
 Two deliberate deviations from a literal read of the requested order:
+
 - **Community Leadership** here is the existing "why community work matters
   to my engineering" bridge paragraph plus a link out to `/community` — not a
   re-embedding of the Leadership/Impact cards that already live on that page.
@@ -200,7 +205,7 @@ automatically.
 
 **Impact Numbers** (`src/components/community/AnimatedStat.tsx` +
 `src/content/impact-stats.ts`) is now a count-up dashboard aggregating across
-*all* documented activity rather than one organization: community members
+_all_ documented activity rather than one organization: community members
 reached, speaking engagements, communities led, years of community
 leadership, production platforms shipped, and countries reached. Three of
 these (speaking engagements, communities led, years of leadership) are
@@ -278,6 +283,7 @@ technical SEO across every page.
 Every single page's Open Graph/Twitter image previously pointed at
 `/images/og/default.png` — a file that never existed (only a `.gitkeep`
 placeholder). Social share previews were silently broken sitewide. Fixed by:
+
 - Making `ogImage` in `pageMetadata()` (`src/lib/seo.ts`) genuinely optional.
   Pages that don't pass one now fall back to a real, generated image instead
   of a dead path.
@@ -327,13 +333,14 @@ install needed) for the generated OG image.
 `app/opengraph-image.tsx` (new), `components/ui/RevealSection.tsx` (new,
 introduced earlier for the About merge, now used sitewide),
 `components/layout/Nav.tsx` (scroll shadow), `components/sections/ProjectCard.tsx`
-+ `ProjectGrid.tsx`, `components/blog/BlogCard.tsx` + `BlogGrid.tsx`
-(motion + stagger), `components/sections/CaseStudyLayout.tsx` (staggered
-body sections), `app/page.tsx`, `app/projects/page.tsx`,
-`app/projects/[slug]/page.tsx`, `app/contact/page.tsx`, `app/blog/page.tsx`,
-`app/blog/[slug]/page.tsx`, `app/community/page.tsx`, `app/about/page.tsx`,
-`app/not-found.tsx`, `app/layout.tsx` (all: breadcrumbs, reveals, and/or
-metadata improvements as applicable).
+
+- `ProjectGrid.tsx`, `components/blog/BlogCard.tsx` + `BlogGrid.tsx`
+  (motion + stagger), `components/sections/CaseStudyLayout.tsx` (staggered
+  body sections), `app/page.tsx`, `app/projects/page.tsx`,
+  `app/projects/[slug]/page.tsx`, `app/contact/page.tsx`, `app/blog/page.tsx`,
+  `app/blog/[slug]/page.tsx`, `app/community/page.tsx`, `app/about/page.tsx`,
+  `app/not-found.tsx`, `app/layout.tsx` (all: breadcrumbs, reveals, and/or
+  metadata improvements as applicable).
 
 `components/ui/Card.tsx` is no longer used anywhere (ProjectCard/BlogCard now
 own their markup directly for animation flexibility) but was left in place as

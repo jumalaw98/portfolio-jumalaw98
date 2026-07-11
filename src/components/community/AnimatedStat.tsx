@@ -33,6 +33,7 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
   const Icon = ICONS[stat.icon];
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -75,9 +76,7 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
           <span className="ml-1 text-xs font-normal text-text-muted">(approx.)</span>
         ) : null}
       </p>
-      {stat.description ? (
-        <p className="mt-1 text-xs text-text-muted">{stat.description}</p>
-      ) : null}
+      {stat.description ? <p className="mt-1 text-xs text-text-muted">{stat.description}</p> : null}
     </motion.div>
   );
 }

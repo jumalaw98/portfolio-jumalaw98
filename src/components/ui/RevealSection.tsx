@@ -25,6 +25,7 @@ export function RevealSection({ children, className, delay = 0 }: RevealSectionP
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

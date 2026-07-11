@@ -22,9 +22,7 @@ export function TableOfContents() {
     const container = document.getElementById("article-content");
     if (!container) return;
 
-    const headings = Array.from(
-      container.querySelectorAll<HTMLHeadingElement>("h2, h3"),
-    );
+    const headings = Array.from(container.querySelectorAll<HTMLHeadingElement>("h2, h3"));
 
     // Reading the DOM once after mount to build the TOC — not a cascading
     // state update, just the standard "sync with an external system" case.
@@ -53,9 +51,7 @@ export function TableOfContents() {
 
   return (
     <nav aria-label="Table of contents" className="sticky top-24">
-      <p className="font-mono text-xs uppercase tracking-wide text-text-muted">
-        On this page
-      </p>
+      <p className="font-mono text-xs uppercase tracking-wide text-text-muted">On this page</p>
       <ul className="mt-3 flex flex-col gap-2 border-l border-border pl-4 text-sm">
         {items.map((item) => (
           <li key={item.id} className={item.level === 3 ? "ml-3" : ""}>

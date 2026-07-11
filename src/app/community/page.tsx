@@ -34,8 +34,8 @@ export default function CommunityPage() {
             Community &amp; Speaking
           </h1>
           <p className="mt-4 text-lg text-text-body">
-            Alongside my engineering work, I&apos;ve spent the last several years
-            building and leading technical communities across East Africa.
+            Alongside my engineering work, I&apos;ve spent the last several years building and
+            leading technical communities across East Africa.
           </p>
         </Container>
       </section>
@@ -48,9 +48,8 @@ export default function CommunityPage() {
               Roles &amp; Leadership
             </h2>
             <p className="mt-3 max-w-2xl text-text-body">
-              None of these are solo projects, and I want to be upfront about that —
-              each card below is scoped to what I actually did, not the size of the
-              organization behind it.
+              None of these are solo projects, and I want to be upfront about that — each card below
+              is scoped to what I actually did, not the size of the organization behind it.
             </p>
             <div className="mt-8">
               <LeadershipGrid roles={communityRoles} />
@@ -63,13 +62,10 @@ export default function CommunityPage() {
       <RevealSection>
         <section className="border-y border-border bg-brand-blue-tint py-16">
           <Container className="max-w-5xl">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Impact Numbers
-            </h2>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Impact Numbers</h2>
             <p className="mt-3 max-w-2xl text-text-body">
-              These numbers pull from everything on this site, not just one
-              community — every talk, every role, every event that&apos;s actually
-              documented here.
+              These numbers pull from everything on this site, not just one community — every talk,
+              every role, every event that&apos;s actually documented here.
             </p>
             <div className="mt-8">
               <ImpactStatsGrid stats={impactStats} />
@@ -90,9 +86,8 @@ export default function CommunityPage() {
               </h2>
             </div>
             <p className="mt-3 max-w-2xl text-text-body">
-              A few of the talks I&apos;ve given over the years, spanning AI, open
-              source sustainability, inclusive engineering culture, and privacy by
-              design.
+              A few of the talks I&apos;ve given over the years, spanning AI, open source
+              sustainability, inclusive engineering culture, and privacy by design.
             </p>
             <div className="mt-8">
               <SpeakingGrid talks={speakingEngagements} />

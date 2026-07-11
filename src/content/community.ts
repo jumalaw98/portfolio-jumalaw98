@@ -218,6 +218,8 @@ export const speakingEngagements: SpeakingEngagement[] = [
 // Live Sessions & Content — portfolio-content.md Section 6e.
 export const liveSessionsNote = {
   host: "I host #SYTTechTalk, and I've presented on it myself too — including a session on getting started and building a career in technical writing, back in July 2023.",
-  additional: "I've also shown up on Twitter/X Spaces a few times, plus some YouTube session highlights worth a look.",
-  topSession: "My top-performing session so far has been on M-PESA Integration [confirm view count and link]", // TODO
+  additional:
+    "I've also shown up on Twitter/X Spaces a few times, plus some YouTube session highlights worth a look.",
+  topSession:
+    "My top-performing session so far has been on M-PESA Integration [confirm view count and link]", // TODO
 };

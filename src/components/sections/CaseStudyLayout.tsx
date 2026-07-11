@@ -30,13 +30,9 @@ export function CaseStudyLayout({ project, nextProject }: CaseStudyLayoutProps) 
           <p className="font-mono text-sm text-brand-blue-dark">
             {project.role} · {project.timeframe}
           </p>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
-            {project.title}
-          </h1>
+          <h1 className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">{project.title}</h1>
           {project.designCredit ? (
-            <p className="mt-3 text-sm text-text-muted">
-              Design: {project.designCredit}
-            </p>
+            <p className="mt-3 text-sm text-text-muted">Design: {project.designCredit}</p>
           ) : null}
           <div className="mt-4 flex flex-wrap gap-2">
             {project.stack.map((tech) => (

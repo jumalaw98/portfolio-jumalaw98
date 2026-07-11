@@ -19,13 +19,12 @@ export function TimelineItem({ entry, side, index }: TimelineItemProps) {
   const isLeft = side === "left";
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
   return (
-    <li
-      className="grid grid-cols-[2rem_1fr] gap-x-4 md:grid-cols-[1fr_3rem_1fr] md:gap-x-8"
-    >
+    <li className="grid grid-cols-[2rem_1fr] gap-x-4 md:grid-cols-[1fr_3rem_1fr] md:gap-x-8">
       {/* Node — same grid column as the line at every breakpoint, so it
           always sits exactly on top of it with no manual position math. */}
       <div className="col-start-1 row-start-1 flex justify-center pt-1 md:col-start-2">
@@ -46,7 +45,11 @@ export function TimelineItem({ entry, side, index }: TimelineItemProps) {
         }
         whileInView={shouldReduceMotion ? undefined : { opacity: 1, x: 0, scale: 1 }}
         viewport={{ once: true, margin: "-60px" }}
-        transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : Math.min(index * 0.04, 0.2), ease: "easeOut" }}
+        transition={{
+          duration: 0.45,
+          delay: shouldReduceMotion ? 0 : Math.min(index * 0.04, 0.2),
+          ease: "easeOut",
+        }}
       >
         <motion.div
           className={cn(
@@ -65,20 +68,13 @@ export function TimelineItem({ entry, side, index }: TimelineItemProps) {
           }
           transition={{ duration: 0.25, ease: "easeOut" }}
         >
-          <div
-            className={cn(
-              "flex flex-wrap items-center gap-2",
-              isLeft ? "md:justify-end" : "",
-            )}
-          >
+          <div className={cn("flex flex-wrap items-center gap-2", isLeft ? "md:justify-end" : "")}>
             <p className="font-mono text-xs text-text-muted">{entry.dates}</p>
             {entry.parallelStart ? <Badge tone="orange">Parallel start</Badge> : null}
           </div>
           <h3 className="mt-2 text-lg font-semibold text-brand-ink">{entry.stage}</h3>
           <p className="text-sm font-medium text-brand-blue-dark">{entry.institution}</p>
-          <p className="mt-2 text-sm leading-relaxed text-text-body">
-            {entry.description}
-          </p>
+          <p className="mt-2 text-sm leading-relaxed text-text-body">{entry.description}</p>
         </motion.div>
       </motion.div>
     </li>

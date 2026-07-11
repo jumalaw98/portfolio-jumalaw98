@@ -14,8 +14,7 @@ export const timeline: TimelineEntry[] = [
     stage: "Electrical Engineering diploma",
     institution: "The Kisumu National Polytechnic",
     dates: "2015–2019",
-    description:
-      "Diploma in Electrical and Electronics Engineering (Power Option).",
+    description: "Diploma in Electrical and Electronics Engineering (Power Option).",
   },
   {
     stage: "Engineering internship",
@@ -35,8 +34,7 @@ export const timeline: TimelineEntry[] = [
     stage: "WordPress work (overlaps)",
     institution: "A Pack A Month (remote)",
     dates: "2021–2022",
-    description:
-      "Website management via Elementor, SEO via Yoast, social media integration.",
+    description: "Website management via Elementor, SEO via Yoast, social media integration.",
   },
   {
     stage: "Community leadership begins",
@@ -49,8 +47,7 @@ export const timeline: TimelineEntry[] = [
     stage: "Developer journey begins",
     institution: "FreeCodeCamp + eMobilis Mobile Technology Academy",
     dates: "2022",
-    description:
-      "Responsive Web Development (FreeCodeCamp) + Web Development Bootcamp (eMobilis).",
+    description: "Responsive Web Development (FreeCodeCamp) + Web Development Bootcamp (eMobilis).",
     parallelStart: true,
   },
   {

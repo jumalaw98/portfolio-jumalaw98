@@ -30,9 +30,7 @@ export default function HomePage() {
         <section className="py-20">
           <Container>
             <div className="flex flex-wrap items-end justify-between gap-4">
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Featured Projects
-              </h2>
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Featured Projects</h2>
               <Button href="/projects" variant="ghost">
                 View All Projects
               </Button>

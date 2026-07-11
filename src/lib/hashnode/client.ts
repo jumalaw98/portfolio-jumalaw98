@@ -26,11 +26,10 @@ interface RequestOptions {
  * Sends a POST request to the Hashnode Public API (gql.hashnode.com).
  * No auth token is needed — every query used in this app reads public data.
  */
-export async function hashnodeRequest<T, V extends Record<string, unknown> = Record<string, unknown>>(
-  query: string,
-  variables?: V,
-  options: RequestOptions = {},
-): Promise<T> {
+export async function hashnodeRequest<
+  T,
+  V extends Record<string, unknown> = Record<string, unknown>,
+>(query: string, variables?: V, options: RequestOptions = {}): Promise<T> {
   const { revalidate = 3600, tags } = options;
 
   const response = await fetch(HASHNODE_ENDPOINT, {
@@ -41,18 +40,13 @@ export async function hashnodeRequest<T, V extends Record<string, unknown> = Rec
   });
 
   if (!response.ok) {
-    throw new HashnodeApiError(
-      `Hashnode API request failed with status ${response.status}`,
-    );
+    throw new HashnodeApiError(`Hashnode API request failed with status ${response.status}`);
   }
 
   const json = (await response.json()) as GraphQLResponse<T>;
 
   if (json.errors?.length) {
-    throw new HashnodeApiError(
-      json.errors.map((e) => e.message).join("; "),
-      json.errors,
-    );
+    throw new HashnodeApiError(json.errors.map((e) => e.message).join("; "), json.errors);
   }
 
   if (!json.data) {
