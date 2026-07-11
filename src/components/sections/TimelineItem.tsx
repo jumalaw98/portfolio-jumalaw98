@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
 import { TimelineNode } from "./TimelineNode";
@@ -14,7 +15,12 @@ interface TimelineItemProps {
 
 export function TimelineItem({ entry, side, index }: TimelineItemProps) {
   const shouldReduceMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
   const isLeft = side === "left";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <li
@@ -34,9 +40,9 @@ export function TimelineItem({ entry, side, index }: TimelineItemProps) {
           isLeft ? "md:col-start-1 md:row-start-1" : "md:col-start-3 md:row-start-1",
         )}
         initial={
-          shouldReduceMotion
-            ? undefined
-            : { opacity: 0, x: isLeft ? -28 : 28, scale: 0.97 }
+          mounted && !shouldReduceMotion
+            ? { opacity: 0, x: isLeft ? -28 : 28, scale: 0.97 }
+            : undefined
         }
         whileInView={shouldReduceMotion ? undefined : { opacity: 1, x: 0, scale: 1 }}
         viewport={{ once: true, margin: "-60px" }}

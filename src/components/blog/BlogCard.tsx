@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Clock } from "lucide-react";
@@ -16,11 +17,16 @@ interface BlogCardProps {
 
 export function BlogCard({ post, priority = false, index = 0 }: BlogCardProps) {
   const shouldReduceMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <motion.div
       className="h-full"
-      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
+      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}

@@ -7,9 +7,6 @@ import { CredibilityStrip } from "@/components/sections/CredibilityStrip";
 import { RevealSection } from "@/components/ui/RevealSection";
 import { mvpProjects } from "@/content/projects";
 
-// Headline/sub-line — portfolio-content.md Section 1a/1b, recommended pick (#1 + #1).
-// TODO: swap in Lawrence's final pick if it differs, and drop in headshotSrc once photo is ready.
-//
 // Animation note: the Hero renders statically (no entrance animation) since
 // it's almost certainly the Largest Contentful Paint element on this page —
 // animating it risks delaying LCP for no real UX gain, and it's already in
@@ -21,8 +18,8 @@ export default function HomePage() {
   return (
     <>
       <Hero
-        headline="I build production-ready web apps — and the communities that use them."
-        subline="Frontend-first, growing into full-stack and DevOps — and I've led the communities behind thousands of developers across East Africa."
+        headline="I build production-ready web apps and the communities that use them."
+        subline="Frontend-first, growing into full-stack and DevOps and I've led the communities behind thousands of developers across East Africa and beyond."
       />
 
       <RevealSection>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -13,11 +14,16 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
   const shouldReduceMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <motion.div
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
+      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}

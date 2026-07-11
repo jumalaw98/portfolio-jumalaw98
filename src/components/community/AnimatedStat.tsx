@@ -25,11 +25,16 @@ interface AnimatedStatProps {
 export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
   const shouldReduceMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
   // `once: true` — the count-up plays a single time per page load, the
   // moment the stat scrolls into view, and never re-triggers.
   const isInView = useInView(ref, { once: true, margin: "-80px" });
   const [displayValue, setDisplayValue] = useState(shouldReduceMotion ? stat.value : 0);
   const Icon = ICONS[stat.icon];
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isInView) return;
@@ -55,7 +60,7 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
     <motion.div
       ref={ref}
       className="rounded-lg border border-border bg-white p-6 text-center"
-      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
+      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
       animate={isInView && !shouldReduceMotion ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
     >

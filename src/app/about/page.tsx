@@ -17,7 +17,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { pageMetadata, breadcrumbJsonLd } from "@/lib/seo";
 
 export const metadata = pageMetadata({
-  title: "About — React/Next.js Developer & Community Leader in Nairobi",
+  title: "About — React/Next.js Developer, Tech Community Leader & Cybersecurity Enthusiast in Nairobi",
   description:
     "Lawrence Juma is a Nairobi-based React/Next.js developer growing into full-stack and DevOps, with a parallel track record leading technical communities across East Africa. Includes background, skills, resume, education, and certifications.",
   path: "/about",
@@ -62,7 +62,7 @@ export default function AboutPage() {
         <Container className="grid gap-10 md:grid-cols-[0.8fr_1.2fr] md:items-center">
           <div className="relative mx-auto aspect-square w-full max-w-xs overflow-hidden rounded-2xl bg-brand-blue md:mx-0">
             <Image
-              src={PLACEHOLDER_IMAGES.headshot}
+              src="https://ik.imagekit.io/lawz/law/jumalaw98.jpg"
               alt="Lawrence Juma"
               fill
               priority

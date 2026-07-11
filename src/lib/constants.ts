@@ -8,7 +8,7 @@ export const SITE_ALIAS = "jumalaw98";
 export const SITE_TAGLINE = "The Builder Who Also Brings People Together.";
 
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com"; // TODO: replace once domain is chosen
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://jumalaw98.vercel.app/";
 
 export const CONTACT_EMAIL = "jumalawrence98@gmail.com";
 
