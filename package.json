@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "analyze": "cross-env ANALYZE=true next build"
+    "analyze": "cross-env ANALYZE=true next build --webpack"
   },
   "dependencies": {
     "framer-motion": "^12.42.2",
