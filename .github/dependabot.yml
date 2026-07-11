@@ -25,8 +25,7 @@ updates:
       - "dependencies"
       - "automerge"
     reviewers:
-      # Uncomment and add your GitHub username:
-      # - "jumalaw98"
+      - "jumalaw98"
     versioning-strategy: increase
     groups:
       # Group non-breaking dependency updates into a single PR
