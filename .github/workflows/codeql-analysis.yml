@@ -1,0 +1,79 @@
+# ──────────────────────────────────────────────────────────────────
+# CodeQL — GitHub-Native Security Analysis
+# ──────────────────────────────────────────────────────────────────
+# Runs on:
+#   - Every PR to main (fast feedback on new vulnerabilities)
+#   - Every push to main (baseline scan)
+#   - Weekly schedule (catch vulnerabilities in existing code)
+#
+# Why separate from ci.yml:
+#   CodeQL is slower (~3 min) and has different failure semantics.
+#   It is informational (not a required status check) to avoid
+#   blocking merges on false positives or noisy results.
+#
+# Best practice: keep fail-fast: false so all languages are scanned
+# even if one fails.
+# ──────────────────────────────────────────────────────────────────
+
+name: "CodeQL"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Monday 08:00 UTC — catch issues over the weekend
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false # always complete all languages even if one fails
+      matrix:
+        language: ["javascript-typescript"]
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@02c5e83432fe5497fd85b873b6c9f16a8578e1d9 # v3.37.0
+        with:
+          languages: ${{ matrix.language }}
+          # Use a config file if you need custom query suites or paths:
+          # config-file: ./.github/codeql/codeql-config.yml
+          # queries: security-extended,security-and-quality
+
+      - name: Build
+        run: |
+          npm ci
+          npx next build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@02c5e83432fe5497fd85b873b6c9f16a8578e1d9 # v3.37.0
+        with:
+          category: "/language:${{ matrix.language }}"
+          upload: True
+          output: codeql-results
+
+      - name: Upload SARIF (if analysis fails)
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: codeql-results-${{ matrix.language }}
+          path: codeql-results/
+          retention-days: 7

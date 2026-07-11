@@ -8,8 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "format": "prettier --check .",
-    "format:fix": "prettier --write .",
+    "format": "node scripts/format.mjs",
+    "format:fix": "node scripts/format.mjs --fix",
     "analyze": "cross-env ANALYZE=true next build --webpack"
   },
   "dependencies": {

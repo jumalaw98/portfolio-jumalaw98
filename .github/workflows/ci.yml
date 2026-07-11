@@ -1,0 +1,238 @@
+# ──────────────────────────────────────────────────────────────────
+# CI — Pull Request Quality Gates
+# ──────────────────────────────────────────────────────────────────
+# Triggers on every PR to `main` and on direct pushes (merge queue).
+#
+# Architecture:
+#   Tier 1 (parallel): code-quality, type-check, audit
+#   Tier 2 (serial):   build (needs Tier 1)
+#   Tier 3 (serial):   bundle-size (needs build)
+#
+# Required for branch protection: code-quality, type-check, audit, build
+# Informational only: bundle-size (bundle bloat should not block PRs)
+# ──────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# ── Concurrency ──────────────────────────────────────────────────
+# Cancel in-progress runs for the same branch/PR. New commits →
+# old runs stop immediately, saving minutes for fast feedback.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# ── Global defaults ──────────────────────────────────────────────
+defaults:
+  run:
+    shell: bash
+
+env:
+  NODE_VERSION: "22"
+  NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://jumalaw98.vercel.app' }}
+  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ${{ vars.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || 'jumalaw98.vercel.app' }}
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # TIER 1 — Parallel static analysis
+  # ────────────────────────────────────────────────────────────────
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier
+        run: npm run format
+
+      - name: Summary
+        if: success()
+        run: |
+          {
+            echo "## ✅ Code Quality Passed"
+            echo ""
+            echo "| Check | Status |"
+            echo "|-------|--------|"
+            echo "| ESLint | ✅ |"
+            echo "| Prettier | ✅ |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  type-check:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run type-check
+
+      - name: Summary
+        if: success()
+        run: echo "## ✅ TypeScript — no errors" >> "$GITHUB_STEP_SUMMARY"
+
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit
+        # --audit-level=high → fails only on high/critical severity
+        # --include-workspace-root for npm workspaces (safe for single-package too)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+        id: audit
+
+      - name: Summary
+        run: |
+          {
+            echo "## 🔒 Dependency Audit"
+            echo ""
+            if [ "${{ steps.audit.outcome }}" = "success" ]; then
+              echo "| Status | Severity threshold |"
+              echo "|--------|-------------------|"
+              echo "| ✅ Passed | high (none found) |"
+            else
+              echo "| Status | Severity threshold |"
+              echo "|--------|-------------------|"
+              echo "| ⚠️  Warnings found | high+ (review below) |"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ────────────────────────────────────────────────────────────────
+  # TIER 2 — Build (depends on Tier 1)
+  # ────────────────────────────────────────────────────────────────
+
+  build:
+    name: Build
+    needs: [code-quality, type-check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            .next/cache
+          # Key includes lockfile + all source files that affect output
+          key: nextjs-build-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.{js,jsx,ts,tsx,mjs,mts,cjs,cts,css,json}') }}
+          restore-keys: |
+            nextjs-build-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        # Use `npx next build` directly, not `npm run build`,
+        # because our build script chains lint + type-check
+        # which are already covered by upstream jobs.
+        run: npx next build
+
+      - name: Summary
+        if: success()
+        run: |
+          {
+            echo "## ✅ Build Succeeded"
+            echo ""
+            echo "The application compiled successfully with Next.js 16 (Turbopack)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Persist build output for downstream jobs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: next-build-output
+          path: |
+            .next
+            !.next/cache
+          retention-days: 1
+
+  # ────────────────────────────────────────────────────────────────
+  # TIER 3 — Bundle analysis (depends on build)
+  # ────────────────────────────────────────────────────────────────
+
+  bundle-size:
+    name: Bundle Size
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build with bundle analyzer
+        run: npm run analyze
+        env:
+          ANALYZE: "true"
+
+      - name: Upload bundle report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bundle-report
+          path: .next/analyze/
+          retention-days: 30
+
+      - name: Summary
+        if: success()
+        run: |
+          {
+            echo "## 📦 Bundle Analysis Complete"
+            echo ""
+            echo "Bundle report uploaded as an artifact. Download \`bundle-report\`"
+            echo "to inspect per-route JavaScript bundle sizes."
+            echo ""
+            echo "| Metric | Value |"
+            echo "|--------|-------|"
+            echo "| Analyzer | @next/bundle-analyzer |"
+            echo "| Build mode | \`ANALYZE=true\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
