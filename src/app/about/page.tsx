@@ -180,8 +180,7 @@ export default function AboutPage() {
               breakdown is{" "}
               <a href="#skills" className="font-medium text-brand-blue hover:text-brand-blue-dark">
                 just above ↑
-              </a>
-              , so this section keeps to the essentials.
+              </a>, so this section keeps to the essentials.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <Button href={RESUME_PDF_PATH} variant="primary">
