@@ -58,7 +58,8 @@ const JUMP_NAV_ITEMS = [
   { href: "#community-leadership", label: "Community" },
 ];
 
-const RESUME_PDF_PATH = "https://drive.google.com/file/d/1cwQ3kqzz3NHshb4IjuAggorCOFk26KwO/view?usp=sharing";
+const RESUME_PDF_PATH =
+  "https://drive.google.com/file/d/1cwQ3kqzz3NHshb4IjuAggorCOFk26KwO/view?usp=sharing";
 
 export default function AboutPage() {
   return (
@@ -180,7 +181,8 @@ export default function AboutPage() {
               breakdown is{" "}
               <a href="#skills" className="font-medium text-brand-blue hover:text-brand-blue-dark">
                 just above ↑
-              </a>, so this section keeps to the essentials.
+              </a>
+              , so this section keeps to the essentials.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
               <Button href={RESUME_PDF_PATH} target="_blank" variant="primary">

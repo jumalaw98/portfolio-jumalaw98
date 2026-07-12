@@ -20,7 +20,8 @@ interface CommonProps {
   className?: string;
 }
 
-interface ButtonAsLink extends CommonProps, Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children"> {
+interface ButtonAsLink
+  extends CommonProps, Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children"> {
   href: string;
 }
 
