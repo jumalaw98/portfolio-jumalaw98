@@ -28,7 +28,7 @@ export const timeline: TimelineEntry[] = [
     institution: "Golden Connection Cyber, Kisumu",
     dates: "2020–2023",
     description:
-      "Customer care attendant — digital support, business operations, assisted clients with government platforms (KRA, NTSA, NHIF).",
+      "Customer care attendant digital support, business operations, assisted clients with government platforms (KRA, NTSA, NHIF).",
   },
   {
     stage: "WordPress work (overlaps)",
@@ -66,7 +66,7 @@ export const timeline: TimelineEntry[] = [
   {
     stage: "Technical writing leadership",
     institution: "SheCodeAfrica Nairobi",
-    dates: "[TBD — start year]–2024", // TODO: confirm start year with Lawrence
+    dates: "2023–2024",
     description:
       "Technical Writer Lead — led the technical writing team, created the content calendar.",
   },

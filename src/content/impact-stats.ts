@@ -16,7 +16,7 @@ export interface ImpactStat {
   approx?: boolean;
 }
 
-const COMMUNITY_LEADERSHIP_START_YEAR = 2022; // confirmed — portfolio-content.md Section 3a
+const COMMUNITY_LEADERSHIP_START_YEAR = 2022;
 
 function yearsSince(year: number): number {
   return Math.max(1, new Date().getFullYear() - year);
@@ -61,6 +61,7 @@ export const impactStats: ImpactStat[] = [
   {
     icon: "rocket",
     value: mvpProjects.length,
+    suffix: "+",
     label: "Production platforms shipped",
     description: "Live, maintained sites and platforms",
   },
@@ -70,6 +71,6 @@ export const impactStats: ImpactStat[] = [
     suffix: "+",
     label: "Countries reached",
     description: "Kenya, Uganda, and community members across East Africa",
-    approx: true, // TODO: confirm exact scope with Lawrence
+    approx: true,
   },
 ];

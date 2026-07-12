@@ -39,7 +39,7 @@ export const communityRoles: CommunityRole[] = [
     responsibilities: [
       "Co-founded the community and helped shape its direction",
       "Community management and member engagement",
-    ], // TODO: review wording
+    ],
     tags: ["Cybersecurity", "Community Building", "Mentorship"],
     logoInitials: "IS",
     links: {
@@ -51,12 +51,12 @@ export const communityRoles: CommunityRole[] = [
     role: "Community Manager & Events Manager",
     dates: "2023–ongoing (deepened to Program Coordinator/Project Manager in 2025)",
     description:
-      "Innovate. Empower. Grow: A community promoting collaboration, innovation, and best practices within the DevOps industry in Nairobi and beyond — 4,000+ members across its platforms.",
+      "Innovate. Empower. Grow: A community promoting collaboration, innovation, and best practices within the DevOps industry in Nairobi and beyond, 5,000+ members across its platforms.",
     responsibilities: [
       "Event planning and speaker coordination",
       "Sponsor and partner relations",
-      "Led the platform rebuild (see Projects — Nairobi DevOps Community Rebuild)",
-    ], // TODO: review wording
+      "Led the platform rebuild (see Projects, Nairobi DevOps Community Rebuild)",
+    ],
     tags: ["DevOps", "Cloud", "Event Organizing", "Community Growth"],
     logoInitials: "ND",
     links: {
@@ -72,7 +72,7 @@ export const communityRoles: CommunityRole[] = [
     responsibilities: [
       "Manages the community's social media presence",
       "Hosts #SYTTechTalk sessions",
-    ], // TODO: review wording
+    ],
     tags: ["Open Source", "Tech Education", "Social Media", "Community Management"],
     logoInitials: "SY",
     links: {
@@ -84,20 +84,20 @@ export const communityRoles: CommunityRole[] = [
     role: "Technical Lead, Core Team",
     dates: "2022–2023",
     description:
-      "The Google Developer Student Clubs chapter at The Kisumu National Polytechnic — students getting hands-on with Google's tools and platforms, mostly through workshops the core team ran ourselves.",
+      "The Google Developer Student Clubs chapter at The Kisumu National Polytechnic, students getting hands-on with Google's tools and platforms, mostly through workshops the core team ran ourselves.",
     responsibilities: ["Technical leadership for the core team", "Workshop delivery"],
     tags: ["Google Technologies", "Student Community", "Technical Leadership"],
     logoInitials: "GD",
     links: {
-      website: undefined, // TODO: add GDSC chapter page if still active
+      website: undefined,
     },
   },
   {
     org: "SheCodeAfrica Nairobi",
     role: "Technical Writer Lead",
-    dates: "[TBD — start year]–2024", // TODO: confirm start year with Lawrence
+    dates: "2023–2024",
     description:
-      "SheCodeAfrica's Nairobi chapter, part of a pan-African network supporting women in tech through mentorship and training. I led the chapter's technical writing side — the content calendar, the writing team, all of it.",
+      "SheCodeAfrica's Nairobi chapter, part of a pan-African network supporting women in tech through mentorship and training. I led the chapter's technical writing side, the content calendar, the writing team, all of it.",
     responsibilities: [
       "Led the technical writing team",
       "Created and maintained the content calendar",
@@ -108,23 +108,23 @@ export const communityRoles: CommunityRole[] = [
       website: "https://shecodeafricanairobi.org/",
     },
   },
-  {
-    org: "WesternCyberHub",
-    role: "Community Manager & Editorial Lead",
-    dates: "2024",
-    description:
-      "A cybersecurity community for Western Kenya — connecting people still learning with working professionals through whatever content and programming we put out.",
-    responsibilities: ["Community management", "Editorial oversight of published content"],
-    tags: ["Cybersecurity", "Editorial", "Community Management"],
-    logoInitials: "WC",
-    links: {
-      website: undefined, // TODO: add WesternCyberHub's website/community link
-    },
-  },
+  // {
+  //   org: "WesternCyberHub",
+  //   role: "Community Manager & Editorial Lead",
+  //   dates: "2024",
+  //   description:
+  //     "A cybersecurity community for Western Kenya, connecting people still learning with working professionals through whatever content and programming we put out.",
+  //   responsibilities: ["Community management", "Editorial oversight of published content"],
+  //   tags: ["Cybersecurity", "Editorial", "Community Management"],
+  //   logoInitials: "WC",
+  //   links: {
+  //     website: undefined,
+  //   },
+  // },
   {
     org: "WTD Kenya",
-    role: "TBD — confirm role with Lawrence", // TODO: this org/role wasn't in the original confirmed roster; add exact role + duration
-    dates: "TBD — confirm duration with Lawrence", // TODO
+    role: "Partnership and Outreach",
+    dates: "2025-2026",
     description:
       "A community for everyone who cares about communication, documentation, and technical writing in Kenya.",
     tags: ["Technical Writing", "Documentation", "Community"],
