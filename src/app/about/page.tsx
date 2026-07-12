@@ -58,7 +58,7 @@ const JUMP_NAV_ITEMS = [
   { href: "#community-leadership", label: "Community" },
 ];
 
-const RESUME_PDF_PATH = "/resume/lawrence-juma-resume.pdf"; // TODO: drop the real PDF in here
+const RESUME_PDF_PATH = "https://drive.google.com/file/d/1cwQ3kqzz3NHshb4IjuAggorCOFk26KwO/view?usp=sharing";
 
 export default function AboutPage() {
   return (
@@ -183,7 +183,7 @@ export default function AboutPage() {
               </a>, so this section keeps to the essentials.
             </p>
             <div className="mt-6 flex flex-wrap gap-4">
-              <Button href={RESUME_PDF_PATH} variant="primary">
+              <Button href={RESUME_PDF_PATH} target="_blank" variant="primary">
                 <Download size={18} />
                 Download PDF
               </Button>

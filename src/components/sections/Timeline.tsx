@@ -17,7 +17,7 @@ interface TimelineProps {
  * viewport — a purely decorative touch, so it's skipped entirely (line
  * shows fully filled immediately) under `prefers-reduced-motion`.
  */
-export function Timeline({ entries }: TimelineProps) {
+export function Timeline({ entries }: Readonly<TimelineProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
@@ -38,6 +38,7 @@ export function Timeline({ entries }: TimelineProps) {
       <motion.div
         aria-hidden="true"
         className="absolute left-4 top-0 h-full w-0.5 origin-top -translate-x-1/2 bg-gradient-to-b from-brand-blue to-brand-orange md:left-1/2"
+        initial={{ scaleY: shouldReduceMotion ? 1 : 0 }}
         style={{ scaleY: shouldReduceMotion ? 1 : lineScale }}
       />
 

@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -20,13 +20,13 @@ interface CommonProps {
   className?: string;
 }
 
-interface ButtonAsLink extends CommonProps {
+interface ButtonAsLink extends CommonProps, Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children"> {
   href: string;
 }
 
 interface ButtonAsButton
   extends CommonProps, Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> {
-  href?: undefined;
+  href?: never;
 }
 
 type ButtonProps = ButtonAsLink | ButtonAsButton;
@@ -35,8 +35,9 @@ export function Button({ variant = "primary", children, className, ...props }: B
   const classes = cn(baseClasses, variantClasses[variant], className);
 
   if ("href" in props && props.href) {
+    const { href, ...linkProps } = props as ButtonAsLink;
     return (
-      <Link href={props.href} className={classes}>
+      <Link href={href} className={classes} {...linkProps}>
         {children}
       </Link>
     );
