@@ -28,7 +28,7 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
   // `once: true` — the count-up plays a single time per page load, the
   // moment the stat scrolls into view, and never re-triggers.
   const isInView = useInView(ref, { once: true, margin: "-80px" });
-  const [displayValue, setDisplayValue] = useState(shouldReduceMotion ? stat.value : 0);
+  const [displayValue, setDisplayValue] = useState(stat.value);
   const Icon = ICONS[stat.icon];
 
   useEffect(() => {
