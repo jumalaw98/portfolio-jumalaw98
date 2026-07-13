@@ -48,7 +48,7 @@ export default function CommunityPage() {
               Roles &amp; Leadership
             </h2>
             <p className="mt-3 max-w-2xl text-text-body">
-              None of these are solo projects, and I want to be upfront about that, each card below
+              None of these are solo projects, and I want to be upfront about that — each card below
               is scoped to what I actually did, not the size of the organization behind it.
             </p>
             <div className="mt-8">
@@ -64,7 +64,7 @@ export default function CommunityPage() {
           <Container className="max-w-5xl">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Impact Numbers</h2>
             <p className="mt-3 max-w-2xl text-text-body">
-              These numbers pull from everything on this site, not just one community, every talk,
+              These numbers pull from everything on this site, not just one community — every talk,
               every role, every event that&apos;s actually documented here.
             </p>
             <div className="mt-8">

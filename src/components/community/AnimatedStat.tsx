@@ -18,8 +18,8 @@ const ICONS: Record<ImpactStatIconKey, typeof Users> = {
 };
 
 interface AnimatedStatProps {
-  stat: ImpactStat;
-  index?: number;
+  readonly stat: ImpactStat;
+  readonly index?: number;
 }
 
 export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
@@ -28,7 +28,7 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
   // `once: true` — the count-up plays a single time per page load, the
   // moment the stat scrolls into view, and never re-triggers.
   const isInView = useInView(ref, { once: true, margin: "-80px" });
-  const [displayValue, setDisplayValue] = useState(shouldReduceMotion ? stat.value : 0);
+  const [displayValue, setDisplayValue] = useState(0);
   const Icon = ICONS[stat.icon];
 
   useEffect(() => {
@@ -41,6 +41,8 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
       setDisplayValue(stat.value);
       return;
     }
+
+    setDisplayValue(0);
 
     const controls = animate(0, stat.value, {
       duration: 1.4,

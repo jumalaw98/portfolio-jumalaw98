@@ -10,7 +10,7 @@ interface SpeakingCardProps {
   talk: SpeakingEngagement;
 }
 
-export function SpeakingCard({ talk }: SpeakingCardProps) {
+export function SpeakingCard({ talk }: Readonly<SpeakingCardProps>) {
   const shouldReduceMotion = useReducedMotion();
   const hasResources = Boolean(
     talk.resources?.slidesUrl || talk.resources?.videoUrl || talk.resources?.eventPageUrl,
@@ -102,7 +102,7 @@ interface ResourceLinkProps {
   children: ReactNode;
 }
 
-function ResourceLink({ href, label, Icon, children }: ResourceLinkProps) {
+function ResourceLink({ href, label, Icon, children }: Readonly<ResourceLinkProps>) {
   return (
     <a
       href={href}

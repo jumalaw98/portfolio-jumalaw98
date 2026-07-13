@@ -1,5 +1,5 @@
 export interface CommunityLinks {
-  website?: string; // TODO: confirm/add for orgs marked below
+  website?: string;
   github?: string;
   linkedin?: string;
   meetup?: string;
@@ -9,12 +9,12 @@ export interface CommunityLinks {
 export interface CommunityRole {
   org: string;
   role: string;
-  dates: string; // duration of involvement, e.g. "2023–ongoing"
-  description: string; // 2–4 sentences on the org's mission/community — drafted, review wording
-  responsibilities?: string[]; // optional highlights — drafted, review wording
-  tags: string[]; // 3–5 focus areas
-  logoUrl?: string; // TODO: drop in the org's real logo (SVG/PNG) once available
-  logoInitials: string; // fallback shown until a real logo is added
+  dates: string; 
+  description: string;
+  responsibilities?: string[];
+  tags: string[];
+  logoUrl?: string;
+  logoInitials: string;
   links?: CommunityLinks;
 }
 
@@ -24,7 +24,6 @@ export interface CommunityRole {
 // the wording. No logo files or organization links are fabricated: only
 // Nairobi DevOps Community's website is confirmed elsewhere in this project
 // (portfolio-content.md Section 2a/2b); every other link is left undefined
-// with a TODO until Lawrence confirms it. Each role reflects actual scope,
 // not implied sole ownership of any organization, per honesty-boundaries
 // guidance in the brand profile.
 export const communityRoles: CommunityRole[] = [
