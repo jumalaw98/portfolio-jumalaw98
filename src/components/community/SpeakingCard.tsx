@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { FileText, PlayCircle, ExternalLink, MapPin, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -9,10 +8,9 @@ import type { SpeakingEngagement } from "@/content/community";
 
 interface SpeakingCardProps {
   talk: SpeakingEngagement;
-  priority?: boolean;
 }
 
-export function SpeakingCard({ talk, priority = false }: SpeakingCardProps) {
+export function SpeakingCard({ talk }: Readonly<SpeakingCardProps>) {
   const shouldReduceMotion = useReducedMotion();
   const hasResources = Boolean(
     talk.resources?.slidesUrl || talk.resources?.videoUrl || talk.resources?.eventPageUrl,
@@ -20,66 +18,49 @@ export function SpeakingCard({ talk, priority = false }: SpeakingCardProps) {
 
   return (
     <motion.article
-      className="group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-white"
+      className="group rounded-lg border border-border bg-white p-6 transition-colors hover:border-brand-blue"
       whileHover={
         shouldReduceMotion
           ? undefined
           : {
-              y: -4,
-              boxShadow:
-                "0 12px 24px -8px rgba(28, 118, 181, 0.18), 0 0 0 1px rgba(28, 118, 181, 0.25)",
+              backgroundColor: "rgba(255, 255, 255, 0.95)",
             }
       }
       transition={{ type: "spring", stiffness: 300, damping: 24 }}
     >
-      {talk.imageUrl ? (
-        <div className="relative aspect-[16/9] w-full overflow-hidden">
-          <Image
-            src={talk.imageUrl}
-            alt=""
-            fill
-            priority={priority}
-            loading={priority ? undefined : "lazy"}
-            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          />
-        </div>
-      ) : null}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
+        <div className="flex-1">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-lg font-semibold leading-snug text-brand-ink transition-colors group-hover:text-brand-blue">
+              {talk.talk}
+            </h3>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
+              <span className="flex items-center gap-1.5">
+                <Calendar size={14} />
+                {talk.date}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span className="flex items-center gap-1.5">
+                <MapPin size={14} />
+                {talk.location}
+              </span>
+            </div>
+            <p className="text-sm font-medium text-brand-blue-dark">{talk.event}</p>
+          </div>
 
-      <div className="flex flex-1 flex-col p-6">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
-          <span className="flex items-center gap-1.5">
-            <Calendar size={14} />
-            {talk.date}
-          </span>
-          <span aria-hidden="true">·</span>
-          <span className="flex items-center gap-1.5">
-            <MapPin size={14} />
-            {talk.location}
-          </span>
-        </div>
+          <p className="mt-3 text-sm leading-relaxed text-text-body">{talk.description}</p>
 
-        <h3 className="mt-3 text-lg font-semibold leading-snug text-brand-ink transition-colors group-hover:text-brand-blue">
-          {talk.talk}
-        </h3>
-        <p className="mt-1 text-sm font-medium text-brand-blue-dark">{talk.event}</p>
-
-        <p className="mt-3 flex-1 text-sm leading-relaxed text-text-body">{talk.description}</p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {talk.tags.map((tag) => (
-            <Badge
-              key={tag}
-              tone="blue"
-              className="transition-colors group-hover:bg-brand-blue-light group-hover:text-white"
-            >
-              {tag}
-            </Badge>
-          ))}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {talk.tags.map((tag) => (
+              <Badge key={tag} tone="blue" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
         </div>
 
         {hasResources ? (
-          <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-border pt-4">
+          <div className="flex shrink-0 flex-col gap-3 sm:w-32">
             {talk.resources?.slidesUrl ? (
               <ResourceLink
                 href={talk.resources.slidesUrl}
@@ -95,7 +76,7 @@ export function SpeakingCard({ talk, priority = false }: SpeakingCardProps) {
                 label={`Watch recording of ${talk.talk}`}
                 Icon={PlayCircle}
               >
-                Watch
+                Recording
               </ResourceLink>
             ) : null}
             {talk.resources?.eventPageUrl ? (
@@ -121,7 +102,7 @@ interface ResourceLinkProps {
   children: ReactNode;
 }
 
-function ResourceLink({ href, label, Icon, children }: ResourceLinkProps) {
+function ResourceLink({ href, label, Icon, children }: Readonly<ResourceLinkProps>) {
   return (
     <a
       href={href}

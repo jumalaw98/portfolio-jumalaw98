@@ -37,7 +37,14 @@ const SKILLS_SUMMARY = [
     label: "Learning / Cloud & DevOps",
     items: ["Docker", "Azure", "Cloudflare", "GitHub Actions", "PostgreSQL", "Redis", "Nginx"],
   },
-  { label: "Tools & Automation", items: ["n8n", "Zapier", "Power Automate", "Prisma", "Supabase"] },
+  {
+    label: "Tools & Automation",
+    items: ["n8n", "Zapier", "Power Automate", "Prisma", "Supabase"],
+  },
+  {
+    label: "Content & Analytics",
+    items: ["WordPress", "Elementor", "Yoast SEO", "Google Analytics", "PostHog", "ImageKit CDN"],
+  },
   {
     label: "Leadership",
     items: [
@@ -46,6 +53,10 @@ const SKILLS_SUMMARY = [
       "Conference organizing",
       "Sponsor/partner relations",
     ],
+  },
+  {
+    label: "Project & Collaboration",
+    items: ["Jira", "Trello", "ClickUp", "Slack", "Notion", "Figma"],
   },
 ];
 
@@ -82,8 +93,8 @@ export default function AboutPage() {
           <div>
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">About</h1>
             <p className="mt-4 text-lg text-text-body">
-              I&apos;m a frontend-leaning developer still deepening my backend and cloud skills —
-              and I learn fastest by shipping real things for real communities. I&apos;m based in
+              I&apos;m a frontend-leaning developer still deepening my backend and cloud skills, and
+              I learn fastest by shipping real things for real communities. I&apos;m based in
               Nairobi, Kenya, and I&apos;ve spent the last several years building software and
               building the technical communities that use it, at the same time.
             </p>
@@ -100,12 +111,12 @@ export default function AboutPage() {
           <Container className="max-w-3xl">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Professional Summary</h2>
             <p className="mt-4 text-lg text-text-body">
-              Most of my day-to-day is React, TypeScript, and Next.js — building and keeping
+              Most of my day-to-day is React, TypeScript, and Next.js, building and keeping
               production sites running for real communities, not just shipping and walking away. The
               backend and cloud side is where I&apos;m still catching up, honestly: I&apos;ve
               hardened infrastructure on Azure and Cloudflare, set up CI/CD with GitHub Actions, and
               I&apos;m slowly picking up automation tools like n8n and Zapier along the way. Ask me
-              to rate my own skill level and I&apos;ll tell you straight — strong on the frontend,
+              to rate my own skill level and I&apos;ll tell you straight, strong on the frontend,
               still finding my footing on the backend, no interest in pretending otherwise.
             </p>
           </Container>
@@ -121,7 +132,7 @@ export default function AboutPage() {
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">The Path So Far</h2>
             </div>
             <p className="mt-3 text-text-body">
-              My developer journey and my community leadership both started in 2022 — running in
+              My developer journey and my community leadership both started in 2022 running in
               parallel from the start, not as a pivot from one to the other.
             </p>
             <div className="mt-10">
@@ -273,13 +284,13 @@ export default function AboutPage() {
               </h2>
             </div>
             <p className="mt-4 text-lg text-text-body">
-              I didn&apos;t come to community-building as a side hobby — it&apos;s taught me things
+              I didn&apos;t come to community-building as a side hobby, it&apos;s taught me things
               my code never could. Running events for hundreds of people means you learn to plan for
               failure, communicate under pressure, and ship on a deadline that doesn&apos;t move for
               anyone. Leading a community of thousands means you get fast, honest feedback on
               whether something actually works for the people using it. Every platform I build
               professionally is better because I&apos;ve also had to be the person answering support
-              messages at 11pm before a conference. The two things aren&apos;t separate skills —
+              messages at 11pm before a conference. The two things aren&apos;t separate skills,
               they&apos;re the same skill, pointed in two directions.
             </p>
             <div className="mt-6">
@@ -301,12 +312,12 @@ export default function AboutPage() {
             </div>
             <p className="mt-4 text-lg text-text-body">
               I like building things that outlast the excitement of launching them. It&apos;s easy
-              to ship a v1 — the real test is whether you&apos;re still improving it a year later,
+              to ship a v1, the real test is whether you&apos;re still improving it a year later,
               and I&apos;ve tried to make that my habit, whether it&apos;s a codebase or a
               community. Most of what I&apos;ve learned about software has come from building things
               people in my own community actually needed, not from projects designed to look good on
               a portfolio. Over the next few years I want to keep deepening on the engineering side
-              — backend, cloud, real systems thinking — while staying involved in the technical
+              backend, cloud, real systems thinking, while staying involved in the technical
               communities that shaped how I think about this work in the first place. If you&apos;re
               building something and want a second pair of hands that cares about both the code and
               the people using it, I&apos;d like to hear about it.

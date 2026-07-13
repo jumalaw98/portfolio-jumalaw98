@@ -1,7 +1,5 @@
-import { PLACEHOLDER_IMAGES } from "@/lib/placeholder-images";
-
 export interface CommunityLinks {
-  website?: string; // TODO: confirm/add for orgs marked below
+  website?: string;
   github?: string;
   linkedin?: string;
   meetup?: string;
@@ -11,12 +9,12 @@ export interface CommunityLinks {
 export interface CommunityRole {
   org: string;
   role: string;
-  dates: string; // duration of involvement, e.g. "2023–ongoing"
-  description: string; // 2–4 sentences on the org's mission/community — drafted, review wording
-  responsibilities?: string[]; // optional highlights — drafted, review wording
-  tags: string[]; // 3–5 focus areas
-  logoUrl?: string; // TODO: drop in the org's real logo (SVG/PNG) once available
-  logoInitials: string; // fallback shown until a real logo is added
+  dates: string;
+  description: string;
+  responsibilities?: string[];
+  tags: string[];
+  logoUrl?: string;
+  logoInitials: string;
   links?: CommunityLinks;
 }
 
@@ -26,7 +24,6 @@ export interface CommunityRole {
 // the wording. No logo files or organization links are fabricated: only
 // Nairobi DevOps Community's website is confirmed elsewhere in this project
 // (portfolio-content.md Section 2a/2b); every other link is left undefined
-// with a TODO until Lawrence confirms it. Each role reflects actual scope,
 // not implied sole ownership of any organization, per honesty-boundaries
 // guidance in the brand profile.
 export const communityRoles: CommunityRole[] = [
@@ -39,7 +36,7 @@ export const communityRoles: CommunityRole[] = [
     responsibilities: [
       "Co-founded the community and helped shape its direction",
       "Community management and member engagement",
-    ], // TODO: review wording
+    ],
     tags: ["Cybersecurity", "Community Building", "Mentorship"],
     logoInitials: "IS",
     links: {
@@ -51,12 +48,12 @@ export const communityRoles: CommunityRole[] = [
     role: "Community Manager & Events Manager",
     dates: "2023–ongoing (deepened to Program Coordinator/Project Manager in 2025)",
     description:
-      "Innovate. Empower. Grow: A community promoting collaboration, innovation, and best practices within the DevOps industry in Nairobi and beyond — 4,000+ members across its platforms.",
+      "Innovate. Empower. Grow: A community promoting collaboration, innovation, and best practices within the DevOps industry in Nairobi and beyond, 5,000+ members across its platforms.",
     responsibilities: [
       "Event planning and speaker coordination",
       "Sponsor and partner relations",
-      "Led the platform rebuild (see Projects — Nairobi DevOps Community Rebuild)",
-    ], // TODO: review wording
+      "Led the platform rebuild (see Projects, Nairobi DevOps Community Rebuild)",
+    ],
     tags: ["DevOps", "Cloud", "Event Organizing", "Community Growth"],
     logoInitials: "ND",
     links: {
@@ -72,7 +69,7 @@ export const communityRoles: CommunityRole[] = [
     responsibilities: [
       "Manages the community's social media presence",
       "Hosts #SYTTechTalk sessions",
-    ], // TODO: review wording
+    ],
     tags: ["Open Source", "Tech Education", "Social Media", "Community Management"],
     logoInitials: "SY",
     links: {
@@ -84,20 +81,20 @@ export const communityRoles: CommunityRole[] = [
     role: "Technical Lead, Core Team",
     dates: "2022–2023",
     description:
-      "The Google Developer Student Clubs chapter at The Kisumu National Polytechnic — students getting hands-on with Google's tools and platforms, mostly through workshops the core team ran ourselves.",
+      "The Google Developer Student Clubs chapter at The Kisumu National Polytechnic, students getting hands-on with Google's tools and platforms, mostly through workshops the core team ran ourselves.",
     responsibilities: ["Technical leadership for the core team", "Workshop delivery"],
     tags: ["Google Technologies", "Student Community", "Technical Leadership"],
     logoInitials: "GD",
     links: {
-      website: undefined, // TODO: add GDSC chapter page if still active
+      website: undefined,
     },
   },
   {
     org: "SheCodeAfrica Nairobi",
     role: "Technical Writer Lead",
-    dates: "[TBD — start year]–2024", // TODO: confirm start year with Lawrence
+    dates: "2023–2024",
     description:
-      "SheCodeAfrica's Nairobi chapter, part of a pan-African network supporting women in tech through mentorship and training. I led the chapter's technical writing side — the content calendar, the writing team, all of it.",
+      "SheCodeAfrica's Nairobi chapter, part of a pan-African network supporting women in tech through mentorship and training. I led the chapter's technical writing side, the content calendar, the writing team, all of it.",
     responsibilities: [
       "Led the technical writing team",
       "Created and maintained the content calendar",
@@ -108,23 +105,23 @@ export const communityRoles: CommunityRole[] = [
       website: "https://shecodeafricanairobi.org/",
     },
   },
-  {
-    org: "WesternCyberHub",
-    role: "Community Manager & Editorial Lead",
-    dates: "2024",
-    description:
-      "A cybersecurity community for Western Kenya — connecting people still learning with working professionals through whatever content and programming we put out.",
-    responsibilities: ["Community management", "Editorial oversight of published content"],
-    tags: ["Cybersecurity", "Editorial", "Community Management"],
-    logoInitials: "WC",
-    links: {
-      website: undefined, // TODO: add WesternCyberHub's website/community link
-    },
-  },
+  // {
+  //   org: "WesternCyberHub",
+  //   role: "Community Manager & Editorial Lead",
+  //   dates: "2024",
+  //   description:
+  //     "A cybersecurity community for Western Kenya, connecting people still learning with working professionals through whatever content and programming we put out.",
+  //   responsibilities: ["Community management", "Editorial oversight of published content"],
+  //   tags: ["Cybersecurity", "Editorial", "Community Management"],
+  //   logoInitials: "WC",
+  //   links: {
+  //     website: undefined,
+  //   },
+  // },
   {
     org: "WTD Kenya",
-    role: "TBD — confirm role with Lawrence", // TODO: this org/role wasn't in the original confirmed roster; add exact role + duration
-    dates: "TBD — confirm duration with Lawrence", // TODO
+    role: "Partnership and Outreach",
+    dates: "2025-2026",
     description:
       "A community for everyone who cares about communication, documentation, and technical writing in Kenya.",
     tags: ["Technical Writing", "Documentation", "Community"],
@@ -144,12 +141,13 @@ export interface SpeakingResources {
   eventPageUrl?: string;
 }
 
+// Speaking Engagements
 export interface SpeakingEngagement {
-  date: string; // "Mon YYYY" display format
+  date: string;
   event: string;
-  location: string; // city/country/venue — TODO markers below where unconfirmed
+  location: string;
   talk: string;
-  description: string; // 2–4 sentence summary — drafted, flag for Lawrence's review/edit
+  description: string;
   tags: [string, string, string];
   resources?: SpeakingResources;
   imageUrl?: string;
@@ -164,62 +162,85 @@ export interface SpeakingEngagement {
 // something real to link to.
 export const speakingEngagements: SpeakingEngagement[] = [
   {
-    date: "Nov 2022",
-    event: "DevFest Kisumu (DevFest Western Kenya) 2022", // TODO: confirm primary naming
-    location: "Kisumu, Kenya", // TODO: confirm exact venue
-    talk: "Crowdsource by Google: Help Make AI Serve Everyone, Everywhere",
-    description:
-      "I walked through Google's Crowdsource initiative and why AI trained on narrow data ends up failing people who don't speak the 'default' language or accent — and what developers in East Africa can actually do about that.",
-    tags: ["AI", "Google", "Community"],
-    imageUrl: PLACEHOLDER_IMAGES.speaking[0], // TODO: swap for a real event banner/speaker photo
-  },
-  {
-    date: "Aug 2023",
-    event: "Africa's Talking Summit 2023",
-    location: "Nairobi, Kenya", // TODO: confirm exact venue
-    talk: "Building Inclusive Developer Communities",
-    description:
-      "What it actually takes to build a developer community that doesn't quietly filter out beginners — onboarding, mentorship, and the small habits that decide whether a newcomer sticks around or drifts off.",
-    tags: ["Community", "Developer Relations", "Inclusion"],
-    imageUrl: PLACEHOLDER_IMAGES.speaking[1], // TODO: swap for a real event banner/speaker photo
-  },
-  {
-    date: "Sep 2023",
-    event: "RenderCon Kenya 2023",
-    location: "Nairobi, Kenya", // TODO: confirm exact venue
-    talk: "Building Sustainable Open Source Communities",
-    description:
-      "Why most open source projects lose steam once the initial excitement wears off, and what's actually kept contributors around in the ones that don't: governance that doesn't get in the way, real recognition, and maintainer workloads that don't burn people out.",
-    tags: ["Open Source", "Community", "Sustainability"],
-    imageUrl: PLACEHOLDER_IMAGES.speaking[2], // TODO: swap for a real event banner/speaker photo
-  },
-  {
-    date: "Nov 2023",
-    event: "DroidCon Uganda 2023",
-    location: "Kampala, Uganda", // TODO: confirm exact venue
-    talk: "Empowering Diverse Teams: Building an Inclusive Development Culture",
-    description:
-      "Lessons from leading cross-functional teams across a few different community projects, on building an engineering culture that actually supports people from different backgrounds instead of just claiming to.",
-    tags: ["Diversity & Inclusion", "Team Culture", "Leadership"],
-    imageUrl: PLACEHOLDER_IMAGES.speaking[3], // TODO: swap for a real event banner/speaker photo
-  },
-  {
     date: "Apr 2024",
     event: "TEMS Africa ICT Expo 2024",
-    location: "TBD — confirm venue/city", // TODO: confirm
+    location: "Nairobi, Kenya (venue pending confirmation)",
     talk: "Building Privacy into Systems from the Start",
     description:
       "The case for privacy-by-design: retrofitting privacy after launch almost always costs more than doing it upfront, so I made the argument for baking data protection into your architecture decisions from day one.",
     tags: ["Privacy", "Security", "System Design"],
-    imageUrl: PLACEHOLDER_IMAGES.speaking[4], // TODO: swap for a real event banner/speaker photo
+    resources: {
+      slidesUrl:
+        "https://speakerdeck.com/jumalaw98/building-privacy-into-systems-from-the-start-the-importance-of-default-privacy-settings",
+      videoUrl: undefined,
+    },
+  },
+  {
+    date: "Nov 2023",
+    event: "DroidCon Uganda 2023",
+    location: "Kampala, Uganda",
+    talk: "Empowering Diverse Teams: Building an Inclusive Development Culture",
+    description:
+      "Lessons from leading cross-functional teams across a few different community projects, on building an engineering culture that actually supports people from different backgrounds instead of just claiming to.",
+    tags: ["Diversity & Inclusion", "Team Culture", "Leadership"],
+    resources: {
+      slidesUrl:
+        "https://speakerdeck.com/jumalaw98/empowering-diverse-teams-building-an-inclusive-development-culture",
+      videoUrl: undefined,
+    },
+  },
+  {
+    date: "Sep 2023",
+    event: "RenderCon Kenya 2023",
+    location: "Nairobi, Kenya (venue pending confirmation)",
+    talk: "Building Sustainable Open Source Communities",
+    description:
+      "Why most open source projects lose steam once the initial excitement wears off, and what's actually kept contributors around in the ones that don't: governance that doesn't get in the way, real recognition, and maintainer workloads that don't burn people out.",
+    tags: ["Open Source", "Community", "Sustainability"],
+    resources: {
+      slidesUrl: undefined,
+      videoUrl: undefined,
+    },
+  },
+  {
+    date: "Aug 2023",
+    event: "Africa's Talking Summit 2023",
+    location: "Nairobi, Kenya (venue pending confirmation)",
+    talk: "Building Inclusive Developer Communities",
+    description:
+      "What it actually takes to build a developer community that doesn't quietly filter out beginners: onboarding, mentorship, and the small habits that decide whether a newcomer sticks around or drifts off.",
+    tags: ["Community", "Developer Relations", "Inclusion"],
+    resources: {
+      slidesUrl: undefined,
+      videoUrl: undefined,
+    },
+  },
+  {
+    date: "Nov 2022",
+    event: "DevFest Kisumu (DevFest Western Kenya) 2022",
+    location: "Kisumu, Kenya (venue pending confirmation)",
+    talk: "Crowdsource by Google: Help Make AI Serve Everyone, Everywhere",
+    description:
+      "I walked through Google's Crowdsource initiative and why AI trained on narrow data ends up failing people who don't speak the 'default' language or accent, and what developers in East Africa can actually do about that.",
+    tags: ["AI", "Google", "Community"],
+    resources: {
+      slidesUrl: undefined,
+      videoUrl: undefined,
+    },
   },
 ];
 
 // Live Sessions & Content — portfolio-content.md Section 6e.
 export const liveSessionsNote = {
-  host: "I host #SYTTechTalk, and I've presented on it myself too — including a session on getting started and building a career in technical writing, back in July 2023.",
+  host: "I host #SYTTechTalk, and I've presented on it myself too, including a session on getting started and building a career in technical writing, back in July 2023.",
+  sytTechTalkPlaylistUrl:
+    "https://www.youtube.com/watch?v=f_qw4j-Fjs0&list=PLOBaHgIFVXS54BfHeTbLzFWxFKcrHAlpM",
+  technicalWritingSessionUrl:
+    "https://www.youtube.com/watch?v=Egs8ZAEM5II&list=PLOBaHgIFVXS54BfHeTbLzFWxFKcrHAlpM&index=11",
   additional:
     "I've also shown up on Twitter/X Spaces a few times, plus some YouTube session highlights worth a look.",
   topSession:
-    "My top-performing session so far has been on M-PESA Integration [confirm view count and link]", // TODO
+    "My top-performing session so far has been on M-PESA Integration, where I hosted with speaker Rizwan.",
+  topSessionUrl:
+    "https://www.youtube.com/watch?v=If6KLnU78Mo&list=PLOBaHgIFVXS54BfHeTbLzFWxFKcrHAlpM&index=17",
 };

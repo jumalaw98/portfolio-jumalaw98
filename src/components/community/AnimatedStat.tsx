@@ -18,8 +18,8 @@ const ICONS: Record<ImpactStatIconKey, typeof Users> = {
 };
 
 interface AnimatedStatProps {
-  stat: ImpactStat;
-  index?: number;
+  readonly stat: ImpactStat;
+  readonly index?: number;
 }
 
 export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
@@ -41,6 +41,8 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
       setDisplayValue(stat.value);
       return;
     }
+
+    setDisplayValue(0);
 
     const controls = animate(0, stat.value, {
       duration: 1.4,

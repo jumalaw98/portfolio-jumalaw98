@@ -3,12 +3,9 @@ export interface TimelineEntry {
   institution: string;
   dates: string;
   description: string;
-  parallelStart?: boolean; // flags the 2022 simultaneous dev + community start
+  parallelStart?: boolean;
 }
 
-// Confirmed content — portfolio-content.md Section 3a.
-// Core narrative: developer journey and community leadership both began in
-// 2022, running in parallel from the start — not a sequential pivot.
 export const timeline: TimelineEntry[] = [
   {
     stage: "Electrical Engineering diploma",
@@ -28,7 +25,7 @@ export const timeline: TimelineEntry[] = [
     institution: "Golden Connection Cyber, Kisumu",
     dates: "2020–2023",
     description:
-      "Customer care attendant — digital support, business operations, assisted clients with government platforms (KRA, NTSA, NHIF).",
+      "Customer care attendant, digital support, business operations, assisted clients with government platforms (KRA, NTSA, NHIF).",
   },
   {
     stage: "WordPress work (overlaps)",
@@ -66,7 +63,7 @@ export const timeline: TimelineEntry[] = [
   {
     stage: "Technical writing leadership",
     institution: "SheCodeAfrica Nairobi",
-    dates: "[TBD — start year]–2024", // TODO: confirm start year with Lawrence
+    dates: "2023–2024",
     description:
       "Technical Writer Lead — led the technical writing team, created the content calendar.",
   },
