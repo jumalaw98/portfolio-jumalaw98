@@ -22,7 +22,6 @@ import {
 } from "@/content/certifications";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { pageMetadata, breadcrumbJsonLd } from "@/lib/seo";
-import { label } from "framer-motion/client";
 
 export const metadata = pageMetadata({
   title:
@@ -39,12 +38,12 @@ const SKILLS_SUMMARY = [
     items: ["Docker", "Azure", "Cloudflare", "GitHub Actions", "PostgreSQL", "Redis", "Nginx"],
   },
   {
-    label: "Tools & Automation", items: ["n8n", "Zapier", "Power Automate", "Prisma", "Supabase"]
-
+    label: "Tools & Automation",
+    items: ["n8n", "Zapier", "Power Automate", "Prisma", "Supabase"],
   },
   {
-    label: "Content & Analytics", items: ["WordPress", "Elementor", "Yoast SEO", "Google Analytics", "PostHog", "ImageKit CDN"]
-
+    label: "Content & Analytics",
+    items: ["WordPress", "Elementor", "Yoast SEO", "Google Analytics", "PostHog", "ImageKit CDN"],
   },
   {
     label: "Leadership",
@@ -56,7 +55,8 @@ const SKILLS_SUMMARY = [
     ],
   },
   {
-    label: "Project & Collaboration", items: ["Jira", "Trello", "ClickUp", "Slack", "Notion", "Figma"]
+    label: "Project & Collaboration",
+    items: ["Jira", "Trello", "ClickUp", "Slack", "Notion", "Figma"],
   },
 ];
 
@@ -93,8 +93,8 @@ export default function AboutPage() {
           <div>
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">About</h1>
             <p className="mt-4 text-lg text-text-body">
-              I&apos;m a frontend-leaning developer still deepening my backend and cloud skills,
-              and I learn fastest by shipping real things for real communities. I&apos;m based in
+              I&apos;m a frontend-leaning developer still deepening my backend and cloud skills, and
+              I learn fastest by shipping real things for real communities. I&apos;m based in
               Nairobi, Kenya, and I&apos;ve spent the last several years building software and
               building the technical communities that use it, at the same time.
             </p>

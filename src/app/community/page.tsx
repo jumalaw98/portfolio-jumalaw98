@@ -108,8 +108,37 @@ export default function CommunityPage() {
             </div>
             <div className="mt-6 flex flex-col gap-3 text-text-body">
               <p>{liveSessionsNote.host}</p>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={liveSessionsNote.sytTechTalkPlaylistUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-blue hover:underline"
+                >
+                  #SYTTechTalk Playlist
+                </a>
+                <span>•</span>
+                <a
+                  href={liveSessionsNote.technicalWritingSessionUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-blue hover:underline"
+                >
+                  Technical Writing Session
+                </a>
+              </div>
               <p>{liveSessionsNote.additional}</p>
-              <p className="text-sm text-text-muted">{liveSessionsNote.topSession}</p>
+              <p className="text-sm text-text-muted">
+                {liveSessionsNote.topSession}{" "}
+                <a
+                  href={liveSessionsNote.topSessionUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-blue hover:underline"
+                >
+                  Watch Session
+                </a>
+              </p>
             </div>
           </Container>
         </section>
