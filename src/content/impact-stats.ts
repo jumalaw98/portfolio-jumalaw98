@@ -1,5 +1,4 @@
-import { communityRoles } from "./community";
-import { speakingEngagements } from "./community";
+import { communityRoles, speakingEngagements } from "./community";
 import { mvpProjects } from "./projects";
 
 export type ImpactStatIconKey = "users" | "mic" | "building" | "calendar" | "rocket" | "globe";
