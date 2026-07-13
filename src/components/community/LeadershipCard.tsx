@@ -41,13 +41,7 @@ function LogoBlock({ logoUrl, logoInitials, org, paletteIndex }: Readonly<LogoBl
       className={`relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg transition-transform duration-300 group-hover:scale-105 ${containerClass}`}
     >
       {logoUrl ? (
-        <Image
-          src={logoUrl}
-          alt={`${org} logo`}
-          fill
-          sizes="56px"
-          className="object-contain p-2"
-        />
+        <Image src={logoUrl} alt={`${org} logo`} fill sizes="56px" className="object-contain p-2" />
       ) : (
         <span className="font-display text-lg font-bold text-white" aria-hidden="true">
           {logoInitials}

@@ -9,7 +9,7 @@ export interface CommunityLinks {
 export interface CommunityRole {
   org: string;
   role: string;
-  dates: string; 
+  dates: string;
   description: string;
   responsibilities?: string[];
   tags: string[];
