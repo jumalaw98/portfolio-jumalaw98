@@ -3,7 +3,7 @@ import { africaDevopsSummit } from "./africa-devops-summit";
 import { nairobiDevopsCommunity } from "./nairobi-devops-community";
 import { pretalxAzure } from "./pretalx-azure";
 import { kommunitiAfrica } from "./kommuniti-africa";
-import { faithfulHeartsEquine } from "./faithful-heartselc";
+import { faithfulheartsEquineLearningCenter } from "./faithfulhearts-equine-learning-center";
 
 // Ordered by strategic priority per portfolio-sitemap.md Section 2.
 // kommuniti-africa is included but status "in-progress" — filter it out
@@ -13,7 +13,7 @@ export const allProjects: Project[] = [
   nairobiDevopsCommunity,
   pretalxAzure,
   kommunitiAfrica,
-  faithfulHeartsEquine,
+  faithfulheartsEquineLearningCenter,
 ];
 
 export const mvpProjects: Project[] = allProjects.filter((p) => p.status === "live");

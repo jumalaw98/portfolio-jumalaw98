@@ -7,9 +7,9 @@ export const africaDevopsSummit: Project = {
   status: "live",
   role: "Team Lead, Developer & Decision Maker",
   timeframe: "2025–2026, ongoing",
-  stack: ["React", "Vite", "Tailwind", "TypeScript", "Github", "Cloudflare", "Figma", "ImageKit"],
+  stack: ["React", "Vite", "Tailwind", "TypeScript", "GitHub", "Cloudflare", "Figma", "ImageKit"],
   summary:
-    "Led the frontend rebuild for a growing 200+ attendee continental conference faster, more accessible, and actively maintained year over year.",
+    "Led the frontend rebuild for a growing 200+ attendee continental conference — faster, more accessible, and actively maintained year over year.",
   featured: true,
   designCredit: "Mercy (designer)",
 

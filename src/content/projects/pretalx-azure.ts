@@ -17,7 +17,7 @@ export const pretalxAzure: Project = {
   constraints:
     "Solo build, no dedicated budget. The community had unused Azure credits sitting idle, which turned 'server cost' from a real constraint into a non-issue",
   decisions:
-    "Pretalx over the hosted alternatives, it meant owning the CFP process outright instead of renting it. Azure was the obvious host given the existing credits. Underneath: Docker Compose, PostgreSQL, Redis, and Nginx, with Azure Key Vault and Managed Identity handling secrets so nothing sensitive lives in a config file or git history",
+    "Pretalx won out because it meant owning the CFP process outright instead of renting it. Azure was the obvious host given the existing credits. Underneath: Docker Compose, PostgreSQL, Redis, and Nginx, with Azure Key Vault and Managed Identity handling secrets so nothing sensitive lives in a config file or git history",
   whatWasBuilt: [
     "A production CFP platform covering the full pipeline from submission to review to schedule publishing, at talks.nairobidevops.org. Highlights:",
     "Multi-stage Docker build that cut the application image from 1.64 GB to 402 MB and eliminated two critical CVEs in the process.",

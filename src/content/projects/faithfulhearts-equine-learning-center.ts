@@ -1,6 +1,6 @@
 import type { Project } from "@/types/project";
 
-export const faithfulHeartsEquine: Project = {
+export const faithfulheartsEquineLearningCenter: Project = {
   slug: "faithfulhearts-equine-learning-center",
   title: "FaithfulHearts Equine Learning Center Fundraising Campaign",
   status: "live",

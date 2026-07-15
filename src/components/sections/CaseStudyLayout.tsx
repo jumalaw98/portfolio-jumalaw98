@@ -93,9 +93,7 @@ export function CaseStudyLayout({ project, nextProject }: CaseStudyLayoutProps) 
                     if (!raw) return null;
                     const paragraphs: string[] =
                       typeof raw === "string" ? raw.split("\n\n") : (raw as string[]);
-                    return paragraphs.map((para, i) => (
-                      <p key={`${field}-${i}`}>{para}</p>
-                    ));
+                    return paragraphs.map((para, i) => <p key={`${field}-${i}`}>{para}</p>);
                   })()}
                 </div>
               </section>

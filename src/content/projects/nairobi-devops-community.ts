@@ -35,5 +35,5 @@ export const nairobiDevopsCommunity: Project = {
   ],
 
   liveUrl: "https://nairobidevops.org/",
-  screenshots: [...PROJECT_IMAGES.projects["nairobi-devops-community"]], 
+  screenshots: [...PROJECT_IMAGES.projects["nairobi-devops-community"]],
 };
