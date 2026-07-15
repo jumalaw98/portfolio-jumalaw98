@@ -1,5 +1,5 @@
 import type { Project } from "@/types/project";
-import { PLACEHOLDER_IMAGES } from "@/lib/placeholder-images";
+import { PROJECT_IMAGES } from "@/lib/project-images";
 
 export const nairobiDevopsCommunity: Project = {
   slug: "nairobi-devops-community",
@@ -13,18 +13,27 @@ export const nairobiDevopsCommunity: Project = {
   featured: true,
 
   problem:
-    "The old site was static. Content went stale fast, and there was no way for it to show upcoming events without someone manually editing a page every time.",
+    "The old site was static. Every new event meant someone manually editing a page, and when nobody had time for that, the site just went stale. For a community that runs 50+ events and works with 20+ partners, an outdated homepage was actively working against membership growth, not just looking dated",
   constraints:
-    "Just me and one designer. No deadline, no budget pressure — which gave us room to actually think through the rebuild instead of rushing it.",
-  decisions:
-    "I rebuilt it in React and TypeScript on cPanel with a PHP backend, then wired in Luma so upcoming events pull in automatically instead of needing manual updates. I also added a Substack signup form for the newsletter rather than building a custom subscriber system from scratch — no reason to reinvent that part.",
+    "Two people: me and one designer, Mercy. No deadline, no budget pressure. That absence of pressure was itself a decision-shaping constraint, it meant I could take the time to actually think through the architecture instead of shipping the fastest possible fix.",
+  decisions: [
+    "Frontend: Rebuilt in React and TypeScript, replacing the static HTML entirely. Every section, events, membership, partners, newsletter, was built as its own real feature rather than bolted on at the end.\n\n",
+    "Live events, without an API integration: Instead of building against Luma's authenticated API (credentials, rate limits, another thing to maintain), I pull events from the account's public ICS calendar feed and parse it on the PHP backend. The homepage always reflects what's actually on the calendar, with zero manual page edits and no API key to rotate or secure.\n\n",
+    "Newsletter buy, don't build: Added a Substack signup form instead of a custom subscriber system. Substack already solves delivery, list management, and unsubscribes properly; writing that from scratch would have been weeks of work duplicating a solved problem for no real gain to the community.\n\n",
+    "Hosting: Kept it on cPanel with a PHP backend rather than migrating to a new host, the community had zero legacy debt to justify a bigger infrastructure jump. This stayed proportional to the actual problem.\n\n",
+    "Jobs board: Built a page that surfaces relevant roles for the community, pulled from general tech job boards like RemoteOK and WeWorkRemotely. Each platform gets fetched differently on the PHP backend, the method depends on what that source actually supports, rather than forcing every source through the same integration pattern. Relevance is a keyword match against DevOps-adjacent roles (SRE, cloud, platform, infra), and I added a recruiter-facing submission form so companies can post open roles directly instead of the board relying only on scraped listings.\n\n",
+  ],
   whatWasBuilt:
-    "A full rebuild: content, live event integration, and newsletter capture, with every section built as a real feature rather than something bolted on at the end.",
-  outcome:
-    "Google Analytics shows traffic climbed noticeably after the rebuild. I haven't set up formal tracking for membership or signup growth yet, so I can't put a number on those — that's the honest state of it right now.",
-  reflection:
-    "Still refining it post-launch. Getting real tracking in place for membership and signups is the obvious next step.",
+    "A full rebuild covering content, live event sync via the ICS feed, a curated jobs board, and newsletter capture, serving a community of 4,000+ members across 50+ events and 20+ partner organizations.",
+  outcome: [
+    "Performance snapshot (May 23–June 19, 2026): active users hit 197, up 47.01%; new users hit 183, up 38.64%; and tracked events reached 991, up 37.45%. Average engagement time came in at 24 seconds, down 32.69%.\n\n",
+    "Traffic and new-user growth both moved in a strong direction post-rebuild. The one number that doesn't fit the clean-win narrative is engagement time, which dropped by a third even as more people arrived. I haven't dug into why yet, it could be the events page doing its job well (people check the date and leave, which is a good outcome for that specific page), or it could be a real friction point elsewhere on the site. That's an open question, not a resolved one.\n\n",
+    "I also haven't set up conversion tracking for membership sign-ups or newsletter subscribers yet, so I can't attach a number to community growth specifically only to overall site traffic.\n\n",
+  ],
+  reflection: [
+    "Add conversion tracking for membership applications and Substack sign-ups, so the next version of this case study has real funnel numbers instead of just traffic numbers.\n\n",
+  ],
 
   liveUrl: "https://nairobidevops.org/",
-  screenshots: [...PLACEHOLDER_IMAGES.projects["nairobi-devops-community"]], // TODO: replace with real screenshots
+  screenshots: [...PROJECT_IMAGES.projects["nairobi-devops-community"]],
 };

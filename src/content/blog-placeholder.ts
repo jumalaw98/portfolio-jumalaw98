@@ -1,5 +1,5 @@
 import type { BlogPostDetail } from "@/types/blogPost";
-import { PLACEHOLDER_IMAGES } from "@/lib/placeholder-images";
+import { PROJECT_IMAGES } from "@/lib/project-images";
 
 // Placeholder-only demo posts, shown when HASHNODE_PUBLICATION_HOST isn't set
 // yet (see lib/hashnode/posts.ts) so /blog and /blog/[slug] aren't empty
@@ -10,7 +10,7 @@ import { PLACEHOLDER_IMAGES } from "@/lib/placeholder-images";
 const AUTHOR = {
   name: "Lawrence Juma",
   username: "jumalaw98",
-  profilePictureUrl: PLACEHOLDER_IMAGES.headshot,
+  profilePictureUrl: "https://ik.imagekit.io/lawz/law/jumalaw98.jpg",
 };
 
 export const placeholderBlogPosts: BlogPostDetail[] = [
@@ -20,7 +20,7 @@ export const placeholderBlogPosts: BlogPostDetail[] = [
     subtitle: "What migrating off Papercall taught me about cost, control, and ownership",
     brief:
       "A demo post standing in for real Hashnode content — connect HASHNODE_PUBLICATION_HOST to replace this with a live feed.",
-    coverImageUrl: PLACEHOLDER_IMAGES.blogFallback[0],
+    coverImageUrl: PROJECT_IMAGES.blogFallback[0],
     publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
     readTimeInMinutes: 6,
     url: "https://jumalaw98.hashnode.dev/",
@@ -29,7 +29,7 @@ export const placeholderBlogPosts: BlogPostDetail[] = [
       { name: "Azure", slug: "azure" },
     ],
     author: AUTHOR,
-    ogImageUrl: PLACEHOLDER_IMAGES.blogFallback[0],
+    ogImageUrl: PROJECT_IMAGES.blogFallback[0],
     contentHtml: `
       <p>This is placeholder content standing in for a real Hashnode article. Once <code>HASHNODE_PUBLICATION_HOST</code> is set, this page renders your actual published HTML instead.</p>
       <h2 id="the-problem">The problem</h2>
@@ -54,7 +54,7 @@ docker compose up -d --build</code></pre>
     subtitle: "Event ops and software delivery have more in common than you'd think",
     brief:
       "A demo post standing in for real Hashnode content — connect HASHNODE_PUBLICATION_HOST to replace this with a live feed.",
-    coverImageUrl: PLACEHOLDER_IMAGES.blogFallback[1],
+    coverImageUrl: PROJECT_IMAGES.blogFallback[1],
     publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
     readTimeInMinutes: 5,
     url: "https://jumalaw98.hashnode.dev/",
@@ -63,7 +63,7 @@ docker compose up -d --build</code></pre>
       { name: "Engineering", slug: "engineering" },
     ],
     author: AUTHOR,
-    ogImageUrl: PLACEHOLDER_IMAGES.blogFallback[1],
+    ogImageUrl: PROJECT_IMAGES.blogFallback[1],
     contentHtml: `
       <p>Placeholder article — swap this out once your Hashnode publication is connected.</p>
       <h2 id="deadlines-that-dont-move">Deadlines that don't move</h2>
@@ -80,7 +80,7 @@ docker compose up -d --build</code></pre>
     subtitle: "SSR, ISR, and the App Router in practice, not just in docs",
     brief:
       "A demo post standing in for real Hashnode content — connect HASHNODE_PUBLICATION_HOST to replace this with a live feed.",
-    coverImageUrl: PLACEHOLDER_IMAGES.blogFallback[2],
+    coverImageUrl: PROJECT_IMAGES.blogFallback[2],
     publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 21).toISOString(),
     readTimeInMinutes: 7,
     url: "https://jumalaw98.hashnode.dev/",
@@ -89,7 +89,7 @@ docker compose up -d --build</code></pre>
       { name: "React", slug: "react" },
     ],
     author: AUTHOR,
-    ogImageUrl: PLACEHOLDER_IMAGES.blogFallback[2],
+    ogImageUrl: PROJECT_IMAGES.blogFallback[2],
     contentHtml: `
       <p>Placeholder article content for local development and design review.</p>
       <h2 id="why-next">Why Next.js</h2>

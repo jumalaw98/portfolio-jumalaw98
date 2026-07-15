@@ -7,18 +7,17 @@ export interface Project {
   role: string;
   timeframe: string;
   stack: string[];
-  summary: string; // one-line outcome, used on cards/teasers
+  summary: string;
   featured: boolean;
 
-  // Case study body — six-part structure per portfolio-sitemap.md Section 2a
   problem: string;
   constraints: string;
-  decisions: string;
-  whatWasBuilt: string;
-  outcome: string;
-  reflection: string;
+  decisions: string | string[];
+  whatWasBuilt: string | string[];
+  outcome: string | string[];
+  reflection: string | string[];
 
   liveUrl?: string;
-  screenshots?: string[]; // paths under /public/images/projects/<slug>/
-  designCredit?: string; // e.g. "Mercy" — honest attribution per brand-profile honesty boundaries
+  screenshots?: string[];
+  designCredit?: string;
 }

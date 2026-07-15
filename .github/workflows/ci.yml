@@ -61,7 +61,7 @@ jobs:
         run: npm run lint
 
       - name: Prettier
-        run: npm run format
+        run: npm run format:check
 
       - name: Summary
         if: success()
@@ -91,7 +91,7 @@ jobs:
         run: npm ci
 
       - name: TypeScript check
-        run: npm run type-check
+        run: npm run typecheck
 
       - name: Summary
         if: success()

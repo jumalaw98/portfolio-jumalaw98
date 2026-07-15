@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/Badge";
 import type { Project } from "@/types/project";
 
 interface ProjectCardProps {
-  project: Project;
-  index?: number;
+  readonly project: Project;
+  readonly index?: number;
 }
 
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {

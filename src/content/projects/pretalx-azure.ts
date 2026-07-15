@@ -1,5 +1,5 @@
 import type { Project } from "@/types/project";
-import { PLACEHOLDER_IMAGES } from "@/lib/placeholder-images";
+import { PROJECT_IMAGES } from "@/lib/project-images";
 
 export const pretalxAzure: Project = {
   slug: "pretalx-azure",
@@ -13,18 +13,23 @@ export const pretalxAzure: Project = {
   featured: true,
 
   problem:
-    "The conference had been running its call-for-papers through Papercall and Sessionize. Both work fine, but neither gives you control over your own workflow or timeline — you're renting someone else's process, fees included.",
+    "Nairobi DevOps Community was running its call-for-papers through paid third-party platforms, which handled submissions fine but left the community with no control over its own data or workflow, plus recurring fees for something that could run on infrastructure it already had.",
   constraints:
-    "Solo build. Server cost was really the only constraint, and even that mostly disappeared since the community already had Azure credits sitting unused.",
+    "Solo build, no dedicated budget. The community had unused Azure credits sitting idle, which turned 'server cost' from a real constraint into a non-issue",
   decisions:
-    "Pretalx won out because it meant owning the CFP process outright instead of renting it. Azure was the easy call too, since those existing credits meant no new spend. Stack underneath: Docker, PostgreSQL, Redis, and Nginx.",
-  whatWasBuilt:
-    "A self-hosted CFP platform running the full submission-to-schedule pipeline, with SSL/TLS, locked-down server access, and standard security hardening. I'm keeping the specifics vague here on purpose — this thing handles real speaker and event data, and detailing the setup publicly doesn't seem worth the risk.",
+    "Pretalx won out because it meant owning the CFP process outright instead of renting it. Azure was the obvious host given the existing credits. Underneath: Docker Compose, PostgreSQL, Redis, and Nginx, with Azure Key Vault and Managed Identity handling secrets so nothing sensitive lives in a config file or git history",
+  whatWasBuilt: [
+    "A production CFP platform covering the full pipeline from submission to review to schedule publishing, at talks.nairobidevops.org. Highlights:",
+    "Multi-stage Docker build that cut the application image from 1.64 GB to 402 MB and eliminated two critical CVEs in the process.",
+    "HTTPS via Let's Encrypt with auto-renewal, NSG-restricted SSH, and a CI/CD pipeline (GitHub Actions) requiring a second human approval before anything reaches production.",
+    "Automated daily backups to Azure Blob Storage, with a tested restore procedure, the last drill brought the database back in 29 seconds, and the entire platform back online in 2 minutes 15 seconds.",
+    "Custom email integration built directly against the Azure Communication Services REST API after the standard SMTP path turned out to be blocked at the tenant level, not a workaround, a proper Django backend now running in production",
+  ],
   outcome:
     "No more recurring platform fees, since it now runs on infrastructure the community already had. It's held up reliably since launch and handles the CFP process start to finish.",
   reflection:
-    "Monitoring is the next thing I want to tighten up, along with cutting down whatever manual steps are still left in the deployment.",
+    "Tightening monitoring, container-level log shipping to Azure Monitor is in place, but the alerting still needs a pass before the review period starts. Also trimming the deployment steps that are still manual, ahead of the first real production release under load.",
 
   liveUrl: "https://talks.nairobidevops.org/",
-  screenshots: [...PLACEHOLDER_IMAGES.projects["pretalx-azure"]], // TODO: replace with real screenshots
+  screenshots: [...PROJECT_IMAGES.projects["pretalx-azure"]],
 };
