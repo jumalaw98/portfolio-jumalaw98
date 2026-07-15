@@ -8,8 +8,8 @@ import { RevealSection } from "@/components/ui/RevealSection";
 import type { Project } from "@/types/project";
 
 interface CaseStudyLayoutProps {
-  project: Project;
-  nextProject?: Project;
+  readonly project: Project;
+  readonly nextProject?: Project;
 }
 
 const sections: { heading: string; field: keyof Project }[] = [
@@ -84,9 +84,20 @@ export function CaseStudyLayout({ project, nextProject }: CaseStudyLayoutProps) 
             <RevealSection key={field} delay={i * 0.05}>
               <section>
                 <h2 className="text-xl font-semibold text-brand-ink">{heading}</h2>
-                <p className="mt-3 text-base leading-relaxed text-text-body">
+                {/* <p className="mt-3 text-base leading-relaxed text-text-body">
                   {project[field] as string}
-                </p>
+                </p> */}
+                <div className="mt-3 space-y-4 text-base leading-relaxed text-text-body">
+                  {(() => {
+                    const raw = project[field];
+                    if (!raw) return null;
+                    const paragraphs: string[] =
+                      typeof raw === "string" ? raw.split("\n\n") : (raw as string[]);
+                    return paragraphs.map((para, i) => (
+                      <p key={`${field}-${i}`}>{para}</p>
+                    ));
+                  })()}
+                </div>
               </section>
             </RevealSection>
           ))}

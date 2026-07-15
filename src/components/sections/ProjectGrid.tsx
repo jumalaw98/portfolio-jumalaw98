@@ -2,7 +2,7 @@ import { ProjectCard } from "./ProjectCard";
 import type { Project } from "@/types/project";
 
 interface ProjectGridProps {
-  projects: Project[];
+  readonly projects: readonly Project[];
 }
 
 export function ProjectGrid({ projects }: ProjectGridProps) {

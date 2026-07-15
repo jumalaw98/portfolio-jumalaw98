@@ -13,10 +13,10 @@ export interface Project {
   // Case study body — six-part structure per portfolio-sitemap.md Section 2a
   problem: string;
   constraints: string;
-  decisions: string;
-  whatWasBuilt: string;
-  outcome: string;
-  reflection: string;
+  decisions: string | string[];
+  whatWasBuilt: string | string[];
+  outcome: string | string[];
+  reflection: string | string[];
 
   liveUrl?: string;
   screenshots?: string[]; // paths under /public/images/projects/<slug>/

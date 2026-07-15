@@ -164,7 +164,7 @@ export const speakingEngagements: SpeakingEngagement[] = [
   {
     date: "Apr 2024",
     event: "TEMS Africa ICT Expo 2024",
-    location: "Nairobi, Kenya (venue pending confirmation)",
+    location: "Sarit Center, Nairobi, Kenya",
     talk: "Building Privacy into Systems from the Start",
     description:
       "The case for privacy-by-design: retrofitting privacy after launch almost always costs more than doing it upfront, so I made the argument for baking data protection into your architecture decisions from day one.",
@@ -192,7 +192,7 @@ export const speakingEngagements: SpeakingEngagement[] = [
   {
     date: "Sep 2023",
     event: "RenderCon Kenya 2023",
-    location: "Nairobi, Kenya (venue pending confirmation)",
+    location: "KCA University, Nairobi, Kenya",
     talk: "Building Sustainable Open Source Communities",
     description:
       "Why most open source projects lose steam once the initial excitement wears off, and what's actually kept contributors around in the ones that don't: governance that doesn't get in the way, real recognition, and maintainer workloads that don't burn people out.",
@@ -205,7 +205,7 @@ export const speakingEngagements: SpeakingEngagement[] = [
   {
     date: "Aug 2023",
     event: "Africa's Talking Summit 2023",
-    location: "Nairobi, Kenya (venue pending confirmation)",
+    location: "UON, Nairobi, Kenya",
     talk: "Building Inclusive Developer Communities",
     description:
       "What it actually takes to build a developer community that doesn't quietly filter out beginners: onboarding, mentorship, and the small habits that decide whether a newcomer sticks around or drifts off.",
@@ -218,7 +218,7 @@ export const speakingEngagements: SpeakingEngagement[] = [
   {
     date: "Nov 2022",
     event: "DevFest Kisumu (DevFest Western Kenya) 2022",
-    location: "Kisumu, Kenya (venue pending confirmation)",
+    location: "UON, Kisumu, Kenya",
     talk: "Crowdsource by Google: Help Make AI Serve Everyone, Everywhere",
     description:
       "I walked through Google's Crowdsource initiative and why AI trained on narrow data ends up failing people who don't speak the 'default' language or accent, and what developers in East Africa can actually do about that.",

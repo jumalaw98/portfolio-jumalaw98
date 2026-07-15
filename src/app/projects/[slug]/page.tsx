@@ -5,7 +5,7 @@ import { getProjectBySlug, mvpProjects } from "@/content/projects";
 import { pageMetadata, breadcrumbJsonLd } from "@/lib/seo";
 
 interface CaseStudyPageProps {
-  params: Promise<{ slug: string }>;
+  readonly params: Promise<{ slug: string }>;
 }
 
 export function generateStaticParams() {
@@ -37,7 +37,7 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
   const { slug } = await params;
   const project = getProjectBySlug(slug);
 
-  if (!project || project.status !== "live") {
+  if (project?.status !== "live") {
     notFound();
   }
 
