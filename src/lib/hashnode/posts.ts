@@ -1,12 +1,5 @@
 import type { BlogPost, BlogPostDetail } from "@/types/blogPost";
-import { hashnodeRequest, HashnodeApiError } from "./client";
-import { POSTS_QUERY, POST_BY_SLUG_QUERY } from "./queries";
-import type {
-  HashnodePostSummary,
-  HashnodePostFull,
-  PostsQueryResponse,
-  PostBySlugQueryResponse,
-} from "./types";
+import { fetchHashnodeRss, parseHashnodeRss, extractText, type HashnodeResult } from "./rss";
 
 const PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST;
 
@@ -15,75 +8,120 @@ export function isHashnodeConfigured(): boolean {
   return Boolean(PUBLICATION_HOST);
 }
 
-function mapSummary(node: HashnodePostSummary): BlogPost {
+/** Derive a slug from a Hashnode post URL (e.g. .../my-post → "my-post"). */
+function slugFromLink(link: string): string {
+  const trimmed = link.replace(/\/$/, "");
+  const parts = trimmed.split("/");
+  return parts[parts.length - 1] || trimmed;
+}
+
+/** Rough reading-time estimate from HTML text (GraphQL gave this directly;
+ *  RSS doesn't, so we approximate at ~200 wpm as a fallback). */
+function estimateReadTime(html: string): number {
+  const text = html.replace(/<[^>]+>/g, " ");
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+function mapSummary(item: ReturnType<typeof parseHashnodeRss>[number]): BlogPost {
+  const link = extractText(item.link);
+  const slug = slugFromLink(link);
+  const categories = item.category;
+  const tags = (Array.isArray(categories) ? categories : categories ? [categories] : [])
+    .map((c) => extractText(c).trim())
+    .filter(Boolean)
+    .map((name) => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-") }));
+
+  const coverImageUrl = item.enclosure?.["@_url"] ?? null;
+  const content = extractText(item["content:encoded"]);
+  const description = extractText(item.description);
+
+  // Validate pubDate: a malformed date must not produce "Invalid Date", which
+  // would later break sorting/parsing elsewhere. Fall back only when missing
+  // or unparseable.
+  const parsedDate = item.pubDate ? new Date(item.pubDate) : null;
+  const publishedAt =
+    parsedDate && !Number.isNaN(parsedDate.getTime())
+      ? parsedDate.toISOString()
+      : new Date().toISOString();
+
   return {
-    slug: node.slug,
-    title: node.title,
-    subtitle: node.subtitle,
-    brief: node.brief,
-    coverImageUrl: node.coverImage?.url ?? null,
-    publishedAt: node.publishedAt,
-    readTimeInMinutes: node.readTimeInMinutes,
-    url: node.url,
-    tags: node.tags ?? [],
+    slug,
+    title: extractText(item.title),
+    subtitle: null,
+    brief: description,
+    coverImageUrl,
+    publishedAt,
+    readTimeInMinutes: estimateReadTime(content || description),
+    url: link,
+    tags,
     author: {
-      name: node.author.name,
-      username: node.author.username,
-      profilePictureUrl: node.author.profilePicture,
+      name: extractText(item["dc:creator"]) || "Lawrence Juma",
+      username: "jumalaw98",
+      profilePictureUrl: null,
     },
   };
 }
 
-function mapFull(node: HashnodePostFull): BlogPostDetail {
+function mapFull(item: ReturnType<typeof parseHashnodeRss>[number]): BlogPostDetail {
+  const summary = mapSummary(item);
+  const content = extractText(item["content:encoded"]);
   return {
-    ...mapSummary(node),
-    contentHtml: node.content.html,
-    ogImageUrl: node.ogMetaData?.image ?? node.coverImage?.url ?? null,
+    ...summary,
+    contentHtml: content,
+    ogImageUrl: summary.coverImageUrl,
   };
 }
 
 /**
- * Fetches posts for the listing page. Pulls up to `limit` posts in one
- * request — plenty for a personal blog's volume, and keeps tag-filtering /
- * search simple (done in-app over this set, see note in app/blog/page.tsx)
- * rather than depending on unconfirmed server-side filter/search arguments.
+ * Fetches posts for the listing page from the publication's RSS feed.
+ * RSS returns the most recent N posts in one response (Hashnode caps the feed
+ * at a sane limit), so we slice to `limit` rather than paginating cursor-style.
+ * This replaces the old GraphQL `posts(first:, after:)` pagination loop.
  */
-export async function getAllPosts(limit = 50): Promise<BlogPost[]> {
-  if (!PUBLICATION_HOST) return [];
+export async function getAllPosts(limit = 50): Promise<HashnodeResult<BlogPost[]>> {
+  if (!PUBLICATION_HOST) {
+    return { ok: false, error: "HASHNODE_PUBLICATION_HOST is not set", reason: "not_configured" };
+  }
+
+  const result = await fetchHashnodeRss(PUBLICATION_HOST, {
+    revalidate: 3600,
+    tags: ["hashnode-posts"],
+  });
+
+  if (!result.ok) return result;
 
   try {
-    const data = await hashnodeRequest<PostsQueryResponse>(
-      POSTS_QUERY,
-      { host: PUBLICATION_HOST, first: limit, after: null },
-      { revalidate: 3600, tags: ["hashnode-posts"] },
-    );
-
-    return (data.publication?.posts.edges ?? []).map((edge) => mapSummary(edge.node));
+    const items = parseHashnodeRss(result.data);
+    const posts = items.slice(0, limit).map(mapSummary);
+    return { ok: true, data: posts };
   } catch (error) {
-    console.error("Failed to fetch Hashnode posts:", error);
-    return [];
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Failed to parse Hashnode RSS feed:", message);
+    return { ok: false, error: `Failed to parse RSS feed: ${message}`, reason: "fetch_failed" };
   }
 }
 
-export async function getPostBySlug(slug: string): Promise<BlogPostDetail | null> {
-  if (!PUBLICATION_HOST) return null;
+export async function getPostBySlug(slug: string): Promise<HashnodeResult<BlogPostDetail | null>> {
+  if (!PUBLICATION_HOST) {
+    return { ok: false, error: "HASHNODE_PUBLICATION_HOST is not set", reason: "not_configured" };
+  }
+
+  const result = await fetchHashnodeRss(PUBLICATION_HOST, {
+    revalidate: 3600,
+    tags: [`hashnode-post-${slug}`],
+  });
+
+  if (!result.ok) return result;
 
   try {
-    const data = await hashnodeRequest<PostBySlugQueryResponse>(
-      POST_BY_SLUG_QUERY,
-      { host: PUBLICATION_HOST, slug },
-      { revalidate: 3600, tags: [`hashnode-post-${slug}`] },
-    );
-
-    const post = data.publication?.post;
-    return post ? mapFull(post) : null;
+    const items = parseHashnodeRss(result.data);
+    const match = items.find((item) => slugFromLink(extractText(item.link)) === slug);
+    return { ok: true, data: match ? mapFull(match) : null };
   } catch (error) {
-    if (error instanceof HashnodeApiError) {
-      console.error(`Failed to fetch Hashnode post "${slug}":`, error.message);
-    } else {
-      console.error(`Failed to fetch Hashnode post "${slug}":`, error);
-    }
-    return null;
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Failed to parse Hashnode RSS feed for slug "${slug}":`, message);
+    return { ok: false, error: `Failed to parse RSS feed: ${message}`, reason: "fetch_failed" };
   }
 }
 

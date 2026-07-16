@@ -14,9 +14,11 @@ function escapeXml(value: string): string {
 }
 
 export async function GET() {
-  const livePosts = await getAllPosts();
-  const posts =
-    !isHashnodeConfigured() || livePosts.length === 0 ? placeholderBlogPosts : livePosts;
+  const result = await getAllPosts();
+  // Placeholders are for local dev only (Hashnode not configured). When the
+  // publication IS configured we never publish demo posts — on a fetch failure
+  // or empty feed we emit a real (possibly empty) feed instead.
+  const posts = !isHashnodeConfigured() ? placeholderBlogPosts : result.ok ? result.data : [];
 
   const sorted = [...posts].sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),

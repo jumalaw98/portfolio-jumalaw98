@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "ik.imagekit.io",
       },
+      {
+        // Hashnode cover images served from its CDN (used by the RSS feed's
+        // <enclosure> element). Required for next/image to load live covers.
+        protocol: "https",
+        hostname: "cdn.hashnode.com",
+      },
     ],
   },
   async redirects() {

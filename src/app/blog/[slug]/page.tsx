@@ -19,6 +19,7 @@ import {
   getAdjacentPosts,
   getRelatedPosts,
   isHashnodeConfigured,
+  type HashnodeResult,
 } from "@/lib/hashnode";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import { SITE_URL, SITE_NAME } from "@/lib/constants";
@@ -33,23 +34,41 @@ interface BlogPostPageProps {
 
 async function resolvePost(slug: string): Promise<{
   post: BlogPostDetail | null;
-  allPosts: BlogPostDetail[] | Awaited<ReturnType<typeof getAllPosts>>;
+  allPosts: BlogPostDetail[];
   usingPlaceholders: boolean;
+  fetchFailed: boolean;
 }> {
   if (!isHashnodeConfigured()) {
     const post = placeholderBlogPosts.find((p) => p.slug === slug) ?? null;
-    return { post, allPosts: placeholderBlogPosts, usingPlaceholders: true };
+    return { post, allPosts: placeholderBlogPosts, usingPlaceholders: true, fetchFailed: false };
   }
 
-  const [post, allPosts] = await Promise.all([getPostBySlug(slug), getAllPosts()]);
-  return { post, allPosts, usingPlaceholders: false };
+  const [postResult, allResult]: [
+    HashnodeResult<BlogPostDetail | null>,
+    HashnodeResult<import("@/types/blogPost").BlogPost[]>,
+  ] = await Promise.all([getPostBySlug(slug), getAllPosts()]);
+
+  const fetchFailed = !postResult.ok || !allResult.ok;
+  if (fetchFailed) {
+    const reason = !postResult.ok
+      ? postResult.error
+      : allResult.ok === false
+        ? allResult.error
+        : "";
+    console.error(`Hashnode feed fetch failed for "${slug}":`, reason);
+  }
+
+  const allPosts = allResult.ok ? (allResult.data as BlogPostDetail[]) : [];
+  const post = postResult.ok ? postResult.data : null;
+  return { post, allPosts, usingPlaceholders: false, fetchFailed };
 }
 
 export async function generateStaticParams() {
   if (!isHashnodeConfigured()) {
     return placeholderBlogPosts.map((p) => ({ slug: p.slug }));
   }
-  const posts = await getAllPosts();
+  const result = await getAllPosts();
+  const posts = result.ok ? result.data : [];
   return posts.map((p) => ({ slug: p.slug }));
 }
 
@@ -97,7 +116,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const { post, allPosts, usingPlaceholders } = await resolvePost(slug);
+  const { post, allPosts, usingPlaceholders, fetchFailed } = await resolvePost(slug);
 
   if (!post) {
     notFound();
@@ -141,6 +160,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             <p className="mb-4 rounded-md border border-brand-orange-light bg-brand-orange-tint px-4 py-2 text-sm text-brand-orange-dark">
               Placeholder post — connect <code>HASHNODE_PUBLICATION_HOST</code> to show real
               Hashnode content here.
+            </p>
+          ) : null}
+
+          {fetchFailed ? (
+            <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700">
+              This article loaded from cache, but we couldn&apos;t refresh the latest from Hashnode.
+              The content below is still valid.
             </p>
           ) : null}
 

@@ -18,8 +18,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const livePosts = await getAllPosts();
-  const blogPosts =
-    !isHashnodeConfigured() || livePosts.length === 0 ? placeholderBlogPosts : livePosts;
+  // Placeholders are for local dev only (Hashnode not configured). When the
+  // publication IS configured we emit no blog routes on failure/empty rather
+  // than advertising demo slugs to crawlers.
+  const blogPosts = !isHashnodeConfigured()
+    ? placeholderBlogPosts
+    : livePosts.ok
+      ? livePosts.data
+      : [];
 
   const blogRoutes = blogPosts.map((post) => ({
     url: `${SITE_URL}/blog/${post.slug}`,
