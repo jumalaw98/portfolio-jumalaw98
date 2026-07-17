@@ -4,7 +4,8 @@
 // Source: portfolio-content.md Section 5b.
 
 export const SITE_NAME = "Lawrence Juma";
-export const SITE_ALIAS = "jumalaw98";
+export const SITE_ALIAS = "Jumalaw98";
+export const SITE_LOGO = "https://ik.imagekit.io/lawz/law/jumalaw98_logo.svg";
 export const SITE_TAGLINE = "The Builder Who Also Brings People Together.";
 
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://jumalaw98.vercel.app";

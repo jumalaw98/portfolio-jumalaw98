@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
-import { NAV_LINKS, PRIMARY_CTA, SITE_ALIAS } from "@/lib/constants";
+import { NAV_LINKS, PRIMARY_CTA, SITE_LOGO } from "@/lib/constants";
 import { cn, isNavLinkActive } from "@/lib/utils";
 import { MobileMenu } from "./MobileMenu";
 
@@ -38,10 +39,21 @@ export function Nav() {
       <Container className="flex h-16 items-center justify-between">
         <Link
           href="/"
-          className="font-display text-lg font-bold text-brand-ink"
+          className="flex items-center gap-2 font-display text-lg font-bold text-brand-ink"
           onClick={() => setIsMenuOpen(false)}
         >
-          {SITE_ALIAS}
+          <Image
+            src={SITE_LOGO}
+            alt=""
+            width={32}
+            height={32}
+            className="h-8 w-8 object-contain"
+            priority
+          />
+          <span>
+            <span className="text-brand-blue">Jumalaw</span>
+            <span className="text-brand-orange">98</span>
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">

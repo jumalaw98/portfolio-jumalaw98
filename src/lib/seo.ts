@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SITE_NAME, SITE_URL } from "./constants";
+import { SITE_LOGO, SITE_NAME, SITE_URL } from "./constants";
 
 interface PageMetadataInput {
   title: string;
@@ -59,6 +59,9 @@ export function pageMetadata({
 
 export const defaultMetadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  icons: {
+    icon: [{ url: SITE_LOGO, type: "image/svg+xml" }],
+  },
   ...pageMetadata({
     // Long-tail terms match the site's own documented SEO strategy
     // (portfolio-master-blueprint.md — "React Next.js developer Nairobi",
