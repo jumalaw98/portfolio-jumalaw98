@@ -55,10 +55,23 @@ function extractText(value: unknown): string {
   if (value == null) return "";
   if (typeof value === "string") return value;
   // fast-xml-parser puts CDATA text under the cdataPropName key.
-  if (typeof value === "object" && "__cdata" in (value as Record<string, unknown>)) {
-    return String((value as Record<string, unknown>).__cdata ?? "");
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if ("__cdata" in obj) {
+      const cdata = obj.__cdata;
+      return typeof cdata === "string" ? cdata : extractText(cdata);
+    }
+    try {
+      const serialized = JSON.stringify(value);
+      return typeof serialized === "string" ? serialized : "";
+    } catch {
+      return "";
+    }
   }
-  return String(value);
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    return String(value);
+  }
+  return "";
 }
 
 /**

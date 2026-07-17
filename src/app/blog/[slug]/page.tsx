@@ -29,7 +29,7 @@ import type { BlogPostDetail } from "@/types/blogPost";
 export const revalidate = 3600;
 
 interface BlogPostPageProps {
-  params: Promise<{ slug: string }>;
+  readonly params: Promise<{ slug: string }>;
 }
 
 async function resolvePost(slug: string): Promise<{
@@ -50,11 +50,12 @@ async function resolvePost(slug: string): Promise<{
 
   const fetchFailed = !postResult.ok || !allResult.ok;
   if (fetchFailed) {
-    const reason = !postResult.ok
-      ? postResult.error
-      : allResult.ok === false
-        ? allResult.error
-        : "";
+    let reason = "";
+    if (!postResult.ok) {
+      reason = postResult.error;
+    } else if (!allResult.ok) {
+      reason = allResult.error;
+    }
     console.error(`Hashnode feed fetch failed for "${slug}":`, reason);
   }
 

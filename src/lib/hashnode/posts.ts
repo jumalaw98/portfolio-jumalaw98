@@ -12,13 +12,15 @@ export function isHashnodeConfigured(): boolean {
 function slugFromLink(link: string): string {
   const trimmed = link.replace(/\/$/, "");
   const parts = trimmed.split("/");
-  return parts[parts.length - 1] || trimmed;
+  return parts.at(-1) || trimmed;
 }
 
 /** Rough reading-time estimate from HTML text (GraphQL gave this directly;
  *  RSS doesn't, so we approximate at ~200 wpm as a fallback). */
 function estimateReadTime(html: string): number {
-  const text = html.replace(/<[^>]+>/g, " ");
+  // Replace HTML tags with spaces to get plain text. The negated character
+  // class [^>]*? avoids backtracking and ensures linear runtime performance.
+  const text = html.replace(/<[^>]*?>/g, " ");
   const words = text.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
 }
@@ -27,7 +29,15 @@ function mapSummary(item: ReturnType<typeof parseHashnodeRss>[number]): BlogPost
   const link = extractText(item.link);
   const slug = slugFromLink(link);
   const categories = item.category;
-  const tags = (Array.isArray(categories) ? categories : categories ? [categories] : [])
+  let categoryList: string[];
+  if (Array.isArray(categories)) {
+    categoryList = categories;
+  } else if (categories) {
+    categoryList = [categories];
+  } else {
+    categoryList = [];
+  }
+  const tags = categoryList
     .map((c) => extractText(c).trim())
     .filter(Boolean)
     .map((name) => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-") }));

@@ -1,16 +1,17 @@
 import { getAllPosts, isHashnodeConfigured } from "@/lib/hashnode";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import type { BlogPost } from "@/types/blogPost";
 
 export const revalidate = 3600;
 
 function escapeXml(value: string): string {
   return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+    .replaceAll("&", "&" + "amp;")
+    .replaceAll("<", "&" + "lt;")
+    .replaceAll(">", "&" + "gt;")
+    .replaceAll('"', "&" + "quot;")
+    .replaceAll("'", "&" + "apos;");
 }
 
 export async function GET() {
@@ -18,7 +19,14 @@ export async function GET() {
   // Placeholders are for local dev only (Hashnode not configured). When the
   // publication IS configured we never publish demo posts — on a fetch failure
   // or empty feed we emit a real (possibly empty) feed instead.
-  const posts = !isHashnodeConfigured() ? placeholderBlogPosts : result.ok ? result.data : [];
+  let posts: BlogPost[];
+  if (!isHashnodeConfigured()) {
+    posts = placeholderBlogPosts;
+  } else if (result.ok) {
+    posts = result.data;
+  } else {
+    posts = [];
+  }
 
   const sorted = [...posts].sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),

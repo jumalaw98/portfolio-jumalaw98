@@ -12,8 +12,11 @@ import { getAllPosts, getAllTagsFromPosts, isHashnodeConfigured } from "@/lib/ha
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { pageMetadata, breadcrumbJsonLd } from "@/lib/seo";
+import type { BlogPost, BlogTag } from "@/types/blogPost";
+import type { HashnodeResult } from "@/lib/hashnode/rss";
 
 const PAGE_SIZE = 18;
+const MAX_TAGS = 5;
 
 export const revalidate = 3600; // ISR — new Hashnode posts appear hourly without a redeploy
 
@@ -33,57 +36,68 @@ export const metadata: Metadata = {
 };
 
 interface BlogPageProps {
-  searchParams: Promise<{ tag?: string; q?: string; page?: string }>;
+  readonly searchParams: Promise<{ tag?: string; q?: string; page?: string }>;
 }
 
-export default async function BlogPage({ searchParams }: BlogPageProps) {
-  const { tag, q, page } = await searchParams;
+// ---------------------------------------------------------------------------
+// Pure helpers extracted from the page component to keep cognitive complexity
+// within the SonarQube threshold and eliminate nested ternaries / deep nesting.
+// ---------------------------------------------------------------------------
 
-  const result = await getAllPosts();
-  const configured = isHashnodeConfigured();
-
-  // Only fall back to placeholders when Hashnode is NOT configured (dev mode).
-  // A real fetch failure must be visible, not silently masked as placeholders.
+/** Resolve the post list without a nested ternary. */
+function resolvePosts(
+  configured: boolean,
+  result: HashnodeResult<BlogPost[]>,
+): { posts: BlogPost[]; usingPlaceholders: boolean; fetchFailed: boolean } {
   const usingPlaceholders = !configured;
   const fetchFailed = configured && !result.ok;
-  const allPosts = usingPlaceholders ? placeholderBlogPosts : result.ok ? result.data : [];
 
-  if (fetchFailed && result.ok === false) {
-    console.error("Hashnode feed fetch failed:", result.error);
+  let posts: BlogPost[];
+  if (usingPlaceholders) {
+    posts = placeholderBlogPosts as BlogPost[];
+  } else if (result.ok) {
+    posts = result.data;
+  } else {
+    posts = [];
   }
 
-  const allTags = getAllTagsFromPosts(allPosts);
+  return { posts, usingPlaceholders, fetchFailed };
+}
 
-  // Cap the visible filter chips at 5 to keep the UI tidy when the
-  // publication has many tags. Pick the 5 most-used tags, but always keep the
-  // currently active tag in the list so its highlighted state never vanishes.
-  const MAX_TAGS = 5;
-  const tags = (() => {
-    if (allTags.length <= MAX_TAGS) return allTags;
-    const byCount = [...allTags].sort((a, b) => {
-      const count = (slug: string) =>
-        allPosts.filter((p) => p.tags.some((t) => t.slug === slug)).length;
-      return count(b.slug) - count(a.slug);
-    });
-    const top = byCount.slice(0, MAX_TAGS);
-    if (tag && !top.some((t) => t.slug === tag)) {
-      const active = allTags.find((t) => t.slug === tag);
-      if (active) top[top.length - 1] = active;
-    }
-    return top;
-  })();
+/** Count how many posts carry a given tag slug. */
+function tagCount(posts: BlogPost[], slug: string): number {
+  return posts.filter((p) => p.tags.some((t) => t.slug === slug)).length;
+}
 
-  // In-app filtering over the fetched set. Hashnode's public API doesn't
-  // expose a stable full-text search endpoint, so this is a pragmatic
-  // "search within what we've loaded" rather than a server-side search —
-  // fine at personal-blog volume; see README for an Algolia/Orama upgrade path.
-  let filteredPosts = allPosts;
+/**
+ * Cap the visible filter chips at MAX_TAGS. Pick the most-used tags, but
+ * always keep the currently active tag in the list so its highlighted state
+ * never vanishes.
+ */
+function getTopTags(allTags: BlogTag[], posts: BlogPost[], activeTag?: string): BlogTag[] {
+  if (allTags.length <= MAX_TAGS) return allTags;
+
+  const byCount = [...allTags].sort((a, b) => tagCount(posts, b.slug) - tagCount(posts, a.slug));
+  const top = byCount.slice(0, MAX_TAGS);
+
+  if (activeTag && !top.some((t) => t.slug === activeTag)) {
+    const active = allTags.find((t) => t.slug === activeTag);
+    if (active) top[top.length - 1] = active;
+  }
+
+  return top;
+}
+
+/** Apply in-app tag and full-text filters, then sort newest-first. */
+function filterAndSortPosts(posts: BlogPost[], tag?: string, q?: string): BlogPost[] {
+  let filtered = posts;
+
   if (tag) {
-    filteredPosts = filteredPosts.filter((p) => p.tags.some((t) => t.slug === tag));
+    filtered = filtered.filter((p) => p.tags.some((t) => t.slug === tag));
   }
   if (q) {
     const needle = q.toLowerCase();
-    filteredPosts = filteredPosts.filter(
+    filtered = filtered.filter(
       (p) =>
         p.title.toLowerCase().includes(needle) ||
         p.brief.toLowerCase().includes(needle) ||
@@ -91,23 +105,52 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
     );
   }
 
-  const sortedPosts = [...filteredPosts].sort(
+  return [...filtered].sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
   );
+}
 
-  // Paginate the grid at PAGE_SIZE per view. The featured hero is an extra
-  // element shown only on the unfiltered first page.
-  const currentPage = Math.min(
-    Math.max(1, Number.parseInt(page ?? "1", 10) || 1),
-    Math.max(1, Math.ceil(sortedPosts.length / PAGE_SIZE)),
-  );
-  const totalPages = Math.max(1, Math.ceil(sortedPosts.length / PAGE_SIZE));
+/** Derive pagination values and the grid slice for the current page. */
+function paginatePosts(sortedPosts: BlogPost[], rawPage: string | undefined, pageSize: number) {
+  const totalPages = Math.max(1, Math.ceil(sortedPosts.length / pageSize));
+  const currentPage = Math.min(Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1), totalPages);
+
+  const showFeatured = !rawPage || currentPage === 1;
+  const featured = showFeatured && sortedPosts.length > 0 ? sortedPosts[0] : null;
+  const restPosts = featured ? sortedPosts.slice(1) : sortedPosts;
+  const gridPosts = restPosts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  return { currentPage, totalPages, featured, gridPosts };
+}
+
+// ---------------------------------------------------------------------------
+// Page component
+// ---------------------------------------------------------------------------
+
+export default async function BlogPage({ searchParams }: BlogPageProps) {
+  const { tag, q, page } = await searchParams;
+
+  const result = await getAllPosts();
+  const configured = isHashnodeConfigured();
+
+  const { posts: allPosts, usingPlaceholders, fetchFailed } = resolvePosts(configured, result);
+
+  if (fetchFailed && !result.ok) {
+    console.error("Hashnode feed fetch failed:", result.error);
+  }
+
+  const allTags = getAllTagsFromPosts(allPosts);
+  const tags = getTopTags(allTags, allPosts, tag);
+
+  const sortedPosts = filterAndSortPosts(allPosts, tag, q);
 
   // Featured hero only on the unfiltered first page — never on later pages.
-  const showFeatured = !tag && !q && currentPage === 1 && sortedPosts.length > 0;
-  const featured = showFeatured ? sortedPosts[0] : null;
-  const restPosts = showFeatured ? sortedPosts.slice(1) : sortedPosts;
-  const gridPosts = restPosts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const showFeatured = !tag && !q;
+  const { currentPage, totalPages, featured, gridPosts } = paginatePosts(
+    sortedPosts,
+    showFeatured ? page : undefined,
+    PAGE_SIZE,
+  );
 
   // Randomize the grid order on every refresh, but only on the unfiltered
   // first page — keeps tag/search/pagination deterministic and SEO-stable.
