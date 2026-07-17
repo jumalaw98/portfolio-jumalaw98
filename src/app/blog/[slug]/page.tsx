@@ -39,7 +39,13 @@ async function resolvePost(slug: string): Promise<{
 }> {
   if (!isHashnodeConfigured()) {
     const post = placeholderBlogPosts.find((p) => p.slug === slug) ?? null;
-    return { post, allPosts: placeholderBlogPosts, usingPlaceholders: true, fetchFailed: false, isMissing: !post };
+    return {
+      post,
+      allPosts: placeholderBlogPosts,
+      usingPlaceholders: true,
+      fetchFailed: false,
+      isMissing: !post,
+    };
   }
 
   // Single RSS fetch — avoids duplicate network requests and keeps the
@@ -52,7 +58,13 @@ async function resolvePost(slug: string): Promise<{
     // Fetch failure — not the same as "post not found". Return null post so
     // the page shows the failure banner without a 404 (ISR can thus preserve
     // the last good cached page instead of losing it to a transient blip).
-    return { post: null, allPosts: [], usingPlaceholders: false, fetchFailed: true, isMissing: false };
+    return {
+      post: null,
+      allPosts: [],
+      usingPlaceholders: false,
+      fetchFailed: true,
+      isMissing: false,
+    };
   }
 
   const allPosts = result.data as BlogPostDetail[];
