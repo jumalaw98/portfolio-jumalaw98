@@ -48,23 +48,6 @@ export interface ValidationResult {
 
 // ─── Spam-pattern detection ──────────────────────────────────────────────────
 
-/**
- * Patterns whose repetition is a strong spam signal.
- * Only 4+ char patterns to avoid false positives on short substrings.
- */
-const SPAM_PATTERNS = [
-  /asdf/,
-  /qwerty/,
-  /zxcv/,
-  /1234/,
-  /2345/,
-  /3456/,
-  /4567/,
-  /5678/,
-  /6789/,
-  /7890/,
-];
-
 /** Individual QWERTY keyboard rows (number, top, home/middle, bottom). */
 const NUMBER_ROW = new Set("1234567890");
 const TOP_ROW = new Set("qwertyuiop");
@@ -72,6 +55,11 @@ const MIDDLE_ROW = new Set("asdfghjkl");
 const BOTTOM_ROW = new Set("zxcvbnm");
 const KEYBOARD_ROWS = [TOP_ROW, MIDDLE_ROW, BOTTOM_ROW, NUMBER_ROW];
 
+/**
+ * Check if any single character makes up ≥ 70% of the full (whitespace-inclusive)
+ * string. Whitespace is included in the denominator so ordinary prose like
+ * "We write to you about a project" is not falsely flagged as spam.
+ */
 function hasExcessiveRepeatedChars(value: string): boolean {
   if (value.length < 3) return false;
 
@@ -85,25 +73,17 @@ function hasExcessiveRepeatedChars(value: string): boolean {
 }
 
 function isKeyboardSpam(value: string): boolean {
-  const cleaned = value.toLowerCase().replace(/\s+/g, "");
-  if (cleaned.length < 4) return false;
+  const lower = value.toLowerCase();
+  // Keep whitespace in the denominator so ordinary prose is not falsely flagged.
+  // Remove only non-whitespace, non-letter characters for row membership checks.
+  const letters = [...lower].filter((c) => /[a-z0-9]/.test(c));
+  if (letters.length < 4) return false;
 
-  // Check if the majority of characters belong to a single keyboard row
+  // Check if the majority of letter characters belong to a single keyboard row
   // (catches keyboard mashing like "asdfghjkl" or "qwertyqwerty")
   for (const row of KEYBOARD_ROWS) {
-    const rowChars = [...cleaned].filter((c) => row.has(c)).length;
-    if (rowChars / cleaned.length >= 0.8) return true;
-  }
-
-  // Message is a repetition of a known spam pattern
-  for (const pattern of SPAM_PATTERNS) {
-    const match = cleaned.match(pattern);
-    if (!match || match.index !== 0) continue;
-
-    const matched = match[0];
-    const repeats = Math.ceil(cleaned.length / matched.length);
-    const expected = matched.repeat(repeats).slice(0, cleaned.length);
-    if (cleaned === expected) return true;
+    const rowChars = letters.filter((c) => row.has(c)).length;
+    if (rowChars / letters.length >= 0.8) return true;
   }
 
   return false;
@@ -182,12 +162,28 @@ function validateMessage(value: string): ValidationError | null {
  * Pure function — no side effects.
  */
 export function validateContactForm(raw: Record<string, unknown>): ValidationResult {
-  const name = String(raw.name ?? "");
-  const email = String(raw.email ?? "");
-  const intent = String(raw.intent ?? "");
-  const message = String(raw.message ?? "");
-
+  // Reject non-string field types early: String() coerces arrays/numbers
+  // (e.g. [1,2,3] → "1,2,3", 123 → "123"), silently breaking the form's
+  // string-field contract.
   const errors: ValidationError[] = [];
+
+  if (typeof raw.name !== "string")
+    errors.push({ field: "name", message: "Name must be plain text." });
+  if (typeof raw.email !== "string")
+    errors.push({ field: "email", message: "Email must be plain text." });
+  if (typeof raw.intent !== "string")
+    errors.push({ field: "intent", message: "Invalid intent format." });
+  if (typeof raw.message !== "string")
+    errors.push({ field: "message", message: "Message must be plain text." });
+
+  if (errors.length > 0) {
+    return { valid: false, errors, data: { name: "", email: "", intent: "", message: "" } };
+  }
+
+  const name = raw.name as string;
+  const email = raw.email as string;
+  const intent = raw.intent as string;
+  const message = raw.message as string;
 
   const nameErr = validateName(name);
   if (nameErr) errors.push(nameErr);

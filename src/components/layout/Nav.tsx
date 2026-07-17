@@ -7,9 +7,26 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
-import { NAV_LINKS, PRIMARY_CTA, SITE_LOGO } from "@/lib/constants";
+import { NAV_LINKS, PRIMARY_CTA, SITE_LOGO, SITE_ALIAS } from "@/lib/constants";
 import { cn, isNavLinkActive } from "@/lib/utils";
 import { MobileMenu } from "./MobileMenu";
+
+/**
+ * Renders a styled brand name by splitting the alias into its text and numeric parts.
+ * Stays in sync with SITE_ALIAS without hardcoding the display string.
+ */
+function BrandedName({ alias }: { alias: string }) {
+  const match = alias.match(/^([a-zA-Z]+)(\d*)$/);
+  if (!match) {
+    return <span>{alias}</span>;
+  }
+  return (
+    <>
+      <span className="text-brand-blue">{match[1]}</span>
+      {match[2] ? <span className="text-brand-orange">{match[2]}</span> : null}
+    </>
+  );
+}
 
 export function Nav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -48,11 +65,10 @@ export function Nav() {
             width={32}
             height={32}
             className="h-8 w-8 object-contain"
-            priority
+            preload
           />
           <span>
-            <span className="text-brand-blue">Jumalaw</span>
-            <span className="text-brand-orange">98</span>
+            <BrandedName alias={SITE_ALIAS} />
           </span>
         </Link>
 

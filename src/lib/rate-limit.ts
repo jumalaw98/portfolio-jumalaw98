@@ -1,80 +1,73 @@
 /**
- * Simple in-memory rate limiter for the contact form.
+ * Upstash Redis-backed rate limiters for the contact form.
  *
- * Limits to MAX_REQUESTS per WINDOW_MS per IP address.
+ * Uses sliding-window algorithm for smooth request distribution.
+ * Ephemeral cache avoids Redis calls for already-blocked identifiers.
  *
- * NOTE: On serverless platforms (Vercel, Netlify) instances are ephemeral,
- * so the in-memory store resets between cold starts. For production at scale,
- * replace the Map with a shared store such as Upstash Redis.
+ * Requires environment variables:
+ *   UPSTASH_REDIS_REST_URL   — from Upstash Console → Redis database → REST API
+ *   UPSTASH_REDIS_REST_TOKEN — from Upstash Console → Redis database → REST API
  *
- * For a portfolio site this is adequate — each instance maintains its own
- * counter, and the worst case is a few extra submissions during a redeploy.
+ * Pricing: Free tier (500K commands/month, 256 MB) is sufficient for
+ * a portfolio site. Each `limit()` call can use up to six Redis commands,
+ * including the additional analytics command.
+ *
+ * @see https://upstash.com/docs/redis/sdks/ratelimit-ts/overview
  */
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
-const WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_REQUESTS = 5;
+const redis = Redis.fromEnv();
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
-
-export interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-  resetAt: number;
-}
-
-// ─── Internal store ──────────────────────────────────────────────────────────
-
-const store = new Map<string, RateLimitEntry>();
-
-// ─── Cleanup ─────────────────────────────────────────────────────────────────
-
-const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
-let lastCleanup = Date.now();
-
-function cleanup(): void {
-  const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
-  lastCleanup = now;
-
-  for (const [key, entry] of store) {
-    if (now >= entry.resetAt) {
-      store.delete(key);
-    }
-  }
-}
-
-// ─── Public API ──────────────────────────────────────────────────────────────
+/** Max entries in the ephemeral cache to prevent attacker-controlled key growth. */
+const EPHEMERAL_CACHE_MAX = 10_000;
 
 /**
- * Check whether `ip` is allowed to make a request.
- * Increments the counter if allowed.
- * Never throws.
+ * Bounded in-memory cache for already-blocked identifiers.
+ * Evicts the oldest entry when full, preventing attacker-controlled IP
+ * rotation from growing memory or scan-time CPU unboundedly.
+ * Module-scoped so it survives warm lambda invocations.
  */
-export function checkRateLimit(ip: string): RateLimitResult {
-  cleanup();
-
-  const now = Date.now();
-  const entry = store.get(ip);
-
-  // First request or window expired — reset
-  if (!entry || now >= entry.resetAt) {
-    store.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return { allowed: true, remaining: MAX_REQUESTS - 1, resetAt: now + WINDOW_MS };
+class BoundedMap<K, V> extends Map<K, V> {
+  constructor(private readonly maxSize: number) {
+    super();
   }
 
-  // Limit exceeded
-  if (entry.count >= MAX_REQUESTS) {
-    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
+  set(key: K, value: V): this {
+    if (this.size >= this.maxSize && !this.has(key)) {
+      const firstKey = this.keys().next().value;
+      if (firstKey !== undefined) this.delete(firstKey);
+    }
+    return super.set(key, value);
   }
-
-  // Within limit — increment
-  entry.count += 1;
-  return { allowed: true, remaining: MAX_REQUESTS - entry.count, resetAt: entry.resetAt };
 }
+
+const ephemeralCache = new BoundedMap<string, number>(EPHEMERAL_CACHE_MAX);
+
+/**
+ * Contact form rate limiter: 5 submissions per hour per IP.
+ *
+ * Sliding window avoids the boundary-burst issue of fixed windows.
+ * The ephemeral cache means blocked IPs are rejected without any Redis call.
+ */
+export const contactLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, "1 h"),
+  analytics: true,
+  prefix: "rl:contact",
+  ephemeralCache,
+});
+
+/**
+ * Extract the client IP address from a Next.js/standard Request.
+ */
+export function getClientIp(request: Request): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
+export type { Ratelimit };

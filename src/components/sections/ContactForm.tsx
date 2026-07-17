@@ -119,8 +119,9 @@ function ContactField({
   rows,
 }: ContactFieldProps) {
   const hasError = Boolean(error);
-  const inputClass = `mt-1 w-full rounded-md border px-3 py-2 text-sm ${hasError ? "border-red-500" : "border-border"
-    }`;
+  const inputClass = `mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+    hasError ? "border-red-500" : "border-border"
+  }`;
 
   const sharedProps = {
     id,

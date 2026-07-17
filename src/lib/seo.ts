@@ -60,7 +60,7 @@ export function pageMetadata({
 export const defaultMetadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   icons: {
-    icon: [{ url: SITE_LOGO, type: "image/svg+xml" }],
+    icon: [{ url: SITE_LOGO, type: "image/png" }],
   },
   ...pageMetadata({
     // Long-tail terms match the site's own documented SEO strategy

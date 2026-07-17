@@ -1,18 +1,10 @@
 import { NextResponse } from "next/server";
 import { CONTACT_EMAIL } from "@/lib/constants";
 import { validateContactForm } from "@/lib/validation";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { contactLimiter, getClientIp } from "@/lib/rate-limit";
+import { track } from "@/lib/instrument";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/** Extract the client IP from the request object. */
-function getClientIp(request: Request): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown"
-  );
-}
 
 /** Convert validation errors to a fields record for the API response. */
 function errorsToFields(errors: { field: string; message: string }[]): Record<string, string> {
@@ -23,23 +15,94 @@ function errorsToFields(errors: { field: string; message: string }[]): Record<st
   return fields;
 }
 
+interface SendEmailParams {
+  name: string;
+  email: string;
+  intent?: string;
+  message: string;
+  receiverEmail: string;
+  resendApiKey: string;
+  submissionId: string;
+}
+
+/**
+ * Send the contact email via the Resend API.
+ * Returns a NextResponse (success or error) — never throws.
+ */
+async function sendViaResend(params: SendEmailParams): Promise<NextResponse> {
+  const { name, email, intent, message, receiverEmail, resendApiKey, submissionId } = params;
+
+  const controller = new AbortController();
+  const TIMEOUT_MS = 10_000;
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  let resendResponse: Response;
+  try {
+    resendResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": submissionId,
+      },
+      body: JSON.stringify({
+        from: "Portfolio Contact Form <onboarding@resend.dev>", // TODO: swap to a verified sending domain
+        to: receiverEmail,
+        reply_to: email,
+        subject: `New portfolio contact: ${intent || "General"} — ${name}`,
+        text: `From: ${name} <${email}>\nIntent: ${intent || "n/a"}\n\n${message}`,
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof DOMException && err.name === "AbortError") {
+      track.deliveryTimeout();
+      return NextResponse.json(
+        { error: "Message delivery timed out. Please try again or email directly." },
+        { status: 504 },
+      );
+    }
+    throw err;
+  }
+  clearTimeout(timeoutId);
+
+  if (!resendResponse.ok) {
+    track.deliveryFailed(resendResponse.status);
+    return NextResponse.json(
+      { error: "Failed to send message. Please try again or email directly." },
+      { status: 502 },
+    );
+  }
+
+  track.deliverySuccess();
+  return NextResponse.json({ ok: true, delivered: true });
+}
+
 // ─── Route handler ───────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
   try {
     // ── Rate limiting ─────────────────────────────────────────────────--
     const ip = getClientIp(request);
-    const rateLimit = checkRateLimit(ip);
+    const { success, limit, remaining, reset, pending } = await contactLimiter.limit(ip);
 
-    if (!rateLimit.allowed) {
-      const retryAfter = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+    // Keep the analytics promise alive until the function completes
+    (request as { waitUntil?: (p: Promise<unknown>) => void }).waitUntil?.(pending);
+
+    if (!success) {
+      track.rateLimitHit(ip, limit, remaining);
+
+      const retryAfter = Math.ceil((reset - Date.now()) / 1000);
       return NextResponse.json(
         { error: "Too many submissions. Please try again later." },
         {
           status: 429,
           headers: {
             "Retry-After": String(retryAfter),
-            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Limit": String(limit),
+            "X-RateLimit-Remaining": String(remaining),
+            "X-RateLimit-Reset": String(Math.floor(reset / 1000)),
           },
         },
       );
@@ -54,19 +117,16 @@ export async function POST(request: Request) {
     const raw = body as Record<string, unknown>;
 
     // ── Honeypot check ──────────────────────────────────────────────────
-    // If a bot filled the hidden field, silently return success to avoid
-    // tipping it off, but do NOT send the email.
     if (raw._hp_) {
-      // Log for monitoring
-      console.warn("Contact form honeypot triggered", { ip });
+      track.honeypotTriggered(ip);
       return NextResponse.json({ ok: true, delivered: false });
     }
 
     // ── Server-side validation ──────────────────────────────────────────
-    // Never trust the client — validate everything again on the server.
     const validation = validateContactForm(raw);
 
     if (!validation.valid) {
+      track.validationFailed(validation.errors.map((e) => e.field));
       return NextResponse.json(
         {
           error: "Validation failed.",
@@ -80,13 +140,8 @@ export async function POST(request: Request) {
     const { name, email, intent, message } = validation.data;
     const resendApiKey = process.env.RESEND_API_KEY;
     const receiverEmail = process.env.CONTACT_RECEIVER_EMAIL ?? CONTACT_EMAIL;
-    const correlationId = crypto.randomUUID().slice(0, 8);
 
     if (!resendApiKey) {
-      console.warn("RESEND_API_KEY not set — contact form submission not emailed.", {
-        correlationId,
-      });
-
       const isDev = process.env.NODE_ENV === "development";
       if (isDev) {
         return NextResponse.json({ ok: true, delivered: false });
@@ -100,54 +155,23 @@ export async function POST(request: Request) {
     }
 
     // ── Send via Resend ─────────────────────────────────────────────────
-    const controller = new AbortController();
-    const TIMEOUT_MS = 10_000;
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    /** Stable submission ID for idempotent retries. */
+    const submissionId =
+      typeof raw.submissionId === "string" && raw.submissionId.length > 0
+        ? raw.submissionId
+        : crypto.randomUUID();
 
-    let resendResponse: Response;
-    try {
-      resendResponse = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "Portfolio Contact Form <onboarding@resend.dev>", // TODO: swap to a verified sending domain
-          to: receiverEmail,
-          reply_to: email,
-          subject: `New portfolio contact: ${intent || "General"} — ${name}`,
-          text: `From: ${name} <${email}>\nIntent: ${intent || "n/a"}\n\n${message}`,
-        }),
-        signal: controller.signal,
-      });
-    } catch (err) {
-      clearTimeout(timeoutId);
-      if (err instanceof DOMException && err.name === "AbortError") {
-        console.warn("Resend API request timed out", { correlationId });
-        return NextResponse.json(
-          { error: "Message delivery timed out. Please try again or email directly." },
-          { status: 504 },
-        );
-      }
-      throw err;
-    }
-    clearTimeout(timeoutId);
-
-    if (!resendResponse.ok) {
-      console.error("Resend API error", {
-        status: resendResponse.status,
-        correlationId,
-      });
-      return NextResponse.json(
-        { error: "Failed to send message. Please try again or email directly." },
-        { status: 502 },
-      );
-    }
-
-    return NextResponse.json({ ok: true, delivered: true });
+    return await sendViaResend({
+      name,
+      email,
+      intent,
+      message,
+      receiverEmail,
+      resendApiKey,
+      submissionId,
+    });
   } catch (err) {
-    console.error("Unexpected error in contact API route:", err);
+    track.unexpectedError(err);
     return NextResponse.json(
       { error: "Something went wrong. Please try again or email directly." },
       { status: 500 },
