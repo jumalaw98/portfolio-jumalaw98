@@ -15,7 +15,6 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { formatBlogDate, formatReadTime } from "@/components/blog/blogFormat";
 import {
   getAllPosts,
-  getPostBySlug,
   getAdjacentPosts,
   getRelatedPosts,
   isHashnodeConfigured,
@@ -28,28 +27,57 @@ import type { BlogPostDetail } from "@/types/blogPost";
 export const revalidate = 3600;
 
 interface BlogPostPageProps {
-  params: Promise<{ slug: string }>;
+  readonly params: Promise<{ slug: string }>;
 }
 
 async function resolvePost(slug: string): Promise<{
   post: BlogPostDetail | null;
-  allPosts: BlogPostDetail[] | Awaited<ReturnType<typeof getAllPosts>>;
+  allPosts: BlogPostDetail[];
   usingPlaceholders: boolean;
+  fetchFailed: boolean;
+  isMissing: boolean; // true when the post definitively doesn't exist
 }> {
   if (!isHashnodeConfigured()) {
     const post = placeholderBlogPosts.find((p) => p.slug === slug) ?? null;
-    return { post, allPosts: placeholderBlogPosts, usingPlaceholders: true };
+    return {
+      post,
+      allPosts: placeholderBlogPosts,
+      usingPlaceholders: true,
+      fetchFailed: false,
+      isMissing: !post,
+    };
   }
 
-  const [post, allPosts] = await Promise.all([getPostBySlug(slug), getAllPosts()]);
-  return { post, allPosts, usingPlaceholders: false };
+  // Single RSS fetch — avoids duplicate network requests and keeps the
+  // lookup consistent with the listing page. Older posts that have fallen
+  // outside the RSS window will not be found here (a known architectural
+  // limitation without a persistent index).
+  const result = await getAllPosts();
+
+  if (!result.ok) {
+    // Fetch failure — not the same as "post not found". Return null post so
+    // the page shows the failure banner without a 404 (ISR can thus preserve
+    // the last good cached page instead of losing it to a transient blip).
+    return {
+      post: null,
+      allPosts: [],
+      usingPlaceholders: false,
+      fetchFailed: true,
+      isMissing: false,
+    };
+  }
+
+  const allPosts = result.data as BlogPostDetail[];
+  const post = allPosts.find((p) => p.slug === slug) ?? null;
+  return { post, allPosts, usingPlaceholders: false, fetchFailed: false, isMissing: !post };
 }
 
 export async function generateStaticParams() {
   if (!isHashnodeConfigured()) {
     return placeholderBlogPosts.map((p) => ({ slug: p.slug }));
   }
-  const posts = await getAllPosts();
+  const result = await getAllPosts();
+  const posts = result.ok ? result.data : [];
   return posts.map((p) => ({ slug: p.slug }));
 }
 
@@ -97,10 +125,22 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const { post, allPosts, usingPlaceholders } = await resolvePost(slug);
+  const { post, allPosts, usingPlaceholders, fetchFailed, isMissing } = await resolvePost(slug);
 
-  if (!post) {
+  // Transient fetch failure — throw so Next.js ISR retains the last cached
+  // version instead of replacing it with a 404. A genuine "not found" (post
+  // outside the RSS window, deleted, etc.) generates a real 404.
+  if (fetchFailed) {
+    throw new Error("Failed to fetch blog post from Hashnode");
+  }
+
+  if (isMissing) {
     notFound();
+  }
+
+  // Narrow post to BlogPostDetail — the guards above exit before null is possible here.
+  if (!post) {
+    throw new Error("Invariant: post must be non-null after fetch/notFound guards");
   }
 
   const { previous, next } = getAdjacentPosts(post, allPosts);
@@ -141,6 +181,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             <p className="mb-4 rounded-md border border-brand-orange-light bg-brand-orange-tint px-4 py-2 text-sm text-brand-orange-dark">
               Placeholder post — connect <code>HASHNODE_PUBLICATION_HOST</code> to show real
               Hashnode content here.
+            </p>
+          ) : null}
+
+          {fetchFailed ? (
+            <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700">
+              This article loaded from cache, but we couldn&apos;t refresh the latest from Hashnode.
+              The content below is still valid.
             </p>
           ) : null}
 
