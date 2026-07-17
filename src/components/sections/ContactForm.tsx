@@ -191,6 +191,7 @@ export function ContactForm() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const submittingRef = useRef(false);
+  const submissionIdRef = useRef<string>(crypto.randomUUID());
   const formRef = useRef<HTMLFormElement>(null);
 
   useFocusFirstError(fieldErrors, formRef);
@@ -214,7 +215,10 @@ export function ContactForm() {
 
     setState("submitting");
 
-    const result = await submitToApi({ ...validation.data, _hp_: raw._hp_ }, form);
+    const result = await submitToApi(
+      { ...validation.data, _hp_: raw._hp_, submissionId: submissionIdRef.current },
+      form,
+    );
 
     if (result.status === "field-error") {
       setFieldErrors(result.fields);

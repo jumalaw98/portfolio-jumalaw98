@@ -21,38 +21,18 @@ import { Redis } from "@upstash/redis";
 
 type EventLevel = "info" | "warn" | "error";
 
-interface BaseEvent {
-  event: string;
-  timestamp: string;
-  level: EventLevel;
-  correlationId: string;
-}
-
-export interface RateLimitHitEvent extends BaseEvent {
-  event: "contact.rate_limit_hit";
-  ip: string;
-  limit: number;
-  remaining: number;
-}
-
-export interface HoneypotEvent extends BaseEvent {
-  event: "contact.honeypot_triggered";
-  ip: string;
-}
-
-export interface DeliveryFailedEvent extends BaseEvent {
-  event: "contact.delivery_failed";
-  status: number;
-  error?: string;
-}
-
-export interface DeliveryTimeoutEvent extends BaseEvent {
-  event: "contact.delivery_timeout";
-}
-
-export interface DeliverySuccessEvent extends BaseEvent {
-  event: "contact.delivery_succeeded";
-}
+/**
+ * Known contact-form event names. Kept internal — callers use the `track`
+ * object, which enforces the correct payload for each event type.
+ */
+type ContactEventName =
+  | "contact.rate_limit_hit"
+  | "contact.honeypot_triggered"
+  | "contact.delivery_failed"
+  | "contact.delivery_timeout"
+  | "contact.delivery_succeeded"
+  | "contact.validation_failed"
+  | "contact.unexpected_error";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -64,6 +44,8 @@ const EMAIL_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
 const WEBHOOK_URL = process.env.MONITOR_WEBHOOK_URL ?? null;
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? null;
 const MONITOR_EMAIL_TO = process.env.MONITOR_EMAIL_TO ?? null;
+const MONITOR_EMAIL_FROM =
+  process.env.MONITOR_EMAIL_FROM ?? "Portfolio Monitor <onboarding@resend.dev>";
 
 // ─── Redis-backed email throttle (shared across all instances) ──────────────
 
@@ -93,7 +75,7 @@ async function releaseThrottle(eventType: string): Promise<void> {
 
 type SubjectBuilder = (meta: Record<string, unknown>) => string;
 
-const EMAIL_SUBJECTS: Record<string, SubjectBuilder> = {
+const EMAIL_SUBJECTS: Record<ContactEventName, SubjectBuilder> = {
   "contact.rate_limit_hit": (m) => `[Portfolio] 🚨 Abuse detected — ${stringifyUnknown(m.ip)}`,
   "contact.honeypot_triggered": (m) => `[Portfolio] 🤖 Bot activity — ${stringifyUnknown(m.ip)}`,
   "contact.delivery_failed": (m) =>
@@ -160,12 +142,21 @@ async function sendWebhook(event: {
   };
 
   try {
-    await fetch(WEBHOOK_URL, {
+    const res = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(3_000),
     });
+    if (!res.ok) {
+      console.warn(
+        JSON.stringify({
+          event: "monitor.webhook_error",
+          status: res.status,
+          correlationId: event.correlationId,
+        }),
+      );
+    }
   } catch {
     /* Silently ignore webhook failures — must never break the API. */
   }
@@ -212,10 +203,14 @@ async function sendAlertEmail(event: {
   if (!RESEND_API_KEY || !MONITOR_EMAIL_TO) return;
 
   // Atomically reserve the throttle key — skip if another instance sent recently
-  if (!(await tryAcquireThrottle(event.event))) return;
+  try {
+    if (!(await tryAcquireThrottle(event.event))) return;
+  } catch {
+    return; // Redis unavailable — skip alert silently
+  }
 
   // Build subject
-  const buildSubject = EMAIL_SUBJECTS[event.event];
+  const buildSubject = EMAIL_SUBJECTS[event.event as ContactEventName];
   const subject = buildSubject ? buildSubject(event) : `[Portfolio] ${event.event}`;
 
   const bodyText = formatEmailBody(event);
@@ -228,7 +223,7 @@ async function sendAlertEmail(event: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Portfolio Monitor <onboarding@resend.dev>", // TEMP: Resend test sender — swap to a verified sending domain before production
+        from: MONITOR_EMAIL_FROM, // Default is Resend's test sender — set MONITOR_EMAIL_FROM to a verified sending domain in production
         to: [MONITOR_EMAIL_TO],
         subject,
         text: bodyText,

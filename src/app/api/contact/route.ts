@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { CONTACT_EMAIL } from "@/lib/constants";
 import { validateContactForm } from "@/lib/validation";
 import { contactLimiter, getClientIp } from "@/lib/rate-limit";
@@ -27,7 +27,8 @@ interface SendEmailParams {
 
 /**
  * Send the contact email via the Resend API.
- * Returns a NextResponse (success or error) — never throws.
+ * Returns a NextResponse on success or a known failure (non-2xx, timeout).
+ * Unexpected fetch errors (network, DNS, etc.) are re-thrown to the caller.
  */
 async function sendViaResend(params: SendEmailParams): Promise<NextResponse> {
   const { name, email, intent, message, receiverEmail, resendApiKey, submissionId } = params;
@@ -85,27 +86,34 @@ export async function POST(request: Request) {
   try {
     // ── Rate limiting ─────────────────────────────────────────────────--
     const ip = getClientIp(request);
-    const { success, limit, remaining, reset, pending } = await contactLimiter.limit(ip);
 
-    // Keep the analytics promise alive until the function completes
-    (request as { waitUntil?: (p: Promise<unknown>) => void }).waitUntil?.(pending);
+    // Only apply per-IP rate limiting when a resolvable address is available.
+    // Skipping on null prevents all proxy-header-less requests from sharing
+    // a single rate-limit bucket under a sentinel key.
+    if (ip !== null) {
+      const { success, limit, remaining, reset, pending } = await contactLimiter.limit(ip);
 
-    if (!success) {
-      track.rateLimitHit(ip, limit, remaining);
+      // Register the analytics promise with the Next.js invocation lifecycle
+      // so it is not dropped when the response is returned.
+      after(pending);
 
-      const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-      return NextResponse.json(
-        { error: "Too many submissions. Please try again later." },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": String(retryAfter),
-            "X-RateLimit-Limit": String(limit),
-            "X-RateLimit-Remaining": String(remaining),
-            "X-RateLimit-Reset": String(Math.floor(reset / 1000)),
+      if (!success) {
+        track.rateLimitHit(ip, limit, remaining);
+
+        const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+        return NextResponse.json(
+          { error: "Too many submissions. Please try again later." },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(retryAfter),
+              "X-RateLimit-Limit": String(limit),
+              "X-RateLimit-Remaining": String(remaining),
+              "X-RateLimit-Reset": String(Math.floor(reset / 1000)),
+            },
           },
-        },
-      );
+        );
+      }
     }
 
     // ── Parse body ──────────────────────────────────────────────────────
@@ -118,7 +126,7 @@ export async function POST(request: Request) {
 
     // ── Honeypot check ──────────────────────────────────────────────────
     if (raw._hp_) {
-      track.honeypotTriggered(ip);
+      track.honeypotTriggered(ip ?? "unknown");
       return NextResponse.json({ ok: true, delivered: false });
     }
 

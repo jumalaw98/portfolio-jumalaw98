@@ -16,7 +16,7 @@ export const MESSAGE_MAX = 2000;
 const REPEATED_CHAR_THRESHOLD = 0.7;
 
 /** RFC 5322 structural email validation (not RFC-compliant in the strictest sense). */
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@.]+\.[^\s@]+$/;
 
 /** Valid intent options for the contact form. Shared between client and server. */
 export const INTENT_OPTIONS = [
@@ -83,7 +83,7 @@ function isKeyboardSpam(value: string): boolean {
   // (catches keyboard mashing like "asdfghjkl" or "qwertyqwerty")
   for (const row of KEYBOARD_ROWS) {
     const rowChars = letters.filter((c) => row.has(c)).length;
-    if (rowChars / letters.length >= 0.8) return true;
+    if (rowChars / lower.length >= 0.8) return true;
   }
 
   return false;
