@@ -111,11 +111,15 @@ function filterAndSortPosts(posts: BlogPost[], tag?: string, q?: string): BlogPo
 }
 
 /** Derive pagination values and the grid slice for the current page. */
-function paginatePosts(sortedPosts: BlogPost[], rawPage: string | undefined, pageSize: number) {
+function paginatePosts(
+  sortedPosts: BlogPost[],
+  rawPage: string | undefined,
+  pageSize: number,
+  showFeatured = false,
+) {
   const totalPages = Math.max(1, Math.ceil(sortedPosts.length / pageSize));
   const currentPage = Math.min(Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1), totalPages);
 
-  const showFeatured = !rawPage || currentPage === 1;
   const featured = showFeatured && sortedPosts.length > 0 ? sortedPosts[0] : null;
   const restPosts = featured ? sortedPosts.slice(1) : sortedPosts;
   const gridPosts = restPosts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -144,17 +148,23 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   const sortedPosts = filterAndSortPosts(allPosts, tag, q);
 
-  // Featured hero only on the unfiltered first page — never on later pages.
-  const showFeatured = !tag && !q;
+  // Featured hero only on the unfiltered first page — never on later pages
+  // or paginated/filtered views. The featured decision is now separate from
+  // the pagination logic so filtered pages get correct pagination (issue 3).
+  const showFeatured = !tag && !q && (!page || page === "1");
   const { currentPage, totalPages, featured, gridPosts } = paginatePosts(
     sortedPosts,
-    showFeatured ? page : undefined,
+    page,
     PAGE_SIZE,
+    showFeatured,
   );
 
   // Randomize the grid order on every refresh, but only on the unfiltered
   // first page — keeps tag/search/pagination deterministic and SEO-stable.
+  // A per-request seed ensures SSR and client produce the same shuffled
+  // order, preventing post-hydration CLS (issue 7).
   const randomize = !tag && !q && currentPage === 1;
+  const randomSeed: string | null = randomize ? crypto.randomUUID() : null;
 
   return (
     <Container className="py-16">
@@ -212,7 +222,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       <RevealSection className="mt-8">
         <BlogGridClient
           posts={gridPosts}
-          randomize={randomize}
+          randomSeed={randomSeed}
           emptyMessage="No articles match that search or tag yet."
         />
       </RevealSection>

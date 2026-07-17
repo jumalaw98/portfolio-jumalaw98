@@ -51,27 +51,39 @@ const parser = new XMLParser({
   isArray: (name) => name === "category" || name === "item",
 });
 
+/**
+ * Extracts a plain-text string from a fast-xml-parser value node.
+ * Handles CDATA blocks, #text nodes, primitives, and nested objects.
+ */
 function extractText(value: unknown): string {
   if (value == null) return "";
   if (typeof value === "string") return value;
-  // fast-xml-parser puts CDATA text under the cdataPropName key.
-  if (typeof value === "object") {
-    const obj = value as Record<string, unknown>;
-    if ("__cdata" in obj) {
-      const cdata = obj.__cdata;
-      return typeof cdata === "string" ? cdata : extractText(cdata);
-    }
-    try {
-      const serialized = JSON.stringify(value);
-      return typeof serialized === "string" ? serialized : "";
-    } catch {
-      return "";
-    }
-  }
+  if (typeof value === "object") return extractObjectText(value as Record<string, unknown>);
   if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
     return String(value);
   }
   return "";
+}
+
+/**
+ * Resolves text from an object-shaped XML node (CDATA, #text, or fallback).
+ * Extracted to keep extractText's cognitive complexity within limits.
+ */
+function extractObjectText(obj: Record<string, unknown>): string {
+  if ("__cdata" in obj) {
+    const cdata = obj.__cdata;
+    return typeof cdata === "string" ? cdata : extractText(cdata);
+  }
+  if ("#text" in obj) {
+    const text = obj["#text"];
+    return typeof text === "string" ? text : extractText(text);
+  }
+  try {
+    const serialized = JSON.stringify(obj);
+    return typeof serialized === "string" ? serialized : "";
+  } catch {
+    return "";
+  }
 }
 
 /**

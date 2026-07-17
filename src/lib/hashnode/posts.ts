@@ -15,12 +15,28 @@ function slugFromLink(link: string): string {
   return parts.at(-1) || trimmed;
 }
 
+/**
+ * Produce a URL-safe, collision-free slug from a tag name.
+ * Preserves distinctive punctuation (`C#` → `csharp`, `C++` → `cplusplus`)
+ * so adjacent technical tags remain unique.
+ */
+function makeTagSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/#/g, "sharp")
+    .replace(/\+\+/g, "plusplus")
+    .replace(/\+/g, "plus")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-+/g, "-");
+}
+
 /** Rough reading-time estimate from HTML text (GraphQL gave this directly;
  *  RSS doesn't, so we approximate at ~200 wpm as a fallback). */
 function estimateReadTime(html: string): number {
-  // Replace HTML tags with spaces to get plain text. The negated character
-  // class [^>]*? avoids backtracking and ensures linear runtime performance.
-  const text = html.replace(/<[^>]*?>/g, " ");
+  // Replace HTML tags with spaces to get plain text. Excluding `<` from the
+  // tag body prevents quadratic backtracking on malformed `<`-heavy input.
+  const text = html.replace(/<[^><]*>/g, " ");
   const words = text.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
 }
@@ -40,20 +56,21 @@ function mapSummary(item: ReturnType<typeof parseHashnodeRss>[number]): BlogPost
   const tags = categoryList
     .map((c) => extractText(c).trim())
     .filter(Boolean)
-    .map((name) => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-") }));
+    .map((name) => ({ name, slug: makeTagSlug(name) }));
 
   const coverImageUrl = item.enclosure?.["@_url"] ?? null;
   const content = extractText(item["content:encoded"]);
   const description = extractText(item.description);
 
   // Validate pubDate: a malformed date must not produce "Invalid Date", which
-  // would later break sorting/parsing elsewhere. Fall back only when missing
-  // or unparseable.
+  // would later break sorting/parsing elsewhere. Fall back to epoch so items
+  // with a bad date sort to the bottom, never become featured, and produce a
+  // stable sitemap lastModified across revalidations.
   const parsedDate = item.pubDate ? new Date(item.pubDate) : null;
   const publishedAt =
     parsedDate && !Number.isNaN(parsedDate.getTime())
       ? parsedDate.toISOString()
-      : new Date().toISOString();
+      : "1970-01-01T00:00:00.000Z";
 
   return {
     slug,

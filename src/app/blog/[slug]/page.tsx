@@ -15,11 +15,9 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { formatBlogDate, formatReadTime } from "@/components/blog/blogFormat";
 import {
   getAllPosts,
-  getPostBySlug,
   getAdjacentPosts,
   getRelatedPosts,
   isHashnodeConfigured,
-  type HashnodeResult,
 } from "@/lib/hashnode";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import { SITE_URL, SITE_NAME } from "@/lib/constants";
@@ -37,31 +35,29 @@ async function resolvePost(slug: string): Promise<{
   allPosts: BlogPostDetail[];
   usingPlaceholders: boolean;
   fetchFailed: boolean;
+  isMissing: boolean; // true when the post definitively doesn't exist
 }> {
   if (!isHashnodeConfigured()) {
     const post = placeholderBlogPosts.find((p) => p.slug === slug) ?? null;
-    return { post, allPosts: placeholderBlogPosts, usingPlaceholders: true, fetchFailed: false };
+    return { post, allPosts: placeholderBlogPosts, usingPlaceholders: true, fetchFailed: false, isMissing: !post };
   }
 
-  const [postResult, allResult]: [
-    HashnodeResult<BlogPostDetail | null>,
-    HashnodeResult<import("@/types/blogPost").BlogPost[]>,
-  ] = await Promise.all([getPostBySlug(slug), getAllPosts()]);
+  // Single RSS fetch — avoids duplicate network requests and keeps the
+  // lookup consistent with the listing page. Older posts that have fallen
+  // outside the RSS window will not be found here (a known architectural
+  // limitation without a persistent index).
+  const result = await getAllPosts();
 
-  const fetchFailed = !postResult.ok || !allResult.ok;
-  if (fetchFailed) {
-    let reason = "";
-    if (!postResult.ok) {
-      reason = postResult.error;
-    } else if (!allResult.ok) {
-      reason = allResult.error;
-    }
-    console.error(`Hashnode feed fetch failed for "${slug}":`, reason);
+  if (!result.ok) {
+    // Fetch failure — not the same as "post not found". Return null post so
+    // the page shows the failure banner without a 404 (ISR can thus preserve
+    // the last good cached page instead of losing it to a transient blip).
+    return { post: null, allPosts: [], usingPlaceholders: false, fetchFailed: true, isMissing: false };
   }
 
-  const allPosts = allResult.ok ? (allResult.data as BlogPostDetail[]) : [];
-  const post = postResult.ok ? postResult.data : null;
-  return { post, allPosts, usingPlaceholders: false, fetchFailed };
+  const allPosts = result.data as BlogPostDetail[];
+  const post = allPosts.find((p) => p.slug === slug) ?? null;
+  return { post, allPosts, usingPlaceholders: false, fetchFailed: false, isMissing: !post };
 }
 
 export async function generateStaticParams() {
@@ -117,10 +113,22 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const { post, allPosts, usingPlaceholders, fetchFailed } = await resolvePost(slug);
+  const { post, allPosts, usingPlaceholders, fetchFailed, isMissing } = await resolvePost(slug);
 
-  if (!post) {
+  // Transient fetch failure — throw so Next.js ISR retains the last cached
+  // version instead of replacing it with a 404. A genuine "not found" (post
+  // outside the RSS window, deleted, etc.) generates a real 404.
+  if (fetchFailed) {
+    throw new Error("Failed to fetch blog post from Hashnode");
+  }
+
+  if (isMissing) {
     notFound();
+  }
+
+  // Narrow post to BlogPostDetail — the guards above exit before null is possible here.
+  if (!post) {
+    throw new Error("Invariant: post must be non-null after fetch/notFound guards");
   }
 
   const { previous, next } = getAdjacentPosts(post, allPosts);

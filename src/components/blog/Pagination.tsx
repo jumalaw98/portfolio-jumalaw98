@@ -20,7 +20,7 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
     if (page <= 1) params.delete("page");
     else params.set("page", String(page));
     const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    router.push(qs ? `${pathname}?${qs}` : pathname);
   }
 
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
