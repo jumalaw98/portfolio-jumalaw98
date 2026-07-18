@@ -31,13 +31,13 @@ Open http://localhost:3000.
 See `.env.local.example`. None are required to run the site locally — the
 contact form and blog integration degrade gracefully without them (see below).
 
-| Variable                       | Used for                                                                                                                             |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `NEXT_PUBLIC_SITE_URL`         | Canonical URLs, sitemap, OG metadata. Defaults to a placeholder until the domain is chosen.                                          |
-| `HASHNODE_PUBLICATION_HOST`    | V2 blog integration (`lib/hashnode.ts`). Not yet wired into a page.                                                                  |
-| `RESEND_API_KEY`               | Contact form email delivery. Without it, submissions are logged to the server console instead of emailed — useful for local testing. |
-| `CONTACT_RECEIVER_EMAIL`       | Where contact form emails go. Falls back to the address in `lib/constants.ts`.                                                       |
-| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Analytics, V2.                                                                                                                       |
+| Variable                       | Used for                                                                                                                                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`         | Canonical URLs, sitemap, OG metadata. Defaults to a placeholder until the domain is chosen.                                                                                                             |
+| `HASHNODE_PUBLICATION_HOST`    | V2 blog integration (`lib/hashnode.ts`). Not yet wired into a page.                                                                                                                                     |
+| `RESEND_API_KEY`               | Contact form email delivery. Without it, submissions are silently accepted in development (useful for local testing) but return a 503 error in production — a key is expected in deployed environments. |
+| `CONTACT_RECEIVER_EMAIL`       | Where contact form emails go. Falls back to the address in `lib/constants.ts`.                                                                                                                          |
+| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Analytics, V2.                                                                                                                                                                                          |
 
 ## What's stubbed vs. real
 
