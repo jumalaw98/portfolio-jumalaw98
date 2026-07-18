@@ -8,10 +8,14 @@ import "./globals.css";
 
 export const metadata = defaultMetadata;
 
+// suppressHydrationWarning on <html> and <body> suppresses class/attribute
+// mismatches from browser extensions (Dark Reader, Grammarly, etc.) that
+// inject attributes client-side. The classes here are static strings
+// resolved at build time and do not themselves cause mismatches.
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fontVariables} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">
+    <html lang="en" className={`${fontVariables} h-full antialiased`} suppressHydrationWarning>
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
         {/* Person schema for Home/About — SEO Implementation plan, project-architecture.md */}
         <JsonLd data={personJsonLd()} />
         <Nav />
