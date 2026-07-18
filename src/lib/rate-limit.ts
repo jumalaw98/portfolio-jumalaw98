@@ -124,11 +124,17 @@ if (!isRedisConfigured && process.env.NODE_ENV === "production") {
   // but the hourly cap may be exceeded proportionally to the number of running
   // instances. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to
   // enable shared rate limiting across all instances.
+  const missingVars = [
+    !REDIS_URL && "UPSTASH_REDIS_REST_URL",
+    !REDIS_TOKEN && "UPSTASH_REDIS_REST_TOKEN",
+  ]
+    .filter(Boolean)
+    .join(" and ");
   console.warn(
     JSON.stringify({
       event: "rate_limit.fallback_warning",
       message:
-        "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are not set. " +
+        `${missingVars} ${missingVars.includes(" and ") ? "are" : "is"} not set. ` +
         "Falling back to per-instance in-memory rate limiting. " +
         "Set both variables to enable shared Redis-backed rate limiting.",
     }),
