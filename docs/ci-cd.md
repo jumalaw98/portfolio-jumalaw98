@@ -168,8 +168,7 @@ For branch protection on `main`, the following CI jobs are required:
 
 1. `Code Quality`
 2. `TypeScript`
-3. `Dependency Audit`
-4. `Build`
+3. `Build`
 
 The `Bundle Size` and `CodeQL` jobs are informational.
 
@@ -180,7 +179,7 @@ The `Bundle Size` and `CodeQL` jobs are informational.
 To reproduce CI checks locally before pushing:
 
 ```bash
-# All checks in sequence (matches CI Tier 1 + build)
+# All checks in sequence (matches CI Tier 1 + build, excluding Dependency Audit)
 npm run build
 
 # Individual checks

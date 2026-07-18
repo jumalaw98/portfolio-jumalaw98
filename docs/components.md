@@ -2,7 +2,7 @@
 
 ## Overview
 
-Components are organized by role into five directories under `src/components/`:
+Components are organized by role into six directories under `src/components/`:
 
 | Directory    | Purpose                                                                    |
 | ------------ | -------------------------------------------------------------------------- |
@@ -19,7 +19,7 @@ Components are organized by role into five directories under `src/components/`:
 
 ### `Container`
 
-Max-width layout wrapper. Constrains content to 1280px (`max-w-6xl`) with
+Max-width layout wrapper. Constrains content to 1152px (`max-w-6xl`) with
 responsive horizontal padding.
 
 ```typescript
@@ -312,12 +312,11 @@ Page navigation with numbered buttons. Generates correct URLs with `tag`,
 
 ### `ShareButtons`
 
-Share buttons for article URLs: copy-to-clipboard and native Web Share API
-(desktop) with fallback.
+Share buttons for article URLs: copy-to-clipboard and social-media share links.
 
 ### `PostNavigation`
 
-Previous/next post links with title and date.
+Previous/next post links with title.
 
 ### `RelatedPosts`
 
@@ -361,7 +360,7 @@ shows value, label, optional description, and optional "approx" marker.
 ### `AnimatedStat`
 
 Client component that animates a number from 0 to its target value using
-Framer Motion's `useSpring` and `useTransform`.
+Framer Motion's `animate()`, `useInView`, and `useReducedMotion`.
 
 ---
 

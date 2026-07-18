@@ -160,13 +160,10 @@ The following components are wrapped in `"use client"`:
 | `SearchBox`       | URL search param updates                             |
 | `TagFilter`       | URL search param updates                             |
 | `ShareButtons`    | Clipboard API, share intent                          |
-| `Skeletons`       | Loading placeholder animation                        |
 | `BlogCard`        | Entrance animation                                   |
-| `FeaturedPost`    | Entrance animation                                   |
 | `AnimatedStat`    | Count-up number animation                            |
 | `SpeakingCard`    | Entrance animation                                   |
 | `LeadershipCard`  | Entrance animation                                   |
-| `PostNavigation`  | Entrance animation                                   |
 
 ### Server Components (no client JS shipped)
 
@@ -184,6 +181,9 @@ The following components are wrapped in `"use client"`:
 - `SectionHeading`
 - `ArticleContent`
 - `Pagination`
+- `Skeletons`
+- `FeaturedPost`
+- `PostNavigation`
 
 ---
 

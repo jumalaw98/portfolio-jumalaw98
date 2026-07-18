@@ -87,7 +87,7 @@ and will block PRs with violations.
 - Editor using a different default formatter (ensure `.prettierrc` is
   recognized).
 - Line ending issues on Windows (the project uses `lf` — configure Git with
-  `git config --global core.autocrlf true`).
+  `git config --global core.autocrlf input`).
 
 ---
 
