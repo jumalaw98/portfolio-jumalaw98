@@ -2,6 +2,13 @@ import type { BlogPost, BlogPostDetail } from "@/types/blogPost";
 import { fetchHashnodeRss, parseHashnodeRss, extractText, type HashnodeResult } from "./rss";
 import { generateShortId } from "@/lib/shortId";
 
+/**
+ * Maximum number of RSS items fetched when resolving short-links or article
+ * pages. All consumers must use this constant so the coverage window stays
+ * in sync across the app.
+ */
+export const RSS_FEED_MAX_SIZE = 200;
+
 const PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST;
 
 /** True once a real Hashnode publication is configured. */
@@ -24,12 +31,13 @@ function slugFromLink(link: string): string {
 function makeTagSlug(name: string): string {
   return name
     .toLowerCase()
-    .replace(/#/g, "sharp")
-    .replace(/\+\+/g, "plusplus")
-    .replace(/\+/g, "plus")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-+/g, "-");
+    .replaceAll("#", "sharp")
+    .replaceAll("++", "plusplus")
+    .replaceAll("+", "plus")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "")
+    .replaceAll(/--+/g, "-");
 }
 
 /** Rough reading-time estimate from HTML text (GraphQL gave this directly;
@@ -155,7 +163,7 @@ export async function getAllPostDetails(limit = 50): Promise<HashnodeResult<Blog
 }
 
 export async function getPostBySlug(slug: string): Promise<HashnodeResult<BlogPostDetail | null>> {
-  const result = await fetchAndParseRss(200); // generous coverage for older posts
+  const result = await fetchAndParseRss(RSS_FEED_MAX_SIZE);
   if (!result.ok) return result;
 
   try {

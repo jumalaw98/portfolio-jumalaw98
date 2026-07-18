@@ -19,6 +19,7 @@ import {
   getAdjacentPosts,
   getRelatedPosts,
   isHashnodeConfigured,
+  RSS_FEED_MAX_SIZE,
 } from "@/lib/hashnode";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import { SITE_URL, SITE_NAME } from "@/lib/constants";
@@ -49,11 +50,10 @@ async function resolvePost(slug: string): Promise<{
     };
   }
 
-  // Fetch up to 200 posts so the article resolver covers the same range as
-  // the short-link page. Posts beyond this window remain an architectural
-  // limitation of RSS-only sourcing (no persistent index).
-  const MAX_FEED_SIZE = 200;
-  const result = await getAllPostDetails(MAX_FEED_SIZE);
+  // Fetch up to RSS_FEED_MAX_SIZE posts so the article resolver covers the
+  // same range as the short-link page. Posts beyond this window remain an
+  // architectural limitation of RSS-only sourcing (no persistent index).
+  const result = await getAllPostDetails(RSS_FEED_MAX_SIZE);
 
   if (!result.ok) {
     // Fetch failure — not the same as "post not found". Return null post so
