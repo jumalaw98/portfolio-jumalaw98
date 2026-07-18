@@ -14,6 +14,7 @@ import { RevealSection } from "@/components/ui/RevealSection";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { formatBlogDate, formatReadTime } from "@/components/blog/blogFormat";
 import {
+  getAllPosts,
   getAllPostDetails,
   getAdjacentPosts,
   getRelatedPosts,
@@ -48,11 +49,11 @@ async function resolvePost(slug: string): Promise<{
     };
   }
 
-  // Single RSS fetch — avoids duplicate network requests and keeps the
-  // lookup consistent with the listing page. Older posts that have fallen
-  // outside the RSS window will not be found here (a known architectural
-  // limitation without a persistent index).
-  const result = await getAllPostDetails();
+  // Fetch up to 200 posts so the article resolver covers the same range as
+  // the short-link page. Posts beyond this window remain an architectural
+  // limitation of RSS-only sourcing (no persistent index).
+  const MAX_FEED_SIZE = 200;
+  const result = await getAllPostDetails(MAX_FEED_SIZE);
 
   if (!result.ok) {
     // Fetch failure — not the same as "post not found". Return null post so
@@ -76,7 +77,9 @@ export async function generateStaticParams() {
   if (!isHashnodeConfigured()) {
     return placeholderBlogPosts.map((p) => ({ slug: p.slug }));
   }
-  const result = await getAllPostDetails();
+  // Use summary-only fetch: generateStaticParams only needs slugs and does not
+  // consume contentHtml, so mapFull's HTML string allocation is unnecessary.
+  const result = await getAllPosts();
   const posts = result.ok ? result.data : [];
   return posts.map((p) => ({ slug: p.slug }));
 }
