@@ -1,11 +1,25 @@
 import { Mail } from "lucide-react";
+import dynamic from "next/dynamic";
 import { LinkedinIcon } from "@/components/ui/BrandIcons";
 import { Container } from "@/components/ui/Container";
-import { ContactForm } from "@/components/sections/ContactForm";
 import { RevealSection } from "@/components/ui/RevealSection";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { CONTACT_EMAIL, SOCIAL_LINKS } from "@/lib/constants";
 import { pageMetadata, breadcrumbJsonLd } from "@/lib/seo";
+
+// Dynamic import for the client-heavy contact form — splits into a separate
+// chunk so the contact page shell (heading, meta, sidebar) renders immediately.
+const ContactForm = dynamic(
+  () => import("@/components/sections/ContactForm").then((mod) => mod.ContactForm),
+  {
+    loading: () => (
+      <div
+        className="h-96 animate-pulse rounded-md bg-gray-100"
+        aria-label="Loading contact form"
+      />
+    ),
+  },
+);
 
 export const metadata = pageMetadata({
   title: "Contact",
