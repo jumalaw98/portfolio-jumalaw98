@@ -1,5 +1,6 @@
 import type { BlogPostDetail } from "@/types/blogPost";
 import { PROJECT_IMAGES } from "@/lib/project-images";
+import { generateShortId } from "@/lib/shortId";
 
 // Placeholder-only demo posts, shown when HASHNODE_PUBLICATION_HOST isn't set
 // yet (see lib/hashnode/posts.ts) so /blog and /blog/[slug] aren't empty
@@ -16,6 +17,7 @@ const AUTHOR = {
 export const placeholderBlogPosts: BlogPostDetail[] = [
   {
     slug: "placeholder-devops-lessons",
+    shortId: generateShortId("placeholder-devops-lessons"),
     title: "[Placeholder] Lessons from deploying a self-hosted CFP on Azure",
     subtitle: "What migrating off Papercall taught me about cost, control, and ownership",
     brief:
@@ -50,6 +52,7 @@ docker compose up -d --build</code></pre>
   },
   {
     slug: "placeholder-community-building",
+    shortId: generateShortId("placeholder-community-building"),
     title: "[Placeholder] What running a 200-person conference taught me about shipping code",
     subtitle: "Event ops and software delivery have more in common than you'd think",
     brief:
@@ -76,6 +79,7 @@ docker compose up -d --build</code></pre>
   },
   {
     slug: "placeholder-react-nextjs",
+    shortId: generateShortId("placeholder-react-nextjs"),
     title: "[Placeholder] Notes on moving from React to Next.js for real production sites",
     subtitle: "SSR, ISR, and the App Router in practice, not just in docs",
     brief:

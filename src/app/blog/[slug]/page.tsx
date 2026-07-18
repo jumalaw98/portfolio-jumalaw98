@@ -15,9 +15,11 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { formatBlogDate, formatReadTime } from "@/components/blog/blogFormat";
 import {
   getAllPosts,
+  getAllPostDetails,
   getAdjacentPosts,
   getRelatedPosts,
   isHashnodeConfigured,
+  RSS_FEED_MAX_SIZE,
 } from "@/lib/hashnode";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import { SITE_URL, SITE_NAME } from "@/lib/constants";
@@ -48,11 +50,10 @@ async function resolvePost(slug: string): Promise<{
     };
   }
 
-  // Single RSS fetch — avoids duplicate network requests and keeps the
-  // lookup consistent with the listing page. Older posts that have fallen
-  // outside the RSS window will not be found here (a known architectural
-  // limitation without a persistent index).
-  const result = await getAllPosts();
+  // Fetch up to RSS_FEED_MAX_SIZE posts so the article resolver covers the
+  // same range as the short-link page. Posts beyond this window remain an
+  // architectural limitation of RSS-only sourcing (no persistent index).
+  const result = await getAllPostDetails(RSS_FEED_MAX_SIZE);
 
   if (!result.ok) {
     // Fetch failure — not the same as "post not found". Return null post so
@@ -67,7 +68,7 @@ async function resolvePost(slug: string): Promise<{
     };
   }
 
-  const allPosts = result.data as BlogPostDetail[];
+  const allPosts = result.data;
   const post = allPosts.find((p) => p.slug === slug) ?? null;
   return { post, allPosts, usingPlaceholders: false, fetchFailed: false, isMissing: !post };
 }
@@ -76,6 +77,8 @@ export async function generateStaticParams() {
   if (!isHashnodeConfigured()) {
     return placeholderBlogPosts.map((p) => ({ slug: p.slug }));
   }
+  // Use summary-only fetch: generateStaticParams only needs slugs and does not
+  // consume contentHtml, so mapFull's HTML string allocation is unnecessary.
   const result = await getAllPosts();
   const posts = result.ok ? result.data : [];
   return posts.map((p) => ({ slug: p.slug }));
@@ -146,6 +149,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { previous, next } = getAdjacentPosts(post, allPosts);
   const related = getRelatedPosts(post, allPosts);
   const articleUrl = `${SITE_URL}/blog/${post.slug}`;
+  const shortUrl = `${SITE_URL}/s/${post.shortId}`;
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -255,7 +259,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
           <div className="mt-10 flex items-center justify-between border-t border-border pt-6">
             <p className="text-sm font-medium text-text-body">Share this article</p>
-            <ShareButtons title={post.title} url={articleUrl} />
+            <ShareButtons title={post.title} url={articleUrl} shortUrl={shortUrl} />
           </div>
 
           <div className="mt-10">

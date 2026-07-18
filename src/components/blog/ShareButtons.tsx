@@ -7,27 +7,31 @@ import { TwitterIcon, LinkedinIcon } from "@/components/ui/BrandIcons";
 interface ShareButtonsProps {
   title: string;
   url: string; // absolute URL of the article page on this site
+  shortUrl?: string; // optional shortened URL (e.g. /s/abc123) for sharing
 }
 
-export function ShareButtons({ title, url }: ShareButtonsProps) {
+export function ShareButtons({ title, url, shortUrl }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
+
+  /** Use short URL for social sharing when available, fall back to canonical URL. */
+  const shareUrl = shortUrl || url;
 
   const shareLinks = [
     {
       label: "Share on X",
       Icon: TwitterIcon,
-      href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
+      href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(shareUrl)}`,
     },
     {
       label: "Share on LinkedIn",
       Icon: LinkedinIcon,
-      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
     },
   ];
 
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {

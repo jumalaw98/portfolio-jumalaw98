@@ -11,6 +11,7 @@ export interface BlogAuthor {
 
 export interface BlogPost {
   slug: string;
+  shortId: string; // deterministic 6-char code from slug, used for /s/[code] redirect
   title: string;
   subtitle: string | null;
   brief: string;
