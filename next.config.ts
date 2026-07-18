@@ -3,12 +3,17 @@ import type { NextConfig } from "next";
 // ─── Content Security Policy ─────────────────────────────────────────────────
 // Pragmatic policy for a portfolio site. 'unsafe-inline' is required for
 // Next.js hydration scripts, framer-motion inline styles, and Google Fonts
-// loader. 'unsafe-eval' supports development hot-reload; it is not used by
-// production code. Restrict further by adopting nonce-based CSP via middleware
-// if the threat model demands it.
+// loader. 'unsafe-eval' is only added in development (Next.js hot-reload
+// requires it); production omits it to block eval-based script gadgets.
+// Adopt nonce-based CSP via middleware if the threat model demands it.
+const isDev = process.env.NODE_ENV === "development";
+const scriptSrc = isDev
+  ? `script-src 'self' 'unsafe-eval' 'unsafe-inline'`
+  : `script-src 'self' 'unsafe-inline'`;
+
 const CSP = [
   `default-src 'self'`,
-  `script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
+  scriptSrc,
   `style-src 'self' 'unsafe-inline'`,
   `img-src 'self' data: https://images.unsplash.com https://ik.imagekit.io https://cdn.hashnode.com blob:`,
   `font-src 'self' https://fonts.gstatic.com data:`,

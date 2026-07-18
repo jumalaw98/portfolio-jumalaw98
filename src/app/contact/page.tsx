@@ -13,7 +13,7 @@ const ContactForm = dynamic(
   () => import("@/components/sections/ContactForm").then((mod) => mod.ContactForm),
   {
     loading: () => (
-      <div
+      <output
         className="h-96 animate-pulse rounded-md bg-gray-100"
         aria-label="Loading contact form"
       />
