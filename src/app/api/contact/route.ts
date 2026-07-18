@@ -87,33 +87,41 @@ export async function POST(request: Request) {
     // ── Rate limiting ─────────────────────────────────────────────────--
     const ip = getClientIp(request);
 
-    // Only apply per-IP rate limiting when a resolvable address is available.
-    // Skipping on null prevents all proxy-header-less requests from sharing
-    // a single rate-limit bucket under a sentinel key.
-    if (ip !== null) {
-      const { success, limit, remaining, reset, pending } = await contactLimiter.limit(ip);
+    // Reject requests with no resolvable IP rather than bypassing the limiter.
+    // Falling through on null would let any headerless request — e.g. behind a
+    // misconfigured proxy — submit unlimited emails, defeating abuse protection.
+    if (ip === null) {
+      return NextResponse.json(
+        { error: "Too many submissions. Please try again later." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(60 * 60) },
+        },
+      );
+    }
 
-      // Register the analytics promise with the Next.js invocation lifecycle
-      // so it is not dropped when the response is returned.
-      after(pending);
+    const { success, limit, remaining, reset, pending } = await contactLimiter.limit(ip);
 
-      if (!success) {
-        track.rateLimitHit(ip, limit, remaining);
+    // Register the analytics promise with the Next.js invocation lifecycle
+    // so it is not dropped when the response is returned.
+    after(pending);
 
-        const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-        return NextResponse.json(
-          { error: "Too many submissions. Please try again later." },
-          {
-            status: 429,
-            headers: {
-              "Retry-After": String(retryAfter),
-              "X-RateLimit-Limit": String(limit),
-              "X-RateLimit-Remaining": String(remaining),
-              "X-RateLimit-Reset": String(Math.floor(reset / 1000)),
-            },
+    if (!success) {
+      track.rateLimitHit(ip, limit, remaining);
+
+      const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+      return NextResponse.json(
+        { error: "Too many submissions. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(retryAfter),
+            "X-RateLimit-Limit": String(limit),
+            "X-RateLimit-Remaining": String(remaining),
+            "X-RateLimit-Reset": String(Math.floor(reset / 1000)),
           },
-        );
-      }
+        },
+      );
     }
 
     // ── Parse body ──────────────────────────────────────────────────────

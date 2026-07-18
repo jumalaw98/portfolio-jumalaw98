@@ -118,6 +118,23 @@ const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 const isRedisConfigured = Boolean(REDIS_URL && REDIS_TOKEN);
 
+if (!isRedisConfigured && process.env.NODE_ENV === "production") {
+  // Fail loudly rather than silently degrading to per-instance in-memory
+  // limiting, which would allow the hourly cap to be exceeded proportionally
+  // to the number of running instances.
+  console.error(
+    JSON.stringify({
+      event: "rate_limit.config_error",
+      message:
+        "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set in production. " +
+        "Rate limiting will not function correctly without a shared Redis store.",
+    }),
+  );
+  throw new Error(
+    "Rate limiter configuration error: Upstash Redis env vars are required in production.",
+  );
+}
+
 /**
  * Contact form rate limiter: 5 submissions per hour per IP.
  *

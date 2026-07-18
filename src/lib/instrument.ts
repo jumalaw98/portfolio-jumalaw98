@@ -45,7 +45,7 @@ const WEBHOOK_URL = process.env.MONITOR_WEBHOOK_URL ?? null;
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? null;
 const MONITOR_EMAIL_TO = process.env.MONITOR_EMAIL_TO ?? null;
 const MONITOR_EMAIL_FROM =
-  process.env.MONITOR_EMAIL_FROM ?? "Portfolio Monitor <onboarding@resend.dev>";
+  process.env.MONITOR_EMAIL_FROM || "Portfolio Monitor <onboarding@resend.dev>";
 
 // ─── Redis-backed email throttle (shared across all instances) ──────────────
 
@@ -104,12 +104,14 @@ function stringifyUnknown(value: unknown): string {
   if (typeof value === "string") return value;
   if (value === null) return "null";
   if (value === undefined) return "undefined";
-  try {
-    return JSON.stringify(value);
-  } catch {
-    if (typeof value !== "object") return String(value);
-    return `(unserializable ${Object.prototype.toString.call(value).slice(8, -1)})`;
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return `(unserializable ${Object.prototype.toString.call(value).slice(8, -1)})`;
+    }
   }
+  return String(value);
 }
 
 // ─── Channel: Webhook (Discord / Slack, opt-in) ──────────────────────────────
