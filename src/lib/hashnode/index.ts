@@ -1,5 +1,6 @@
 export {
   getAllPosts,
+  getAllPostDetails,
   getPostBySlug,
   getAllTagsFromPosts,
   getRelatedPosts,

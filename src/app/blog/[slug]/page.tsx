@@ -14,7 +14,7 @@ import { RevealSection } from "@/components/ui/RevealSection";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { formatBlogDate, formatReadTime } from "@/components/blog/blogFormat";
 import {
-  getAllPosts,
+  getAllPostDetails,
   getAdjacentPosts,
   getRelatedPosts,
   isHashnodeConfigured,
@@ -52,7 +52,7 @@ async function resolvePost(slug: string): Promise<{
   // lookup consistent with the listing page. Older posts that have fallen
   // outside the RSS window will not be found here (a known architectural
   // limitation without a persistent index).
-  const result = await getAllPosts();
+  const result = await getAllPostDetails();
 
   if (!result.ok) {
     // Fetch failure — not the same as "post not found". Return null post so
@@ -67,7 +67,7 @@ async function resolvePost(slug: string): Promise<{
     };
   }
 
-  const allPosts = result.data as BlogPostDetail[];
+  const allPosts = result.data;
   const post = allPosts.find((p) => p.slug === slug) ?? null;
   return { post, allPosts, usingPlaceholders: false, fetchFailed: false, isMissing: !post };
 }
@@ -76,7 +76,7 @@ export async function generateStaticParams() {
   if (!isHashnodeConfigured()) {
     return placeholderBlogPosts.map((p) => ({ slug: p.slug }));
   }
-  const result = await getAllPosts();
+  const result = await getAllPostDetails();
   const posts = result.ok ? result.data : [];
   return posts.map((p) => ({ slug: p.slug }));
 }

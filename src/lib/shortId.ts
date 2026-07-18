@@ -8,5 +8,5 @@ export function generateShortId(slug: string): string {
   for (let i = 0; i < slug.length; i++) {
     hash = ((hash << 5) + hash + slug.charCodeAt(i)) | 0;
   }
-  return Math.abs(hash).toString(36).slice(0, 6);
+  return Math.abs(hash).toString(36);
 }

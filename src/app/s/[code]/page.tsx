@@ -11,21 +11,27 @@ interface ShortLinkPageProps {
 export default async function ShortLinkPage({ params }: ShortLinkPageProps) {
   const { code } = await params;
 
-  let posts;
+  // Use a generous limit so short links resolve even for older posts that
+  // have fallen outside the default 50-item window. Hashnode caps the RSS
+  // feed at a fixed size regardless of this parameter.
+  const MAX_FEED_SIZE = 200;
+
   if (isHashnodeConfigured()) {
-    const result = await getAllPosts();
-    if (!result.ok) {
-      // If Hashnode fetch fails, fall back to placeholders so dev/staging
-      // short links still work. In production this should not normally happen.
-      posts = placeholderBlogPosts;
-    } else {
-      posts = result.data;
-    }
-  } else {
-    posts = placeholderBlogPosts;
+    const result = await getAllPosts(MAX_FEED_SIZE);
+
+    // On fetch failure: propagate the error so ISR can retain the previous
+    // good response instead of serving placeholder redirects (which would
+    // not match real short codes and produce wrong 404s / redirects).
+    if (!result.ok) notFound();
+
+    const post = result.data.find((p) => p.shortId === code);
+    if (!post) notFound();
+
+    redirect(`/blog/${post.slug}`);
   }
 
-  const post = posts.find((p) => p.shortId === code);
+  // Hashnode not configured — dev/staging with placeholder posts only.
+  const post = placeholderBlogPosts.find((p) => p.shortId === code);
   if (!post) notFound();
 
   redirect(`/blog/${post.slug}`);

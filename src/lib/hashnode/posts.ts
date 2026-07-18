@@ -103,19 +103,14 @@ function mapFull(item: ReturnType<typeof parseHashnodeRss>[number]): BlogPostDet
 }
 
 /**
- * Fetches posts for the listing page from the publication's RSS feed.
- * RSS returns the most recent N posts in one response (Hashnode caps the feed
- * at a sane limit), so we slice to `limit` rather than paginating cursor-style.
- * This replaces the old GraphQL `posts(first:, after:)` pagination loop.
+ * Core fetch + parse shared by all post-retrieval functions.
+ * Returns raw parsed RSS items (capped at `limit`), or an error result.
+ * Uses a single shared revalidation tag so ISR can purge all cached
+ * post data on any content change.
  */
-/**
- * Returns full post details (including `contentHtml`) for all recent posts.
- * Using `mapFull` here is cost-free because the RSS payload is already in
- * memory — every item already contains `content:encoded`. This also lets the
- * slug page (`/blog/[slug]`) resolve `contentHtml` from this single fetch
- * instead of requiring a separate per-post request.
- */
-export async function getAllPosts(limit = 50): Promise<HashnodeResult<BlogPostDetail[]>> {
+async function fetchAndParseRss(
+  limit: number,
+): Promise<HashnodeResult<ReturnType<typeof parseHashnodeRss>>> {
   if (!PUBLICATION_HOST) {
     return { ok: false, error: "HASHNODE_PUBLICATION_HOST is not set", reason: "not_configured" };
   }
@@ -129,8 +124,7 @@ export async function getAllPosts(limit = 50): Promise<HashnodeResult<BlogPostDe
 
   try {
     const items = parseHashnodeRss(result.data);
-    const posts = items.slice(0, limit).map(mapFull);
-    return { ok: true, data: posts };
+    return { ok: true, data: items.slice(0, limit) };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Failed to parse Hashnode RSS feed:", message);
@@ -138,26 +132,39 @@ export async function getAllPosts(limit = 50): Promise<HashnodeResult<BlogPostDe
   }
 }
 
+/**
+ * Summary-only posts (no `contentHtml`) — for the listing page, sitemap,
+ * RSS feed, and short-link resolution. Keeps client payload lean by
+ * excluding the full article HTML that is only needed on the article page.
+ */
+export async function getAllPosts(limit = 50): Promise<HashnodeResult<BlogPost[]>> {
+  const result = await fetchAndParseRss(limit);
+  if (!result.ok) return result;
+  return { ok: true, data: result.data.map(mapSummary) };
+}
+
+/**
+ * Full post details including `contentHtml` — for the article page
+ * (`/blog/[slug]`). Use `getAllPosts` instead wherever `contentHtml`
+ * is not required.
+ */
+export async function getAllPostDetails(limit = 50): Promise<HashnodeResult<BlogPostDetail[]>> {
+  const result = await fetchAndParseRss(limit);
+  if (!result.ok) return result;
+  return { ok: true, data: result.data.map(mapFull) };
+}
+
 export async function getPostBySlug(slug: string): Promise<HashnodeResult<BlogPostDetail | null>> {
-  if (!PUBLICATION_HOST) {
-    return { ok: false, error: "HASHNODE_PUBLICATION_HOST is not set", reason: "not_configured" };
-  }
-
-  const result = await fetchHashnodeRss(PUBLICATION_HOST, {
-    revalidate: 3600,
-    tags: [`hashnode-post-${slug}`],
-  });
-
+  const result = await fetchAndParseRss(200); // generous coverage for older posts
   if (!result.ok) return result;
 
   try {
-    const items = parseHashnodeRss(result.data);
-    const match = items.find((item) => slugFromLink(extractText(item.link)) === slug);
+    const match = result.data.find((item) => slugFromLink(extractText(item.link)) === slug);
     return { ok: true, data: match ? mapFull(match) : null };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`Failed to parse Hashnode RSS feed for slug "${slug}":`, message);
-    return { ok: false, error: `Failed to parse RSS feed: ${message}`, reason: "fetch_failed" };
+    console.error(`Failed to resolve post by slug "${slug}":`, message);
+    return { ok: false, error: `Failed to resolve post: ${message}`, reason: "fetch_failed" };
   }
 }
 
