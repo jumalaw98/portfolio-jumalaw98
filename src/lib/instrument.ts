@@ -49,7 +49,17 @@ const MONITOR_EMAIL_FROM =
 
 // ─── Redis-backed email throttle (shared across all instances) ──────────────
 
-const redisForThrottle = Redis.fromEnv();
+const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const isRedisConfigured = Boolean(REDIS_URL && REDIS_TOKEN);
+
+/**
+ * Redis client for email throttling. Null when Upstash env vars are not set,
+ * in which case throttle checks are skipped (no cross-instance deduplication).
+ */
+const redisForThrottle: Redis | null = isRedisConfigured
+  ? new Redis({ url: REDIS_URL!, token: REDIS_TOKEN! })
+  : null;
 
 /** TTL in seconds for the email throttle key. */
 const EMAIL_THROTTLE_TTL_S = Math.ceil(EMAIL_THROTTLE_MS / 1000);
@@ -57,8 +67,11 @@ const EMAIL_THROTTLE_TTL_S = Math.ceil(EMAIL_THROTTLE_MS / 1000);
 /**
  * Atomically reserve the throttle key for an event type.
  * Returns true if the reservation was acquired (not throttled).
+ * Returns true (skip throttle) when Redis is not configured.
  */
 async function tryAcquireThrottle(eventType: string): Promise<boolean> {
+  if (!redisForThrottle) return true;
+
   const key = `email_throttle:${eventType}`;
   const result = await redisForThrottle.set(key, "1", {
     ex: EMAIL_THROTTLE_TTL_S,
@@ -68,6 +81,7 @@ async function tryAcquireThrottle(eventType: string): Promise<boolean> {
 }
 
 async function releaseThrottle(eventType: string): Promise<void> {
+  if (!redisForThrottle) return;
   await redisForThrottle.del(`email_throttle:${eventType}`);
 }
 

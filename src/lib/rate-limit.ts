@@ -119,19 +119,19 @@ const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const isRedisConfigured = Boolean(REDIS_URL && REDIS_TOKEN);
 
 if (!isRedisConfigured && process.env.NODE_ENV === "production") {
-  // Fail loudly rather than silently degrading to per-instance in-memory
-  // limiting, which would allow the hourly cap to be exceeded proportionally
-  // to the number of running instances.
-  console.error(
+  // Warn that per-instance in-memory limiting is in use rather than a shared
+  // Redis store. The in-memory fallback still provides basic abuse protection
+  // but the hourly cap may be exceeded proportionally to the number of running
+  // instances. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to
+  // enable shared rate limiting across all instances.
+  console.warn(
     JSON.stringify({
-      event: "rate_limit.config_error",
+      event: "rate_limit.fallback_warning",
       message:
-        "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set in production. " +
-        "Rate limiting will not function correctly without a shared Redis store.",
+        "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are not set. " +
+        "Falling back to per-instance in-memory rate limiting. " +
+        "Set both variables to enable shared Redis-backed rate limiting.",
     }),
-  );
-  throw new Error(
-    "Rate limiter configuration error: Upstash Redis env vars are required in production.",
   );
 }
 
