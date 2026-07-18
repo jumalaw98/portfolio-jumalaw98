@@ -146,6 +146,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { previous, next } = getAdjacentPosts(post, allPosts);
   const related = getRelatedPosts(post, allPosts);
   const articleUrl = `${SITE_URL}/blog/${post.slug}`;
+  const shortUrl = `${SITE_URL}/s/${post.shortId}`;
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -255,7 +256,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
           <div className="mt-10 flex items-center justify-between border-t border-border pt-6">
             <p className="text-sm font-medium text-text-body">Share this article</p>
-            <ShareButtons title={post.title} url={articleUrl} />
+            <ShareButtons title={post.title} url={articleUrl} shortUrl={shortUrl} />
           </div>
 
           <div className="mt-10">

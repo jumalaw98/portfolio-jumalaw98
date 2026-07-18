@@ -1,5 +1,6 @@
 import type { BlogPost, BlogPostDetail } from "@/types/blogPost";
 import { fetchHashnodeRss, parseHashnodeRss, extractText, type HashnodeResult } from "./rss";
+import { generateShortId } from "@/lib/shortId";
 
 const PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST;
 
@@ -74,6 +75,7 @@ function mapSummary(item: ReturnType<typeof parseHashnodeRss>[number]): BlogPost
 
   return {
     slug,
+    shortId: generateShortId(slug),
     title: extractText(item.title),
     subtitle: null,
     brief: description,
@@ -106,7 +108,14 @@ function mapFull(item: ReturnType<typeof parseHashnodeRss>[number]): BlogPostDet
  * at a sane limit), so we slice to `limit` rather than paginating cursor-style.
  * This replaces the old GraphQL `posts(first:, after:)` pagination loop.
  */
-export async function getAllPosts(limit = 50): Promise<HashnodeResult<BlogPost[]>> {
+/**
+ * Returns full post details (including `contentHtml`) for all recent posts.
+ * Using `mapFull` here is cost-free because the RSS payload is already in
+ * memory — every item already contains `content:encoded`. This also lets the
+ * slug page (`/blog/[slug]`) resolve `contentHtml` from this single fetch
+ * instead of requiring a separate per-post request.
+ */
+export async function getAllPosts(limit = 50): Promise<HashnodeResult<BlogPostDetail[]>> {
   if (!PUBLICATION_HOST) {
     return { ok: false, error: "HASHNODE_PUBLICATION_HOST is not set", reason: "not_configured" };
   }
@@ -120,7 +129,7 @@ export async function getAllPosts(limit = 50): Promise<HashnodeResult<BlogPost[]
 
   try {
     const items = parseHashnodeRss(result.data);
-    const posts = items.slice(0, limit).map(mapSummary);
+    const posts = items.slice(0, limit).map(mapFull);
     return { ok: true, data: posts };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
