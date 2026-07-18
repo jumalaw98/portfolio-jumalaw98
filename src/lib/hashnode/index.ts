@@ -10,4 +10,3 @@ export {
 } from "./posts";
 export { fetchHashnodeRss, parseHashnodeRss, HashnodeRssError } from "./rss";
 export type { HashnodeResult } from "./rss";
-export { HashnodeApiError } from "./client";

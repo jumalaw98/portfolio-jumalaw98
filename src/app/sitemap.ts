@@ -3,6 +3,7 @@ import { SITE_URL } from "@/lib/constants";
 import { mvpProjects } from "@/content/projects";
 import { getAllPosts, isHashnodeConfigured } from "@/lib/hashnode";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
+import type { BlogPost } from "@/types/blogPost";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = ["", "/projects", "/about", "/contact", "/community", "/blog"].map(
@@ -21,11 +22,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Placeholders are for local dev only (Hashnode not configured). When the
   // publication IS configured we emit no blog routes on failure/empty rather
   // than advertising demo slugs to crawlers.
-  const blogPosts = !isHashnodeConfigured()
-    ? placeholderBlogPosts
-    : livePosts.ok
-      ? livePosts.data
-      : [];
+  let blogPosts: BlogPost[];
+  if (!isHashnodeConfigured()) {
+    blogPosts = placeholderBlogPosts;
+  } else if (livePosts.ok) {
+    blogPosts = livePosts.data;
+  } else {
+    blogPosts = [];
+  }
 
   const blogRoutes = blogPosts.map((post) => ({
     url: `${SITE_URL}/blog/${post.slug}`,
