@@ -1,6 +1,7 @@
 import type { BlogPost, BlogPostDetail } from "@/types/blogPost";
 import { fetchHashnodeRss, parseHashnodeRss, extractText, type HashnodeResult } from "./rss";
 import { generateShortId } from "@/lib/shortId";
+import { stripHtmlToText } from "./html";
 
 /**
  * Maximum number of RSS items fetched when resolving short-links or article
@@ -42,18 +43,13 @@ function makeTagSlug(name: string): string {
     .replaceAll("+", "plus")
     .replaceAll(/[^a-z0-9]/g, "-");
 
-  return normalized
-    .split("-")
-    .filter(Boolean)
-    .join("-");
+  return normalized.split("-").filter(Boolean).join("-");
 }
 
 /** Rough reading-time estimate from HTML text (GraphQL gave this directly;
  *  RSS doesn't, so we approximate at ~200 wpm as a fallback). */
 function estimateReadTime(html: string): number {
-  // Replace HTML tags with spaces to get plain text. Excluding `<` from the
-  // tag body prevents quadratic backtracking on malformed `<`-heavy input.
-  const text = html.replace(/<[^><]{1,200}>/g, " ");
+  const text = stripHtmlToText(html);
   const words = text.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
 }
