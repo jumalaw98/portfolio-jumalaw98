@@ -10,7 +10,7 @@ import { generateShortId } from "@/lib/shortId";
 export const RSS_FEED_MAX_SIZE = 200;
 
 /**
- * Debop cutoff. RSS items with a `pubDate` on or after this date are
+ * Deprecation cutoff. RSS items with a `pubDate` on or after this date are
  * excluded — those articles should be authored locally in MDX instead.
  */
 const HASHNODE_CUTOFF = new Date("2026-01-01T00:00:00.000Z");
@@ -139,7 +139,11 @@ async function fetchAndParseRss(
   try {
     const items = parseHashnodeRss(result.data).filter((item) => {
       const d = item.pubDate ? new Date(item.pubDate) : null;
-      return d && !Number.isNaN(d.getTime()) && d < HASHNODE_CUTOFF;
+      // Keep items without a valid pubDate — mapSummary will fall back to
+      // epoch so they sort to the bottom. Only drop items that land on or
+      // after the deprecation cutoff.
+      if (!d || Number.isNaN(d.getTime())) return true;
+      return d < HASHNODE_CUTOFF;
     });
     return { ok: true, data: items.slice(0, limit) };
   } catch (error) {
