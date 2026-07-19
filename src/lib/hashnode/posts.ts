@@ -9,6 +9,12 @@ import { generateShortId } from "@/lib/shortId";
  */
 export const RSS_FEED_MAX_SIZE = 200;
 
+/**
+ * Debop cutoff. RSS items with a `pubDate` on or after this date are
+ * excluded — those articles should be authored locally in MDX instead.
+ */
+const HASHNODE_CUTOFF = new Date("2026-01-01T00:00:00.000Z");
+
 const PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST;
 
 /** True once a real Hashnode publication is configured. */
@@ -131,7 +137,10 @@ async function fetchAndParseRss(
   if (!result.ok) return result;
 
   try {
-    const items = parseHashnodeRss(result.data);
+    const items = parseHashnodeRss(result.data).filter((item) => {
+      const d = item.pubDate ? new Date(item.pubDate) : null;
+      return d && !Number.isNaN(d.getTime()) && d < HASHNODE_CUTOFF;
+    });
     return { ok: true, data: items.slice(0, limit) };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
