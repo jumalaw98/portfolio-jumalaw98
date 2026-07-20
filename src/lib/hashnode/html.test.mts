@@ -11,7 +11,18 @@ test("stripHtmlToText removes long tags with attributes without counting attribu
   // Spacing might be multiple spaces due to space-separated tag transitions
   assert.equal(text.trim().replaceAll(/\s+/g, " "), "See this now");
   assert.equal(text.trim().split(/\s+/).filter(Boolean).length, 3);
-  assert.equal(text.includes("https://example.com"), false);
+  const containsExampleHost = text
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .some((token) => {
+      try {
+        return new URL(token).hostname === "example.com";
+      } catch {
+        return false;
+      }
+    });
+  assert.equal(containsExampleHost, false);
 });
 
 test("stripHtmlToText separates adjacent tags with spaces to preserve word boundaries", () => {
