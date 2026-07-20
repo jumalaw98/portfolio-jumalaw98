@@ -1,6 +1,7 @@
 import type { BlogPost, BlogPostDetail } from "@/types/blogPost";
 import { fetchHashnodeRss, parseHashnodeRss, extractText, type HashnodeResult } from "./rss";
 import { generateShortId } from "@/lib/shortId";
+import { stripHtmlToText } from "./html";
 
 /**
  * Maximum number of RSS items fetched when resolving short-links or article
@@ -8,6 +9,12 @@ import { generateShortId } from "@/lib/shortId";
  * in sync across the app.
  */
 export const RSS_FEED_MAX_SIZE = 200;
+
+/**
+ * Deprecation cutoff. RSS items with a `pubDate` on or after this date are
+ * excluded — those articles should be authored locally in MDX instead.
+ */
+const HASHNODE_CUTOFF = new Date("2026-01-01T00:00:00.000Z");
 
 const PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST;
 
@@ -29,23 +36,20 @@ function slugFromLink(link: string): string {
  * so adjacent technical tags remain unique.
  */
 function makeTagSlug(name: string): string {
-  return name
+  const normalized = name
     .toLowerCase()
     .replaceAll("#", "sharp")
     .replaceAll("++", "plusplus")
     .replaceAll("+", "plus")
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replace(/^-+/, "")
-    .replace(/-+$/, "")
-    .replaceAll(/--+/g, "-");
+    .replaceAll(/[^a-z0-9]/g, "-");
+
+  return normalized.split("-").filter(Boolean).join("-");
 }
 
 /** Rough reading-time estimate from HTML text (GraphQL gave this directly;
  *  RSS doesn't, so we approximate at ~200 wpm as a fallback). */
 function estimateReadTime(html: string): number {
-  // Replace HTML tags with spaces to get plain text. Excluding `<` from the
-  // tag body prevents quadratic backtracking on malformed `<`-heavy input.
-  const text = html.replace(/<[^><]*>/g, " ");
+  const text = stripHtmlToText(html);
   const words = text.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
 }
@@ -131,8 +135,35 @@ async function fetchAndParseRss(
   if (!result.ok) return result;
 
   try {
-    const items = parseHashnodeRss(result.data);
-    return { ok: true, data: items.slice(0, limit) };
+    const items = parseHashnodeRss(result.data).filter((item) => {
+      const d = item.pubDate ? new Date(item.pubDate) : null;
+      // Keep items without a valid pubDate — mapSummary will fall back to
+      // epoch so they sort to the bottom. Only drop items that land on or
+      // after the deprecation cutoff.
+      if (!d || Number.isNaN(d.getTime())) return true;
+      return d < HASHNODE_CUTOFF;
+    });
+
+    // Sort valid-date items ahead of invalid-date items BEFORE slicing so
+    // malformed/missing pubDate entries cannot displace real posts from the
+    // limited RSS window. Invalid dates fall back to epoch (1970-01-01) in
+    // mapSummary, so they naturally sort last.
+    const sorted = [...items].sort((a, b) => {
+      const aDate = a.pubDate ? new Date(a.pubDate) : null;
+      const bDate = b.pubDate ? new Date(b.pubDate) : null;
+      const aValid = aDate && !Number.isNaN(aDate.getTime());
+      const bValid = bDate && !Number.isNaN(bDate.getTime());
+
+      // Both valid → newest first
+      if (aValid && bValid) return bDate!.getTime() - aDate!.getTime();
+      // Only one valid → valid comes first
+      if (aValid && !bValid) return -1;
+      if (!aValid && bValid) return 1;
+      // Both invalid → preserve original order (stable)
+      return 0;
+    });
+
+    return { ok: true, data: sorted.slice(0, limit) };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Failed to parse Hashnode RSS feed:", message);
