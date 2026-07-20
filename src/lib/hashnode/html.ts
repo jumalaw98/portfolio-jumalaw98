@@ -1,3 +1,18 @@
+export function decodeHtmlEntities(text: string): string {
+  return text
+    .replaceAll("&amp;", "&")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&apos;", "'")
+    .replaceAll("&nbsp;", " ")
+    .replaceAll(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number.parseInt(dec, 10)))
+    .replaceAll(/&#[xX]([0-9a-fA-F]+);/g, (_, hex) =>
+      String.fromCodePoint(Number.parseInt(hex, 16)),
+    );
+}
+
 export function stripHtmlToText(html: string): string {
   let result = "";
   let inTag = false;
@@ -10,6 +25,7 @@ export function stripHtmlToText(html: string): string {
 
     if (char === ">" && inTag) {
       inTag = false;
+      result += " ";
       continue;
     }
 
@@ -18,5 +34,5 @@ export function stripHtmlToText(html: string): string {
     }
   }
 
-  return result;
+  return decodeHtmlEntities(result);
 }
