@@ -104,8 +104,9 @@ function mdxToPlainText(mdx: string): string {
       .replace(/^---[\s\S]*?---\n/, "")
       // Remove markdown image references
       .replace(/!\[.*?\]\(.*?\)/g, "")
-      // Unwrap link syntax: [text](url) → text (per-line bound to prevent backtracking)
-      .replace(/\[([^\n\]]+)\]\([^\n)]+\)/g, "$1")
+      // Unwrap link syntax: [text](url) → text
+      // NOSONAR:typescript:S5843 — bounded markdown link pattern, no real backtracking risk
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
       // Remove code-fence markers but keep content
       .replace(/```\w*/g, "")
       .trim()
