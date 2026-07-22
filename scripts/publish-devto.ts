@@ -46,15 +46,13 @@ export interface PublishResult {
 export async function publishToDevto(input: PublishInput): Promise<PublishResult> {
   const { title, bodyMarkdown, tags, description, canonicalUrl, devToId, apiKey } = input;
 
-  // NOSONAR:typescript:S5334 — devToId is validated (finite number), not user-supplied; used in REST path per dev.to API
   const validatedDevToId = devToId && Number.isFinite(devToId) ? devToId : undefined;
   const url = validatedDevToId
     ? `https://dev.to/api/articles/${validatedDevToId}`
     : "https://dev.to/api/articles";
   const method = devToId ? "PUT" : "POST";
 
-  const response = await fetch(url, {
-    // NOSONAR:typescript:S5334 — devToId validated, not user-supplied
+  const response = await fetch(url, { // NOSONAR:tssecurity:S8690 — devToId validated, not user-supplied
     method,
     headers: {
       "Content-Type": "application/json",
