@@ -34,6 +34,11 @@ if (!SLUG) {
   console.error("Usage: tsx scripts/publish-buffer.ts <slug>");
   process.exit(1);
 }
+// Validate slug to prevent path traversal (SonarCloud S5146)
+if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(SLUG)) {
+  console.error(`Invalid slug: "${SLUG}". Slug must be kebab-case (letters, numbers, hyphens).`);
+  process.exit(1);
+}
 
 // ── Environment ──────────────────────────────────────────────────────────────
 
@@ -91,7 +96,7 @@ function mdxToPlainText(mdx: string): string {
   return (
     mdx
       // Remove JSX component syntax
-      .replace(/^import\s+.*?\s+from\s+['"][^'"]+['"];?\s*$/gm, "")
+      .replace(/^import\s.*$/gm, "")
       .replace(/<[A-Z][a-zA-Z]*\s[^>]*>/g, "")
       .replace(/<[A-Z][a-zA-Z]*\s*\/?>/g, "")
       .replace(/<\/[A-Z][a-zA-Z]*>/g, "")
@@ -100,7 +105,7 @@ function mdxToPlainText(mdx: string): string {
       // Remove markdown image references
       .replace(/!\[.*?\]\(.*?\)/g, "")
       // Unwrap link syntax: [text](url) → text
-      .replace(/\[([^\]]+)]\([^\s)]+\)/g, "$1")
+      .replace(/\[([^\]]+?)\]\([^\s)]+?\)/g, "$1")
       // Remove code-fence markers but keep content
       .replace(/```\w*/g, "")
       .trim()

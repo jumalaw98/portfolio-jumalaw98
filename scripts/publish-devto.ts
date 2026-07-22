@@ -46,8 +46,9 @@ export interface PublishResult {
 export async function publishToDevto(input: PublishInput): Promise<PublishResult> {
   const { title, bodyMarkdown, tags, description, canonicalUrl, devToId, apiKey } = input;
 
-  const url = devToId
-    ? `https://dev.to/api/articles/${devToId}`
+  const validatedDevToId = devToId && Number.isFinite(devToId) ? devToId : undefined;
+  const url = validatedDevToId
+    ? `https://dev.to/api/articles/${validatedDevToId}`
     : "https://dev.to/api/articles";
   const method = devToId ? "PUT" : "POST";
 
@@ -90,6 +91,11 @@ if (isEntryPoint) {
   const SLUG = process.argv[2];
   if (!SLUG) {
     console.error("Usage: tsx scripts/publish-devto.ts <slug>");
+    process.exit(1);
+  }
+  // Validate slug to prevent path traversal (SonarCloud S5146)
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(SLUG)) {
+    console.error(`Invalid slug: "${SLUG}". Must be kebab-case.`);
     process.exit(1);
   }
 
@@ -159,7 +165,7 @@ if (isEntryPoint) {
     return (
       mdx
         // Line-based imports: `import X from "y"` or `import { X } from "y"`
-        .replace(/^import\s+.*?\s+from\s+['"][^'"]+['"];?\s*$/gm, "")
+        .replace(/^import\s.*$/gm, "")
         // Self-closing MDX components: `<Component />`
         .replace(/<[A-Z][a-zA-Z]*\s*\/?>/g, "")
         // Opening MDX component tags with props: `<Component prop="val">`
@@ -188,7 +194,7 @@ if (isEntryPoint) {
     try {
       console.log(
         devToIdRaw
-          ? `Updating existing dev.to article #${devToIdRaw}...`
+          ? "Updating existing dev.to article..."
           : "Creating new dev.to article...",
       );
 
@@ -202,7 +208,7 @@ if (isEntryPoint) {
         apiKey: API_KEY,
       });
 
-      console.log(`\n✅ Published to dev.to: ${result.url}`);
+      console.log("\n✅ Published to dev.to");
 
       // If this was a new article, persist the devToId into frontmatter.
       if (!result.isUpdate) {
@@ -229,10 +235,10 @@ if (isEntryPoint) {
         }
 
         writeFileSync(filePath, updatedContent, "utf-8");
-        console.log(`✏️  devToId (${result.id}) written to frontmatter`);
+        console.log("✏️  devToId written to frontmatter");
       }
     } catch (err) {
-      console.error("Publish failed:", err instanceof Error ? err.message : String(err));
+      console.error("Publish failed.");
       process.exit(1);
     }
   }

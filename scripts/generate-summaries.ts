@@ -38,7 +38,7 @@ function mdxToPlainText(mdx: string): string {
   return (
     mdx
       // Remove JSX import statements
-      .replace(/^import\s+.*?\s+from\s+['"][^'"]+['"];?\s*$/gm, "")
+      .replace(/^import\s.*$/gm, "")
       // Remove opening JSX component tags with attributes
       .replace(/<[A-Z][a-zA-Z]*\s[^>]*>/g, "")
       // Remove self-closing JSX component tags
@@ -50,7 +50,7 @@ function mdxToPlainText(mdx: string): string {
       // Remove markdown image references
       .replace(/!\[.*?\]\(.*?\)/g, "")
       // Unwrap link syntax: [text](url) → text
-      .replace(/\[([^\]]+)]\([^\s)]+\)/g, "$1")
+      .replace(/\[([^\]]+?)\]\([^\s)]+?\)/g, "$1")
       // Remove code-fence markers but keep content
       .replace(/```\w*/g, "")
       .trim()
