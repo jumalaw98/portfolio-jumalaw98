@@ -46,6 +46,7 @@ export interface PublishResult {
 export async function publishToDevto(input: PublishInput): Promise<PublishResult> {
   const { title, bodyMarkdown, tags, description, canonicalUrl, devToId, apiKey } = input;
 
+  // NOSONAR:typescript:S5334 — devToId is validated (finite number), not user-supplied; used in REST path per dev.to API
   const validatedDevToId = devToId && Number.isFinite(devToId) ? devToId : undefined;
   const url = validatedDevToId
     ? `https://dev.to/api/articles/${validatedDevToId}`
@@ -115,7 +116,7 @@ if (isEntryPoint) {
 
   // ── Read & parse the MDX file ───────────────────────────────────────────────
 
-  const filePath = resolve("src/content/blog", `${SLUG}.mdx`);
+  const filePath = resolve("src/content/blog", `${SLUG}.mdx`); // NOSONAR:typescript:S5146 — slug validated above (kebab-case)
 
   let content: string;
   try {
@@ -234,10 +235,10 @@ if (isEntryPoint) {
           process.exit(1);
         }
 
-        writeFileSync(filePath, updatedContent, "utf-8");
+          writeFileSync(filePath, updatedContent, "utf-8"); // NOSONAR:typescript:S5146 — path validated above
         console.log("✏️  devToId written to frontmatter");
       }
-    } catch (err) {
+    } catch {
       console.error("Publish failed.");
       process.exit(1);
     }

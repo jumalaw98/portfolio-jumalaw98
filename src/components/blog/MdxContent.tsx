@@ -19,7 +19,8 @@ export default function MdxContent({ code }: MdxContentProps) {
   const Component = useMemo(() => {
     // Wrap the MDX module body in a function that receives the JSX runtime
     // and returns the default export (the MDX component).
-    const fn = new Function(code); // NOSONAR:typescript:S1523 — code is authored Velite-compiled MDX, not user-supplied
+    // NOSONAR:typescript:S1523 — code is authored Velite-compiled MDX, not user-supplied
+    const fn = new Function(code);
     return fn({ ...runtime }).default as React.ComponentType<{
       components?: Record<string, React.ComponentType>;
     }>;
