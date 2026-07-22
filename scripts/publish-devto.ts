@@ -52,7 +52,7 @@ export async function publishToDevto(input: PublishInput): Promise<PublishResult
     : "https://dev.to/api/articles";
   const method = devToId ? "PUT" : "POST";
 
-  // NOSONAR — devToId validated, not user-supplied; used in REST path per dev.to API
+  // NOSONAR
   const response = await fetch(url, {
     method,
     headers: {

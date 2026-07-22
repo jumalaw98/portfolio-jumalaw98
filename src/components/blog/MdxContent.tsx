@@ -20,10 +20,9 @@ export default function MdxContent({ code }: MdxContentProps) {
     // Wrap the MDX module body in a function that receives the JSX runtime
     // and returns the default export (the MDX component).
     // code is authored Velite-compiled MDX, not user-supplied — safe evaluation
-    // NOSONAR
-    const fn = new Function(code);
-    // NOSONAR
-    return fn({ ...runtime }).default as React.ComponentType<{
+    const fn = new Function(code); // NOSONAR
+    const Default = fn({ ...runtime }).default; // NOSONAR
+    return Default as React.ComponentType<{
       components?: Record<string, React.ComponentType>;
     }>;
   }, [code]);
