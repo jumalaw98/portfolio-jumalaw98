@@ -50,8 +50,7 @@ function mdxToPlainText(mdx: string): string {
       // Remove markdown image references
       .replace(/!\[.*?\]\(.*?\)/g, "")
       // Unwrap link syntax: [text](url) → text
-      // NOSONAR:typescript:S8786 — bounded markdown link pattern, no real backtracking risk
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/\[([^\[\]]+)\]\([^()\s]+\)/g, "$1")
       // Remove code-fence markers but keep content
       .replace(/```\w*/g, "")
       .trim()

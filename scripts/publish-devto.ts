@@ -52,8 +52,7 @@ export async function publishToDevto(input: PublishInput): Promise<PublishResult
     : "https://dev.to/api/articles";
   const method = devToId ? "PUT" : "POST";
 
-  // NOSONAR
-  const response = await fetch(url, {
+  const response = await fetch(url, { // NOSONAR:typescript:S8690 — devToId validated with Number.isFinite above
     method,
     headers: {
       "Content-Type": "application/json",
