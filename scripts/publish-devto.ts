@@ -52,8 +52,8 @@ export async function publishToDevto(input: PublishInput): Promise<PublishResult
     : "https://dev.to/api/articles";
   const method = devToId ? "PUT" : "POST";
 
+  // NOSONAR:tssecurity:S8690 — devToId validated, not user-supplied; used in REST path per dev.to API
   const response = await fetch(url, {
-    // NOSONAR:tssecurity:S8690 — devToId validated, not user-supplied
     method,
     headers: {
       "Content-Type": "application/json",
