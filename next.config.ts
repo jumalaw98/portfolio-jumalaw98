@@ -1,5 +1,17 @@
 import type { NextConfig } from "next";
 
+// ─── Velite content build (runs once per process) ───────────────────────────
+// Build function pattern — the recommended approach for Turbopack compatibility.
+// Runs during Next.js config evaluation, generating .velite/ before pages compile.
+const runningVeliteDev = process.argv.includes("dev");
+const runningVeliteBuild = process.argv.includes("build");
+if (!process.env.VELITE_STARTED && (runningVeliteDev || runningVeliteBuild)) {
+  process.env.VELITE_STARTED = "1";
+  // Use promise chain (not top-level await) — Next.js config loader does
+  // not support top-level await in TypeScript config files.
+  import("velite").then((m) => m.build({ watch: runningVeliteDev, clean: !runningVeliteDev }));
+}
+
 // ─── Content Security Policy ─────────────────────────────────────────────────
 // Pragmatic policy for a portfolio site. 'unsafe-inline' is required for
 // Next.js hydration scripts, framer-motion inline styles, and Google Fonts

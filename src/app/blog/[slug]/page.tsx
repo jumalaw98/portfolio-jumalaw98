@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
 import { TableOfContents } from "@/components/blog/TableOfContents";
 import { ArticleContent } from "@/components/blog/ArticleContent";
+import MdxContent from "@/components/blog/MdxContent";
 import { ShareButtons } from "@/components/blog/ShareButtons";
 import { PostNavigation } from "@/components/blog/PostNavigation";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
@@ -16,11 +17,11 @@ import { formatBlogDate, formatReadTime } from "@/components/blog/blogFormat";
 import {
   getAllPosts,
   getAllPostDetails,
-  getAdjacentPosts,
-  getRelatedPosts,
   isHashnodeConfigured,
   RSS_FEED_MAX_SIZE,
 } from "@/lib/hashnode";
+import { getPortfolioPostBySlug, getAllPortfolioDetails } from "@/lib/velite";
+import type { PortfolioPostDetail } from "@/lib/velite";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import { SITE_URL, SITE_NAME } from "@/lib/constants";
 import { breadcrumbJsonLd } from "@/lib/seo";
@@ -32,73 +33,169 @@ interface BlogPostPageProps {
   readonly params: Promise<{ slug: string }>;
 }
 
-async function resolvePost(slug: string): Promise<{
-  post: BlogPostDetail | null;
-  allPosts: BlogPostDetail[];
-  usingPlaceholders: boolean;
-  fetchFailed: boolean;
-  isMissing: boolean; // true when the post definitively doesn't exist
-}> {
+// ── Shared helpers for adjacent / related posts ──────────────────────────────
+// Generic over any type that has the fields these operations need, so the same
+// logic works for BlogPostDetail and PortfolioPostDetail.
+
+function getAdjacentPosts<T extends { publishedAt: string; slug: string }>(
+  post: T,
+  allPosts: T[],
+): { previous: T | null; next: T | null } {
+  const sorted = [...allPosts].sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+  );
+  const idx = sorted.findIndex((p) => p.slug === post.slug);
+  return {
+    previous: idx > 0 ? sorted[idx - 1] : null,
+    next: idx < sorted.length - 1 ? sorted[idx + 1] : null,
+  };
+}
+
+function getRelatedPosts<T extends { tags: { slug: string }[]; slug: string }>(
+  post: T,
+  allPosts: T[],
+  limit = 3,
+): T[] {
+  const myTags = new Set(post.tags.map((t) => t.slug));
+  return allPosts
+    .filter((p) => p.slug !== post.slug && p.tags.some((t) => myTags.has(t.slug)))
+    .slice(0, limit);
+}
+
+// ── Resolution ───────────────────────────────────────────────────────────────
+
+type ResolvedPost =
+  | {
+      kind: "portfolio";
+      post: PortfolioPostDetail;
+      allPosts: (BlogPostDetail | PortfolioPostDetail)[];
+      usingPlaceholders?: boolean;
+      fetchFailed?: boolean;
+    }
+  | {
+      kind: "hashnode";
+      post: BlogPostDetail;
+      allPosts: BlogPostDetail[];
+      usingPlaceholders: boolean;
+      fetchFailed: boolean;
+    }
+  | {
+      kind: "missing";
+      post: null;
+      allPosts: [];
+      usingPlaceholders?: boolean;
+      fetchFailed?: boolean;
+    };
+
+async function resolvePost(slug: string): Promise<ResolvedPost> {
+  // 1. Check portfolio (Velite MDX) posts first.
+  const portfolioPost = await getPortfolioPostBySlug(slug);
+  if (portfolioPost) {
+    const portfolioPosts = await getAllPortfolioDetails();
+
+    // Merge with Hashnode posts so adjacent/related span both sources.
+    const hashnodeResult = await getAllPostDetails(RSS_FEED_MAX_SIZE);
+    const hashnodePosts = hashnodeResult.ok ? hashnodeResult.data : [];
+
+    const allPosts = [...portfolioPosts, ...hashnodePosts].sort(
+      (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    );
+
+    return { kind: "portfolio", post: portfolioPost, allPosts };
+  }
+
+  // 2. Fall through to Hashnode / placeholders.
   if (!isHashnodeConfigured()) {
     const post = placeholderBlogPosts.find((p) => p.slug === slug) ?? null;
+    if (post) {
+      return {
+        kind: "hashnode",
+        post: post as BlogPostDetail,
+        allPosts: placeholderBlogPosts as BlogPostDetail[],
+        usingPlaceholders: true,
+        fetchFailed: false,
+      };
+    }
     return {
-      post,
-      allPosts: placeholderBlogPosts,
+      kind: "missing",
+      post: null,
+      allPosts: [],
       usingPlaceholders: true,
       fetchFailed: false,
-      isMissing: !post,
     };
   }
 
-  // Fetch up to RSS_FEED_MAX_SIZE posts so the article resolver covers the
-  // same range as the short-link page. Posts beyond this window remain an
-  // architectural limitation of RSS-only sourcing (no persistent index).
   const result = await getAllPostDetails(RSS_FEED_MAX_SIZE);
 
   if (!result.ok) {
-    // Fetch failure — not the same as "post not found". Return null post so
-    // the page shows the failure banner without a 404 (ISR can thus preserve
-    // the last good cached page instead of losing it to a transient blip).
+    // Fetch failure — not "not found".  Return null so the page shows an
+    // error banner (ISR preserves the last good cached version).
     return {
+      kind: "missing",
       post: null,
       allPosts: [],
-      usingPlaceholders: false,
       fetchFailed: true,
-      isMissing: false,
+      usingPlaceholders: false,
     };
   }
 
   const allPosts = result.data;
   const post = allPosts.find((p) => p.slug === slug) ?? null;
-  return { post, allPosts, usingPlaceholders: false, fetchFailed: false, isMissing: !post };
+  if (post) {
+    return {
+      kind: "hashnode",
+      post,
+      allPosts,
+      usingPlaceholders: false,
+      fetchFailed: false,
+    };
+  }
+  return {
+    kind: "missing",
+    post: null,
+    allPosts: [],
+    usingPlaceholders: false,
+    fetchFailed: false,
+  };
 }
 
+// ── Static params ────────────────────────────────────────────────────────────
+
 export async function generateStaticParams() {
+  // Portfolio slugs
+  const portfolioPosts = await getAllPortfolioDetails();
+  const portfolioSlugs = portfolioPosts.map((p) => ({ slug: p.slug }));
+
+  // Hashnode slugs
+  let hashnodeSlugs: { slug: string }[] = [];
   if (!isHashnodeConfigured()) {
-    return placeholderBlogPosts.map((p) => ({ slug: p.slug }));
+    hashnodeSlugs = placeholderBlogPosts.map((p) => ({ slug: p.slug }));
+  } else {
+    const result = await getAllPosts();
+    const posts = result.ok ? result.data : [];
+    hashnodeSlugs = posts.map((p) => ({ slug: p.slug }));
   }
-  // Use summary-only fetch: generateStaticParams only needs slugs and does not
-  // consume contentHtml, so mapFull's HTML string allocation is unnecessary.
-  const result = await getAllPosts();
-  const posts = result.ok ? result.data : [];
-  return posts.map((p) => ({ slug: p.slug }));
+
+  return [...portfolioSlugs, ...hashnodeSlugs];
 }
+
+// ── Metadata ─────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const { post } = await resolvePost(slug);
+  const resolved = await resolvePost(slug);
 
-  if (!post) {
+  if (resolved.kind === "missing" || !resolved.post) {
     return {
       title: `Post not found — ${SITE_NAME}`,
       robots: { index: false, follow: false },
     };
   }
 
+  const { post } = resolved;
   const url = `${SITE_URL}/blog/${post.slug}`;
-  const image = post.ogImageUrl ?? post.coverImageUrl ?? undefined;
-  // Natural keyword targeting: lead with the post's own tags rather than
-  // stuffing unrelated terms — each tag is already a real topic of the post.
+  const image =
+    "ogImageUrl" in post && post.ogImageUrl ? post.ogImageUrl : (post.coverImageUrl ?? undefined);
   const keywords = post.tags.map((t) => t.name);
 
   return {
@@ -126,28 +223,29 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   };
 }
 
+// ── Page ─────────────────────────────────────────────────────────────────────
+
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const { post, allPosts, usingPlaceholders, fetchFailed, isMissing } = await resolvePost(slug);
+  const resolved = await resolvePost(slug);
 
-  // Transient fetch failure — throw so Next.js ISR retains the last cached
-  // version instead of replacing it with a 404. A genuine "not found" (post
-  // outside the RSS window, deleted, etc.) generates a real 404.
-  if (fetchFailed) {
-    throw new Error("Failed to fetch blog post from Hashnode");
-  }
-
-  if (isMissing) {
+  if (resolved.kind === "missing") {
+    // Transient fetch failure — Next.js ISR retains the last cached version.
+    // A genuine "not found" generates a 404.
+    // We differentiate by checking if resolved is a hashnode failure or truly missing.
+    if (resolved.post === null && resolved.fetchFailed) {
+      throw new Error("Failed to fetch blog post from Hashnode");
+    }
     notFound();
   }
 
-  // Narrow post to BlogPostDetail — the guards above exit before null is possible here.
-  if (!post) {
-    throw new Error("Invariant: post must be non-null after fetch/notFound guards");
-  }
+  const { post, allPosts } = resolved;
+  const isPortfolio = resolved.kind === "portfolio";
+  const portfolioPost = isPortfolio ? (post as PortfolioPostDetail) : null;
+  const hashnodePost = !isPortfolio ? (post as BlogPostDetail) : null;
 
-  const { previous, next } = getAdjacentPosts(post, allPosts);
-  const related = getRelatedPosts(post, allPosts);
+  const { previous, next } = getAdjacentPosts(post, allPosts as typeof allPosts);
+  const related = getRelatedPosts(post, allPosts as typeof allPosts);
   const articleUrl = `${SITE_URL}/blog/${post.slug}`;
   const shortUrl = `${SITE_URL}/s/${post.shortId}`;
 
@@ -163,6 +261,69 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl },
   };
 
+  // Render header source/warning banner alerts
+  let sourceBanner: React.ReactNode = null;
+  if (isPortfolio) {
+    sourceBanner = (
+      <p className="mb-4 rounded-md border border-brand-blue-light bg-brand-blue-tint px-4 py-2 text-sm text-brand-blue-dark">
+        Published directly from the portfolio — this post is authored in MDX and managed through the
+        site&apos;s own content pipeline.
+      </p>
+    );
+  } else if (resolved.usingPlaceholders) {
+    sourceBanner = (
+      <p className="mb-4 rounded-md border border-brand-orange-light bg-brand-orange-tint px-4 py-2 text-sm text-brand-orange-dark">
+        Placeholder post — connect <code>HASHNODE_PUBLICATION_HOST</code> to show real Hashnode
+        content here.
+      </p>
+    );
+  } else if (resolved.fetchFailed) {
+    sourceBanner = (
+      <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700">
+        This article loaded from cache, but we couldn&apos;t refresh the latest from Hashnode. The
+        content below is still valid.
+      </p>
+    );
+  }
+
+  const subtitleElement = post.subtitle ? (
+    <p className="mt-3 text-lg text-text-muted">{post.subtitle}</p>
+  ) : null;
+
+  const authorImage = post.author.profilePictureUrl ? (
+    <div className="relative h-9 w-9 overflow-hidden rounded-full">
+      <Image
+        src={post.author.profilePictureUrl}
+        alt={post.author.name}
+        fill
+        sizes="36px"
+        className="object-cover"
+      />
+    </div>
+  ) : null;
+
+  const coverImageElement = post.coverImageUrl ? (
+    <Container className="max-w-3xl py-8">
+      <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+        <Image
+          src={post.coverImageUrl}
+          alt={post.title}
+          fill
+          priority
+          sizes="(min-width: 768px) 768px, 100vw"
+          className="object-cover"
+        />
+      </div>
+    </Container>
+  ) : null;
+
+  let contentElement: React.ReactNode = null;
+  if (portfolioPost) {
+    contentElement = <MdxContent code={portfolioPost.mdxBody} />;
+  } else if (hashnodePost) {
+    contentElement = <ArticleContent html={hashnodePost.contentHtml} />;
+  }
+
   return (
     <article>
       <JsonLd data={articleJsonLd} />
@@ -175,25 +336,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
       <ReadingProgress />
 
-      {/* Header and cover image render statically (no scroll-reveal) — the
-          cover image is the likely LCP element on this page, so it's kept
-          out of any opacity/transform animation. Everything below fades in
-          as it scrolls into view. */}
       <header className="border-b border-border bg-brand-blue-tint py-14">
         <Container className="max-w-3xl">
-          {usingPlaceholders ? (
-            <p className="mb-4 rounded-md border border-brand-orange-light bg-brand-orange-tint px-4 py-2 text-sm text-brand-orange-dark">
-              Placeholder post — connect <code>HASHNODE_PUBLICATION_HOST</code> to show real
-              Hashnode content here.
-            </p>
-          ) : null}
-
-          {fetchFailed ? (
-            <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700">
-              This article loaded from cache, but we couldn&apos;t refresh the latest from Hashnode.
-              The content below is still valid.
-            </p>
-          ) : null}
+          {sourceBanner}
 
           <nav aria-label="Breadcrumb" className="text-sm text-text-muted">
             <Link href="/blog" className="hover:text-brand-blue">
@@ -212,20 +357,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </div>
 
           <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{post.title}</h1>
-          {post.subtitle ? <p className="mt-3 text-lg text-text-muted">{post.subtitle}</p> : null}
+          {subtitleElement}
 
           <div className="mt-6 flex items-center gap-3">
-            {post.author.profilePictureUrl ? (
-              <div className="relative h-9 w-9 overflow-hidden rounded-full">
-                <Image
-                  src={post.author.profilePictureUrl}
-                  alt={post.author.name}
-                  fill
-                  sizes="36px"
-                  className="object-cover"
-                />
-              </div>
-            ) : null}
+            {authorImage}
             <div className="text-sm">
               <p className="font-medium text-brand-ink">{post.author.name}</p>
               <p className="text-text-muted">
@@ -236,26 +371,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         </Container>
       </header>
 
-      {post.coverImageUrl ? (
-        <Container className="max-w-3xl py-8">
-          <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-            <Image
-              src={post.coverImageUrl}
-              alt={post.title}
-              fill
-              priority
-              sizes="(min-width: 768px) 768px, 100vw"
-              className="object-cover"
-            />
-          </div>
-        </Container>
-      ) : null}
+      {coverImageElement}
 
       <Container className="grid gap-10 pb-16 md:grid-cols-[1fr_220px] md:items-start">
         <div className="max-w-3xl">
-          <RevealSection>
-            <ArticleContent html={post.contentHtml} />
-          </RevealSection>
+          <RevealSection>{contentElement}</RevealSection>
 
           <div className="mt-10 flex items-center justify-between border-t border-border pt-6">
             <p className="text-sm font-medium text-text-body">Share this article</p>

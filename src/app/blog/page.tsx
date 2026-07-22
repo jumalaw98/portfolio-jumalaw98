@@ -9,6 +9,7 @@ import { SearchBox } from "@/components/blog/SearchBox";
 import { RevealSection } from "@/components/ui/RevealSection";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getAllPosts, getAllTagsFromPosts, isHashnodeConfigured } from "@/lib/hashnode";
+import { getPortfolioPosts } from "@/lib/velite";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import { SOCIAL_LINKS } from "@/lib/constants";
 import { pageMetadata, breadcrumbJsonLd } from "@/lib/seo";
@@ -40,15 +41,19 @@ interface BlogPageProps {
 }
 
 // ---------------------------------------------------------------------------
-// Pure helpers extracted from the page component to keep cognitive complexity
-// within the SonarQube threshold and eliminate nested ternaries / deep nesting.
+// Pure helpers — extracted to keep the page component's cognitive complexity
+// within the SonarQube threshold.
 // ---------------------------------------------------------------------------
 
-/** Resolve the post list without a nested ternary. */
+/** Resolve the post list from both sources without a nested ternary. */
 function resolvePosts(
   configured: boolean,
   result: HashnodeResult<BlogPost[]>,
-): { posts: BlogPost[]; usingPlaceholders: boolean; fetchFailed: boolean } {
+): {
+  posts: BlogPost[];
+  usingPlaceholders: boolean;
+  fetchFailed: boolean;
+} {
   const usingPlaceholders = !configured;
   const fetchFailed = configured && !result.ok;
 
@@ -134,23 +139,29 @@ function paginatePosts(
 export default async function BlogPage({ searchParams }: BlogPageProps) {
   const { tag, q, page } = await searchParams;
 
+  // 1. Resolve Hashnode posts (existing path — includes fallback/error states)
   const result = await getAllPosts();
   const configured = isHashnodeConfigured();
-
-  const { posts: allPosts, usingPlaceholders, fetchFailed } = resolvePosts(configured, result);
+  const { posts: hashnodePosts, usingPlaceholders, fetchFailed } = resolvePosts(configured, result);
 
   if (fetchFailed && !result.ok) {
     console.error("Hashnode feed fetch failed:", result.error);
   }
+
+  // 2. Resolve portfolio (Velite MDX) posts — always available, no env needed
+  const portfolioPosts = await getPortfolioPosts();
+
+  // 3. Merge both sources and sort by date descending
+  const allPosts: BlogPost[] = [...hashnodePosts, ...portfolioPosts].sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+  );
 
   const allTags = getAllTagsFromPosts(allPosts);
   const tags = getTopTags(allTags, allPosts, tag);
 
   const sortedPosts = filterAndSortPosts(allPosts, tag, q);
 
-  // Featured hero only on the unfiltered first page — never on later pages
-  // or paginated/filtered views. The featured decision is now separate from
-  // the pagination logic so filtered pages get correct pagination (issue 3).
+  // Featured hero only on the unfiltered first page
   const showFeatured = !tag && !q && (!page || page === "1");
   const { currentPage, totalPages, featured, gridPosts } = paginatePosts(
     sortedPosts,
@@ -161,8 +172,6 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   // Randomize the grid order on every refresh, but only on the unfiltered
   // first page — keeps tag/search/pagination deterministic and SEO-stable.
-  // A per-request seed ensures SSR and client produce the same shuffled
-  // order, preventing post-hydration CLS (issue 7).
   const randomize = !tag && !q && currentPage === 1;
   const randomSeed: string | null = randomize ? crypto.randomUUID() : null;
 
@@ -215,8 +224,6 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
         </div>
       </Suspense>
 
-      {/* Visually hidden — keeps the heading hierarchy valid even when no
-          featured post renders (e.g. while filtering by tag/search). */}
       <h2 className="sr-only">{tag || q ? "Filtered Articles" : "All Articles"}</h2>
 
       <RevealSection className="mt-8">

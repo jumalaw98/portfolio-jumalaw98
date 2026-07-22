@@ -1,0 +1,100 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      
+      - run: npm ci
+      
+      # ── Gate ──────────────────────────────────────────────────────────
+      - name: Build Velite
+        run: npx velite build
+        env:
+          NODE_ENV: production
+      
+      - name: Run tests
+        run: npx vitest run
+      
+      - name: Check for placeholders
+        run: npx tsx scripts/check-placeholders.ts
+      
+      # ── Find ready posts ──────────────────────────────────────────────
+      # IMPORTANT: We check for summary.hook presence BEFORE publishing.
+      # This guarantees the post has been through the human review step
+      # (Workflow A's PR was reviewed and merged). Without this check,
+      # a post with only devToId absent but no summary yet would get
+      # published with missing or placeholder text.
+      - name: Find posts ready for publishing
+        id: find
+        run: |
+          npx tsx scripts/find-ready-posts.ts > ready.json
+          echo "count=$(node -e "console.log(require('./ready.json').publish.length)")" >> $GITHUB_OUTPUT
+      
+      # ── Publish ───────────────────────────────────────────────────────
+      - name: Publish to dev.to
+        if: steps.find.outputs.count != '0'
+        run: |
+          node -e "
+            const posts = require('./ready.json').publish;
+            for (const post of posts) {
+              console.log('Publishing', post.slug);
+            }
+          "
+          # Publish each post to dev.to
+          for slug in $(node -e "
+            const posts = require('./ready.json').publish;
+            for (const p of posts) console.log(p.slug);
+          "); do
+            echo "::group::Publishing $slug to dev.to"
+            npx tsx scripts/publish-devto.ts "$slug"
+            echo "::endgroup::"
+          done
+        env:
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+      
+      - name: Post to Buffer (LinkedIn / X)
+        if: steps.find.outputs.count != '0'
+        run: |
+          for slug in $(node -e "
+            const posts = require('./ready.json').publish;
+            for (const p of posts) console.log(p.slug);
+          "); do
+            echo "::group::Posting $slug to Buffer"
+            npx tsx scripts/publish-buffer.ts "$slug"
+            echo "::endgroup::"
+          done
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_LINKEDIN_CHANNEL_ID: ${{ secrets.BUFFER_LINKEDIN_CHANNEL_ID }}
+          BUFFER_X_CHANNEL_ID: ${{ secrets.BUFFER_X_CHANNEL_ID }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+      
+      # ── Commit devToId changes back ──────────────────────────────────
+      # publish-devto.ts writes devToId into frontmatter when creating
+      # a new article. We commit this back so subsequent runs don't
+      # re-publish. Main requires PR review, so use create-pull-request.
+      - name: Commit devToId changes
+        if: steps.find.outputs.count != '0'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: record devToId after publishing"
+          title: "chore: record devToId for published posts"
+          body: |
+            Auto-committing devToId values after publishing via the Publish workflow.
+          branch: bot/devto-id-backfill
+          delete-branch: true

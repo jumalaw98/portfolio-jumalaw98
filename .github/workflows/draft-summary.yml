@@ -1,0 +1,66 @@
+name: Draft Summary
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      
+      - run: npm ci
+      
+      # Gate: validate, test, placeholder scan
+      - name: Build Velite
+        run: npx velite build
+        env:
+          NODE_ENV: production
+      
+      - name: Run tests
+        run: npx vitest run
+      
+      - name: Check for placeholders
+        run: npx tsx scripts/check-placeholders.ts
+      
+      # Generate summaries for posts that need them
+      - name: Generate summaries
+        id: generate
+        run: |
+          echo "changes<<EOF" >> $GITHUB_OUTPUT
+          npx tsx scripts/generate-summaries.ts >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      
+      # Create PR if any files changed
+      - name: Create Pull Request
+        if: steps.generate.outputs.changes != ''
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: auto-generate summary hooks"
+          title: "chore: auto-generated summary hooks"
+          body: |
+            This PR was automatically created by the Draft Summary workflow.
+            
+            Posts updated:
+            ```
+            ${{ steps.generate.outputs.changes }}
+            ```
+            
+            Please review the generated summaries before merging.
+          branch: bot/generated-summary
+          delete-branch: true
+          reviewers: jumalaw98
