@@ -150,8 +150,7 @@ function run(): void {
 // Only run when this file is executed directly (not when imported by tests)
 
 const isMainModule =
-  process.argv[1] !== undefined &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isMainModule) {
   run();

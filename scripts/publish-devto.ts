@@ -53,7 +53,8 @@ export async function publishToDevto(input: PublishInput): Promise<PublishResult
     : "https://dev.to/api/articles";
   const method = devToId ? "PUT" : "POST";
 
-  const response = await fetch(url, { // NOSONAR:typescript:S5334 — devToId validated, not user-supplied
+  const response = await fetch(url, {
+    // NOSONAR:typescript:S5334 — devToId validated, not user-supplied
     method,
     headers: {
       "Content-Type": "application/json",
@@ -194,9 +195,7 @@ if (isEntryPoint) {
   async function publish(): Promise<void> {
     try {
       console.log(
-        devToIdRaw
-          ? "Updating existing dev.to article..."
-          : "Creating new dev.to article...",
+        devToIdRaw ? "Updating existing dev.to article..." : "Creating new dev.to article...",
       );
 
       const result = await publishToDevto({
@@ -235,7 +234,7 @@ if (isEntryPoint) {
           process.exit(1);
         }
 
-          writeFileSync(filePath, updatedContent, "utf-8"); // NOSONAR:typescript:S5146 — path validated above
+        writeFileSync(filePath, updatedContent, "utf-8"); // NOSONAR:typescript:S5146 — path validated above
         console.log("✏️  devToId written to frontmatter");
       }
     } catch {

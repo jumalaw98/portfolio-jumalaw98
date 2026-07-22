@@ -63,7 +63,10 @@ async function resolveSummary(input: GetSummaryInput): Promise<SummaryResult> {
       body: result.body,
     };
   } catch (err) {
-    console.warn("Gemini summary failed, falling back to OpenRouter:", err instanceof Error ? err.message : err);
+    console.warn(
+      "Gemini summary failed, falling back to OpenRouter:",
+      err instanceof Error ? err.message : err,
+    );
   }
 
   // Tier 3 — OpenRouter
@@ -74,7 +77,10 @@ async function resolveSummary(input: GetSummaryInput): Promise<SummaryResult> {
       body: result.body,
     };
   } catch (err) {
-    console.warn("OpenRouter summary failed, falling back to excerpt:", err instanceof Error ? err.message : err);
+    console.warn(
+      "OpenRouter summary failed, falling back to excerpt:",
+      err instanceof Error ? err.message : err,
+    );
   }
 
   // Tier 4 — excerpt fallback

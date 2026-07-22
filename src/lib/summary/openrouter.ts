@@ -12,14 +12,10 @@ import { buildSummaryPrompt, type SummaryResult } from "./gemini";
 const MODEL = "google/gemma-4-31b:free";
 const API_BASE = "https://openrouter.ai/api/v1";
 
-export async function generateSummaryOpenRouter(
-  postBody: string,
-): Promise<SummaryResult> {
+export async function generateSummaryOpenRouter(postBody: string): Promise<SummaryResult> {
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error(
-      "OPENROUTER_API_KEY is required. Set it in your environment or .env.local.",
-    );
+    throw new Error("OPENROUTER_API_KEY is required. Set it in your environment or .env.local.");
   }
 
   const url = `${API_BASE}/chat/completions`;
@@ -32,9 +28,7 @@ export async function generateSummaryOpenRouter(
     },
     body: JSON.stringify({
       model: MODEL,
-      messages: [
-        { role: "system", content: buildSummaryPrompt(postBody) },
-      ],
+      messages: [{ role: "system", content: buildSummaryPrompt(postBody) }],
       temperature: 0.7,
       max_tokens: 300,
     }),
@@ -42,9 +36,7 @@ export async function generateSummaryOpenRouter(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(
-      `OpenRouter API error (${response.status}): ${errorBody}`,
-    );
+    throw new Error(`OpenRouter API error (${response.status}): ${errorBody}`);
   }
 
   const json = await response.json();
@@ -60,13 +52,10 @@ function parseOpenRouterResponse(raw: unknown): SummaryResult {
   try {
     const data = raw as { choices?: OpenRouterChoice[] };
     const choice = data.choices?.[0];
-    const content: string =
-      choice?.message?.content ?? choice?.delta?.content ?? "";
+    const content: string = choice?.message?.content ?? choice?.delta?.content ?? "";
 
     if (!content) {
-      throw new Error(
-        "Empty response from OpenRouter — no content in choice",
-      );
+      throw new Error("Empty response from OpenRouter — no content in choice");
     }
 
     // Strip markdown code fences if present

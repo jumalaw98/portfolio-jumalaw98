@@ -95,8 +95,8 @@ function run(): void {
 }
 
 // Only run as CLI when this file is the entry point (not when imported for tests)
-const isMainModule = process.argv[1] !== undefined &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const isMainModule =
+  process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMainModule) {
   run();
 }

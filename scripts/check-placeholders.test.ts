@@ -13,9 +13,7 @@ describe("checkContent", () => {
   });
 
   it("catches [placeholder: update me]", () => {
-    expect(checkContent("Add [placeholder: update me] here")).toEqual([
-      "[placeholder...]",
-    ]);
+    expect(checkContent("Add [placeholder: update me] here")).toEqual(["[placeholder...]"]);
   });
 
   it("catches lorem ipsum (lowercase)", () => {

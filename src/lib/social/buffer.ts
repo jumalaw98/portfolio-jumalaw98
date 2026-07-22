@@ -64,8 +64,7 @@ export async function postToBuffer(
   if (!apiKey) {
     return {
       success: false,
-      error:
-        "BUFFER_API_KEY is required. Set it in your environment or .env.local.",
+      error: "BUFFER_API_KEY is required. Set it in your environment or .env.local.",
     };
   }
 

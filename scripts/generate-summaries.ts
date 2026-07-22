@@ -112,9 +112,7 @@ async function processFile(filePath: string): Promise<string | null> {
     return null;
   }
 
-  const existingSummary = frontmatter.summary as
-    | { hook?: string; body?: string }
-    | undefined;
+  const existingSummary = frontmatter.summary as { hook?: string; body?: string } | undefined;
 
   if (existingSummary?.hook) {
     return null;

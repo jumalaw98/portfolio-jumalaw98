@@ -35,9 +35,7 @@ describe("publishToDevto", () => {
     expect(callBody.article.title).toBe("Test Article");
     expect(callBody.article.body_markdown).toBe("This is the body content");
     expect(callBody.article.tags).toEqual(["javascript", "webdev"]);
-    expect(callBody.article.canonical_url).toBe(
-      "https://jumalaw98.vercel.app/blog/test-article",
-    );
+    expect(callBody.article.canonical_url).toBe("https://jumalaw98.vercel.app/blog/test-article");
   });
 
   it("sends PUT request to dev.to API when devToId is provided", async () => {
@@ -57,9 +55,7 @@ describe("publishToDevto", () => {
     );
 
     const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(callBody.article.canonical_url).toBe(
-      "https://jumalaw98.vercel.app/blog/test-article",
-    );
+    expect(callBody.article.canonical_url).toBe("https://jumalaw98.vercel.app/blog/test-article");
   });
 
   it("returns PublishResult with id, url, and isUpdate=false for new article", async () => {
@@ -107,7 +103,8 @@ describe("publishToDevto", () => {
     });
 
     const callBody = JSON.parse(
-      ((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1] as RequestInit).body as string,
+      ((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1] as RequestInit)
+        .body as string,
     );
     expect(callBody.article.canonical_url).toContain("/blog/");
     expect(callBody.article.canonical_url).toContain("my-custom-slug");

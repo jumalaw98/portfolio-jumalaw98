@@ -38,14 +38,10 @@ export function buildSummaryPrompt(postBody: string): string {
   ].join("\n");
 }
 
-export async function generateSummaryGemini(
-  postBody: string,
-): Promise<SummaryResult> {
+export async function generateSummaryGemini(postBody: string): Promise<SummaryResult> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error(
-      "GEMINI_API_KEY is required. Set it in your environment or .env.local.",
-    );
+    throw new Error("GEMINI_API_KEY is required. Set it in your environment or .env.local.");
   }
 
   const url = `${API_BASE}/models/${MODEL}:generateContent`;
