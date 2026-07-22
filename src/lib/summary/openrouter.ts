@@ -9,7 +9,7 @@
 
 import { buildSummaryPrompt, type SummaryResult } from "./gemini";
 
-const MODEL = "google/gemma-4-31b:free";
+const MODEL = "google/gemma-4-31b-it:free";
 const API_BASE = "https://openrouter.ai/api/v1";
 
 export async function generateSummaryOpenRouter(postBody: string): Promise<SummaryResult> {

@@ -58,6 +58,9 @@ async function resolveSummary(input: GetSummaryInput): Promise<SummaryResult> {
   // Tier 2 — Gemini
   try {
     const result = await generateSummaryGemini(input.rawBody);
+    if (!result.hook?.trim()) {
+      throw new Error("Empty hook from Gemini, falling through");
+    }
     return {
       hook: truncateAtWordBoundary(result.hook, X_TEXT_BUDGET),
       body: result.body,
@@ -72,6 +75,9 @@ async function resolveSummary(input: GetSummaryInput): Promise<SummaryResult> {
   // Tier 3 — OpenRouter
   try {
     const result = await generateSummaryOpenRouter(input.rawBody);
+    if (!result.hook?.trim()) {
+      throw new Error("Empty hook from OpenRouter, falling through");
+    }
     return {
       hook: truncateAtWordBoundary(result.hook, X_TEXT_BUDGET),
       body: result.body,

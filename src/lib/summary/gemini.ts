@@ -68,7 +68,7 @@ export async function generateSummaryGemini(postBody: string): Promise<SummaryRe
           type: "object",
           properties: {
             hook: { type: "string" },
-            body: { type: "string" },
+            body: { type: "string", nullable: true },
           },
           required: ["hook", "body"],
         },

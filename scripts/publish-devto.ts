@@ -18,6 +18,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
+import { mdxToMarkdown } from "../src/lib/mdx/strip-jsx";
 
 // ── Interfaces & core publish function ──────────────────────────────────────
 
@@ -161,21 +162,6 @@ if (isEntryPoint) {
   // Strips JSX-style MDX component syntax (imports, custom component tags)
   // while preserving standard markdown (headings, lists, code blocks, links).
 
-  function mdxToMarkdown(mdx: string): string {
-    return (
-      mdx
-        // Line-based imports: `import X from "y"` or `import { X } from "y"`
-        .replace(/^import\s.*$/gm, "")
-        // Self-closing MDX components: `<Component />`
-        .replace(/<[A-Z][a-zA-Z]*\s*\/?>/g, "")
-        // Opening MDX component tags with props: `<Component prop="val">`
-        .replace(/<[A-Z][a-zA-Z]*\s[^>]*>/g, "")
-        // Closing MDX component tags: `</Component>`
-        .replace(/<\/[A-Z][a-zA-Z]*>/g, "")
-        .trim()
-    );
-  }
-
   const bodyMarkdown = mdxToMarkdown(bodyMdx);
   const canonicalUrl = `${SITE_URL}/blog/${SLUG}`;
 
@@ -221,7 +207,7 @@ if (isEntryPoint) {
 
         const updatedFrontmatter = frontmatterLines.join("\n");
         const updatedContent = content.replace(
-          /^---\n[\s\S]*?\n---\n/,
+          /^---\n[\s\S]*?\n---\n/m,
           `---\n${updatedFrontmatter}\n---\n`,
         );
 

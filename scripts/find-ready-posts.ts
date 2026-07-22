@@ -46,8 +46,7 @@ interface Frontmatter {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Collect all `.mdx` file paths inside a directory (non-recursive, matching
- * existing script conventions).
+ * Collect all `.mdx` file paths recursively under a directory.
  */
 function collectMdxFiles(dir: string): string[] {
   const files: string[] = [];
@@ -60,8 +59,11 @@ function collectMdxFiles(dir: string): string[] {
   }
 
   for (const entry of entries) {
-    if (entry.isFile() && entry.name.endsWith(".mdx")) {
-      files.push(join(dir, entry.name));
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectMdxFiles(fullPath));
+    } else if (entry.name.endsWith(".mdx")) {
+      files.push(fullPath);
     }
   }
 

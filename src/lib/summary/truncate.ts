@@ -18,10 +18,9 @@ export function truncateAtWordBoundary(text: string, limit: number): string {
   // Find the last space character within the slice.
   const lastSpace = truncated.lastIndexOf(" ");
   if (lastSpace === -1) {
-    // No space in the slice — the single "word" is longer than limit.
-    // Return the whole word anyway (avoid mangling) since this is a safety
-    // net, not a hard post-processor.
-    return text;
+    // No space in the slice — hard-truncate with "…" to guarantee the
+    // result never exceeds `limit` characters.
+    return text.slice(0, Math.max(0, limit - 1)) + "…";
   }
 
   return truncated.slice(0, lastSpace) + "…";

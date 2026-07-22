@@ -30,12 +30,14 @@ describe("publishToDevto", () => {
       "https://dev.to/api/articles",
       expect.objectContaining({ method: "POST" }),
     );
+    expect(fetchMock.mock.calls[0][1].headers).toHaveProperty("api-key", "test-api-key-123");
 
     const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(callBody.article.title).toBe("Test Article");
     expect(callBody.article.body_markdown).toBe("This is the body content");
     expect(callBody.article.tags).toEqual(["javascript", "webdev"]);
     expect(callBody.article.canonical_url).toBe("https://jumalaw98.vercel.app/blog/test-article");
+    expect(callBody.article.published).toBe(true);
   });
 
   it("sends PUT request to dev.to API when devToId is provided", async () => {
@@ -53,9 +55,11 @@ describe("publishToDevto", () => {
       "https://dev.to/api/articles/42",
       expect.objectContaining({ method: "PUT" }),
     );
+    expect(fetchMock.mock.calls[0][1].headers).toHaveProperty("api-key", "test-api-key-123");
 
     const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(callBody.article.canonical_url).toBe("https://jumalaw98.vercel.app/blog/test-article");
+    expect(callBody.article.published).toBe(true);
   });
 
   it("returns PublishResult with id, url, and isUpdate=false for new article", async () => {
@@ -108,5 +112,29 @@ describe("publishToDevto", () => {
     );
     expect(callBody.article.canonical_url).toContain("/blog/");
     expect(callBody.article.canonical_url).toContain("my-custom-slug");
+  });
+
+  it("throws an error with status code and body when API returns non-ok response", async () => {
+    const mockResponse = {
+      ok: false,
+      status: 401,
+      text: async () => "Unauthorized: invalid API key",
+    };
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+
+    await expect(publishToDevto(baseInput)).rejects.toThrow(/401/);
+    await expect(publishToDevto(baseInput)).rejects.toThrow(/Unauthorized/);
+  });
+
+  it("throws an error on 500 response with error body", async () => {
+    const mockResponse = {
+      ok: false,
+      status: 500,
+      text: async () => "Internal server error occurred",
+    };
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+
+    await expect(publishToDevto(baseInput)).rejects.toThrow(/500/);
+    await expect(publishToDevto(baseInput)).rejects.toThrow(/Internal server error/);
   });
 });

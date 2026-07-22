@@ -26,6 +26,7 @@ import yaml from "js-yaml";
 import { getSummary } from "@/lib/summary/getSummary";
 import { buildXPost, buildLinkedInPost } from "@/lib/social/buildPosts";
 import { postToBuffer } from "@/lib/social/buffer";
+import { mdxToPlainText } from "../src/lib/mdx/strip-jsx";
 
 // ── CLI arg ──────────────────────────────────────────────────────────────────
 
@@ -83,33 +84,18 @@ const bodyMdx = parts.slice(2).join("---").trim();
 
 let frontmatter: Record<string, unknown>;
 try {
-  frontmatter = yaml.load(frontmatterYaml) as Record<string, unknown>;
+  const parsed = yaml.load(frontmatterYaml);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    console.error("Invalid frontmatter: YAML parsed to a non-object value");
+    process.exit(1);
+  }
+  frontmatter = parsed as Record<string, unknown>;
 } catch (err) {
   console.error("Failed to parse frontmatter YAML:", err);
   process.exit(1);
 }
 
 // ── Convert MDX body to plain text for the summary LLM ───────────────────────
-
-function mdxToPlainText(mdx: string): string {
-  return (
-    mdx
-      // Remove JSX component syntax
-      .replace(/^import\s.*$/gm, "")
-      .replace(/<[A-Z][a-zA-Z]*\s[^>]*>/g, "")
-      .replace(/<[A-Z][a-zA-Z]*\s*\/?>/g, "")
-      .replace(/<\/[A-Z][a-zA-Z]*>/g, "")
-      // Strip frontmatter if any slipped through
-      .replace(/^---[\s\S]*?---\n/, "")
-      // Remove markdown image references
-      .replace(/!\[.*?\]\(.*?\)/g, "")
-      // Unwrap link syntax: [text](url) → text
-      .replace(/\[([^\[\]]+)\]\([^()\s]+\)/g, "$1")
-      // Remove code-fence markers but keep content
-      .replace(/```\w*/g, "")
-      .trim()
-  );
-}
 
 const plainBody = mdxToPlainText(bodyMdx);
 const portfolioUrl = `${SITE_URL}/blog/${SLUG}`;
@@ -172,6 +158,10 @@ if (xResult.success) {
 if (!linkedInResult.success && !xResult.success) {
   console.error("\nBoth channels failed — exiting with error.");
   process.exit(1);
+}
+
+if (!linkedInResult.success || !xResult.success) {
+  console.log("\n⚠️  One channel failed — see errors above.");
 }
 
 console.log("\nDone.");

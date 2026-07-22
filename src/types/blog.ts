@@ -1,3 +1,5 @@
+import type { BlogTag } from "./blogPost";
+
 /**
  * Discriminated post summary shared by both content sources (Velite & Hashnode).
  * The listing page merges both arrays and sorts by date.
@@ -14,5 +16,5 @@ export interface BlogPostSummary {
   readTimeInMinutes: number;
   /** External canonical URL for Hashnode; internal `/blog/[slug]` for portfolio. */
   url: string;
-  tags: { name: string; slug: string }[];
+  tags: BlogTag[];
 }

@@ -23,6 +23,7 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import yaml from "js-yaml";
 import { getSummary } from "@/lib/summary/getSummary";
+import { mdxToPlainText } from "../src/lib/mdx/strip-jsx";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -31,42 +32,18 @@ const BLOG_DIR = resolve("src/content/blog");
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Strip MDX/JSX syntax down to plain text suitable for the summary LLM.
- * This mirrors the approach in scripts/publish-buffer.ts.
- */
-function mdxToPlainText(mdx: string): string {
-  return (
-    mdx
-      // Remove JSX import statements
-      .replace(/^import\s.*$/gm, "")
-      // Remove opening JSX component tags with attributes
-      .replace(/<[A-Z][a-zA-Z]*\s[^>]*>/g, "")
-      // Remove self-closing JSX component tags
-      .replace(/<[A-Z][a-zA-Z]*\s*\/?>/g, "")
-      // Remove closing JSX component tags
-      .replace(/<\/[A-Z][a-zA-Z]*>/g, "")
-      // Strip any stray frontmatter
-      .replace(/^---[\s\S]*?---\n/, "")
-      // Remove markdown image references
-      .replace(/!\[.*?\]\(.*?\)/g, "")
-      // Unwrap link syntax: [text](url) → text
-      .replace(/\[([^\[\]]+)\]\([^()\s]+\)/g, "$1")
-      // Remove code-fence markers but keep content
-      .replace(/```\w*/g, "")
-      .trim()
-  );
-}
-
-/**
- * Scan a directory for .mdx files.
+ * Scan a directory recursively for .mdx files.
  */
 function findMdxFiles(dir: string): string[] {
   const entries = readdirSync(dir, { withFileTypes: true });
   const files: string[] = [];
 
   for (const entry of entries) {
-    if (entry.isFile() && entry.name.endsWith(".mdx")) {
-      files.push(join(dir, entry.name));
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...findMdxFiles(fullPath));
+    } else if (entry.name.endsWith(".mdx")) {
+      files.push(fullPath);
     }
   }
 

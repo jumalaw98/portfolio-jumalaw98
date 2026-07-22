@@ -49,12 +49,14 @@ interface BlogPageProps {
 function resolvePosts(
   configured: boolean,
   result: HashnodeResult<BlogPost[]>,
+  portfolioPosts: BlogPost[],
 ): {
   posts: BlogPost[];
   usingPlaceholders: boolean;
   fetchFailed: boolean;
 } {
-  const usingPlaceholders = !configured;
+  const hasRealPortfolioContent = portfolioPosts.length > 0;
+  const usingPlaceholders = !configured && !hasRealPortfolioContent;
   const fetchFailed = configured && !result.ok;
 
   let posts: BlogPost[];
@@ -139,17 +141,21 @@ function paginatePosts(
 export default async function BlogPage({ searchParams }: BlogPageProps) {
   const { tag, q, page } = await searchParams;
 
-  // 1. Resolve Hashnode posts (existing path — includes fallback/error states)
+  // 1. Resolve portfolio (Velite MDX) posts — always available, no env needed
+  const portfolioPosts = await getPortfolioPosts();
+
+  // 2. Resolve Hashnode posts (existing path — includes fallback/error states)
   const result = await getAllPosts();
   const configured = isHashnodeConfigured();
-  const { posts: hashnodePosts, usingPlaceholders, fetchFailed } = resolvePosts(configured, result);
+  const {
+    posts: hashnodePosts,
+    usingPlaceholders,
+    fetchFailed,
+  } = resolvePosts(configured, result, portfolioPosts);
 
   if (fetchFailed && !result.ok) {
     console.error("Hashnode feed fetch failed:", result.error);
   }
-
-  // 2. Resolve portfolio (Velite MDX) posts — always available, no env needed
-  const portfolioPosts = await getPortfolioPosts();
 
   // 3. Merge both sources and sort by date descending
   const allPosts: BlogPost[] = [...hashnodePosts, ...portfolioPosts].sort(

@@ -4,7 +4,10 @@ import { buildXPost, buildLinkedInPost } from "./buildPosts";
 describe("buildXPost", () => {
   it("keeps total output under 280 chars for a hook within budget", () => {
     const url = "https://jumalaw98.vercel.app/blog/welcome-to-the-new-blog";
-    const result = buildXPost({ hook: "A short hook", body: null }, url);
+    // Build a hook that's nearly X_TEXT_BUDGET chars long
+    // "A hook " is 7 chars; 31 repeats = 217, leaving room for " " + url (57) = 275
+    const nearLimitHook = "A hook ".repeat(31);
+    const result = buildXPost({ hook: nearLimitHook, body: null }, url);
     expect(result.length).toBeLessThanOrEqual(280);
     expect(result).toContain(url);
   });
@@ -47,7 +50,8 @@ describe("buildXPost", () => {
     const url = "https://example.com/blog/test-post";
     const result = buildXPost({ hook: "Check this out", body: null }, url);
     expect(result).toContain(url);
-    expect(result).toMatch(new RegExp(url + "$"));
+    // Verify the URL appears at the end of the result
+    expect(result.endsWith(url)).toBe(true);
   });
 });
 

@@ -6,31 +6,17 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-
-      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
-        with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci --ignore-scripts
-
-      # ── Gate ──────────────────────────────────────────────────────────
-      - name: Build Velite
-        run: npx --no-install velite build
-        env:
-          NODE_ENV: production
-
-      - name: Run tests
-        run: npx --no-install vitest run
-
-      - name: Check for placeholders
-        run: npx --no-install tsx scripts/check-placeholders.ts
+      - uses: ./.github/actions/gate
 
       # ── Find ready posts ──────────────────────────────────────────────
       # IMPORTANT: We check for summary.hook presence BEFORE publishing.
@@ -66,6 +52,24 @@ jobs:
         env:
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
 
+      # ── Commit devToId changes back ──────────────────────────────────
+      # publish-devto.ts writes devToId into frontmatter when creating
+      # a new article. We commit this back so subsequent runs don't
+      # re-publish. Main requires PR review, so use create-pull-request.
+      # Run BEFORE social posting (Buffer) so devToId is never lost
+      # if the Buffer step fails.
+      - name: Commit devToId changes
+        if: steps.find.outputs.count != '0'
+        uses: peter-evans/create-pull-request@67ccf781d68cd99b580ae25a5c18a1cc84ffff0f
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: record devToId after publishing"
+          title: "chore: record devToId for published posts"
+          body: |
+            Auto-committing devToId values after publishing via the Publish workflow.
+          branch: bot/devto-id-backfill
+          delete-branch: true
+
       - name: Post to Buffer (LinkedIn / X)
         if: steps.find.outputs.count != '0'
         run: |
@@ -82,19 +86,3 @@ jobs:
           BUFFER_LINKEDIN_CHANNEL_ID: ${{ secrets.BUFFER_LINKEDIN_CHANNEL_ID }}
           BUFFER_X_CHANNEL_ID: ${{ secrets.BUFFER_X_CHANNEL_ID }}
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
-
-      # ── Commit devToId changes back ──────────────────────────────────
-      # publish-devto.ts writes devToId into frontmatter when creating
-      # a new article. We commit this back so subsequent runs don't
-      # re-publish. Main requires PR review, so use create-pull-request.
-      - name: Commit devToId changes
-        if: steps.find.outputs.count != '0'
-        uses: peter-evans/create-pull-request@67ccf781d68cd99b580ae25a5c18a1cc84ffff0f
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: record devToId after publishing"
-          title: "chore: record devToId for published posts"
-          body: |
-            Auto-committing devToId values after publishing via the Publish workflow.
-          branch: bot/devto-id-backfill
-          delete-branch: true

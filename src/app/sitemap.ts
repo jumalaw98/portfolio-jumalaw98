@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/constants";
 import { mvpProjects } from "@/content/projects";
 import { getAllPosts, isHashnodeConfigured } from "@/lib/hashnode";
+import { getPortfolioPosts } from "@/lib/velite";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import type { BlogPost } from "@/types/blogPost";
 
@@ -30,6 +31,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } else {
     blogPosts = [];
   }
+
+  // Merge with portfolio (Velite MDX) posts
+  const portfolioPosts = await getPortfolioPosts();
+  blogPosts = [...blogPosts, ...portfolioPosts];
 
   const blogRoutes = blogPosts.map((post) => ({
     url: `${SITE_URL}/blog/${post.slug}`,

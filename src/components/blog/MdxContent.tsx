@@ -1,6 +1,3 @@
-"use client";
-
-import { useMemo } from "react";
 import * as runtime from "react/jsx-runtime";
 
 interface MdxContentProps {
@@ -10,22 +7,16 @@ interface MdxContentProps {
 /**
  * Renders a Velite-compiled MDX function-body string as a React component.
  *
- * Velite's `s.mdx()` compiles MDX to a JavaScript module body that, when
- * evaluated with `react/jsx-runtime` bindings, produces a default React
- * component.  The compiled code is authored content — never user-supplied —
- * so the `new Function()` evaluation is safe at build-time and server-side.
+ * This component runs exclusively on the server (the page that imports it is
+ * a Server Component), so the `new Function()` evaluation is not subject to
+ * browser CSP restrictions. The compiled code is authored content — never
+ * user-supplied — so the evaluation is safe.
  */
 export default function MdxContent({ code }: MdxContentProps) {
-  const Component = useMemo(() => {
-    // Wrap the MDX module body in a function that receives the JSX runtime
-    // and returns the default export (the MDX component).
-    // code is authored Velite-compiled MDX, not user-supplied — safe evaluation
-    const fn = new Function(code); // NOSONAR
-    const Default = fn({ ...runtime }).default; // NOSONAR
-    return Default as React.ComponentType<{
-      components?: Record<string, React.ComponentType>;
-    }>;
-  }, [code]);
+  const fn = new Function(code);
+  const Component = fn({ ...runtime }).default as React.ComponentType<{
+    components?: Record<string, React.ComponentType>;
+  }>;
 
   return <Component />;
 }

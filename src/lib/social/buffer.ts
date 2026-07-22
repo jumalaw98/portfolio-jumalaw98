@@ -48,8 +48,8 @@ mutation CreatePost($input: CreatePostInput!) {
  * Post text to a Buffer channel.
  *
  * By default posts are saved as drafts (`saveToDraft: true`) so they can be
- * reviewed before going live.  Pass `{ saveToDraft: false }` in `opts` to
- * publish directly.
+ * reviewed before going live.  Pass `{ saveToDraft: false }` in `opts` to skip
+ * the draft and queue the post for the channel's next available publishing slot.
  *
  * This function returns a result object rather than throwing on API errors,
  * so the caller can handle a per-channel failure without aborting other
@@ -112,6 +112,10 @@ export async function postToBuffer(
     }
 
     const result = json.data?.createPost as Record<string, unknown> | undefined;
+
+    if (!result) {
+      return { success: false, error: "Buffer returned null/undefined for createPost" };
+    }
 
     // Typed mutation error
     if (result?.message) {

@@ -43,20 +43,23 @@ interface VeliteModule {
 }
 
 /**
- * Load the Velite-generated posts array.  The .velite/ directory is guaranteed
- * to exist by the time any page code runs because next.config.ts evaluates
- * `velite.build()` during config evaluation, before page compilation starts.
+ * Load the Velite-generated posts array.  Retries up to 5 times with 200ms
+ * delays to handle the race window where next.config.ts fires `velite.build()`
+ * asynchronously (fire-and-forget) and the .velite/ directory may not be fully
+ * written when first page code executes.
  */
 async function loadPosts(): Promise<VeliteRaw[]> {
-  try {
-    const mod = (await import("#velite")) as VeliteModule;
-    return mod.posts ?? [];
-  } catch {
-    // During first build / cold start the import might transiently fail if
-    // Velite hasn't finished writing its output yet.  Return empty rather
-    // than crashing — the next request will succeed.
-    return [];
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const mod = (await import("#velite")) as VeliteModule;
+      if (mod.posts?.length) return mod.posts;
+    } catch {
+      // Not ready yet — wait and retry
+    }
+    await new Promise((r) => setTimeout(r, 200));
   }
+  // After all retries, return empty rather than crashing
+  return [];
 }
 
 // ── Listing page helpers ─────────────────────────────────────────────────

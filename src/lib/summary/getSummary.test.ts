@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { X_TEXT_BUDGET } from "./constants";
 import { getSummary } from "./getSummary";
 
 // ── Hoisted mocks ───────────────────────────────────────────────────
@@ -134,7 +135,7 @@ describe("getSummary — fallback chain", () => {
     // Use a realistic multi-word string so truncateAtWordBoundary can cut at a space
     const words = Array.from({ length: 40 }, (_, i) => `word${i + 1}`);
     const veryLongHook = words.join(" ");
-    expect(veryLongHook.length).toBeGreaterThan(256);
+    expect(veryLongHook.length).toBeGreaterThan(X_TEXT_BUDGET);
 
     const input = {
       ...BASE_INPUT,
@@ -146,7 +147,7 @@ describe("getSummary — fallback chain", () => {
 
     const result = await getSummary(input);
 
-    expect(result.hook.length).toBeLessThanOrEqual(256);
+    expect(result.hook.length).toBeLessThanOrEqual(X_TEXT_BUDGET);
     expect(result.hook).toMatch(/…$/);
   });
 
@@ -161,7 +162,7 @@ describe("getSummary — fallback chain", () => {
 
     const result = await getSummary(BASE_INPUT);
 
-    expect(result.hook.length).toBeLessThanOrEqual(256);
+    expect(result.hook.length).toBeLessThanOrEqual(X_TEXT_BUDGET);
   });
 
   it("truncates a very long excerpt fallback to X_TEXT_BUDGET characters", async () => {
@@ -178,7 +179,7 @@ describe("getSummary — fallback chain", () => {
 
     const result = await getSummary(input);
 
-    expect(result.hook.length).toBeLessThanOrEqual(256);
+    expect(result.hook.length).toBeLessThanOrEqual(X_TEXT_BUDGET);
   });
 
   // ── API call ordering ──────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { getAllPosts, isHashnodeConfigured } from "@/lib/hashnode";
+import { getPortfolioPosts } from "@/lib/velite";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import type { BlogPost } from "@/types/blogPost";
@@ -27,6 +28,10 @@ export async function GET() {
   } else {
     posts = [];
   }
+
+  // Merge with portfolio (Velite MDX) posts
+  const portfolioPosts = await getPortfolioPosts();
+  posts = [...posts, ...portfolioPosts];
 
   const sorted = [...posts].sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),

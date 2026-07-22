@@ -32,11 +32,12 @@ describe("truncateAtWordBoundary", () => {
     // The ellipsis replaces the space at the word boundary, no partial word
   });
 
-  it("returns the original text when a single word exceeds the limit and there is no space", () => {
+  it("hard-truncates with ellipsis when a single word exceeds the limit and there is no space", () => {
     const text = "Supercalifragilisticexpialidocious";
     const result = truncateAtWordBoundary(text, 10);
-    // No space in the slice, so return original
-    expect(result).toBe(text);
+    // No space in the slice, so hard truncate at limit with ellipsis
+    expect(result).toBe("Supercali…");
+    expect(result.length).toBeLessThanOrEqual(10);
   });
 
   it("result length never exceeds the limit when spaces exist", () => {
