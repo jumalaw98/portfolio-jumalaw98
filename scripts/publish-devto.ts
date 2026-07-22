@@ -159,7 +159,7 @@ if (isEntryPoint) {
     return (
       mdx
         // Line-based imports: `import X from "y"` or `import { X } from "y"`
-        .replace(/^import\s+[^\r\n]*from\s+['"][^'"]+['"];?\s*$/gm, "")
+        .replace(/^import\s+.*?\s+from\s+['"][^'"]+['"];?\s*$/gm, "")
         // Self-closing MDX components: `<Component />`
         .replace(/<[A-Z][a-zA-Z]*\s*\/?>/g, "")
         // Opening MDX component tags with props: `<Component prop="val">`

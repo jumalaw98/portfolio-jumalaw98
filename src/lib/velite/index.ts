@@ -118,9 +118,5 @@ export async function getPortfolioPostBySlug(slug: string): Promise<PortfolioPos
 
 /** All published Velite posts as PortfolioPostDetail, newest-first. */
 export async function getAllPortfolioDetails(): Promise<PortfolioPostDetail[]> {
-  const raw = await loadPosts();
-  return raw
-    .filter((p) => p.published)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .map(toPortfolioDetail);
+  return (await getPortfolioPosts()) as PortfolioPostDetail[];
 }

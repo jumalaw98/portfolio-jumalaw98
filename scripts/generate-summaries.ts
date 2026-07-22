@@ -38,7 +38,7 @@ function mdxToPlainText(mdx: string): string {
   return (
     mdx
       // Remove JSX import statements
-      .replace(/^import\s+[^\r\n]*from\s+['"][^'"]+['"];?\s*$/gm, "")
+      .replace(/^import\s+.*?\s+from\s+['"][^'"]+['"];?\s*$/gm, "")
       // Remove opening JSX component tags with attributes
       .replace(/<[A-Z][a-zA-Z]*\s[^>]*>/g, "")
       // Remove self-closing JSX component tags
@@ -50,7 +50,7 @@ function mdxToPlainText(mdx: string): string {
       // Remove markdown image references
       .replace(/!\[.*?\]\(.*?\)/g, "")
       // Unwrap link syntax: [text](url) → text
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/\[([^\]]+)]\([^\s)]+\)/g, "$1")
       // Remove code-fence markers but keep content
       .replace(/```\w*/g, "")
       .trim()
@@ -70,7 +70,90 @@ function findMdxFiles(dir: string): string[] {
     }
   }
 
-  return files.sort();
+  return files.sort((a, b) => a.localeCompare(b));
+}
+
+// ── Per-file processing ───────────────────────────────────────────────────────
+
+/**
+ * Process a single MDX file: read, parse, generate summary if missing, and write
+ * back. Returns the file path if modified, or null if skipped.
+ */
+async function processFile(filePath: string): Promise<string | null> {
+  let content;
+  try {
+    content = readFileSync(filePath, "utf-8");
+  } catch (err) {
+    console.error(`Failed to read ${filePath}:`, err);
+    return null;
+  }
+
+  const parts = content.split(/^---$/m);
+  if (parts.length < 3) {
+    return null;
+  }
+
+  const frontmatterYaml = parts[1].trim();
+  const bodyMdx = parts.slice(2).join("---").trim();
+
+  let frontmatter: Record<string, unknown>;
+  try {
+    frontmatter = yaml.load(frontmatterYaml) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+
+  if (!frontmatter || typeof frontmatter !== "object" || Array.isArray(frontmatter)) {
+    return null;
+  }
+
+  if (frontmatter.published !== true) {
+    return null;
+  }
+
+  const existingSummary = frontmatter.summary as
+    | { hook?: string; body?: string }
+    | undefined;
+
+  if (existingSummary?.hook) {
+    return null;
+  }
+
+  const excerpt = (frontmatter.excerpt as string) ?? "";
+  const plainBody = mdxToPlainText(bodyMdx);
+
+  console.error(`Generating summary for "${filePath}"...`);
+
+  const summary = await getSummary({
+    frontmatter: { summary: existingSummary, excerpt },
+    rawBody: plainBody,
+  });
+
+  const newSummary: Record<string, string> = { hook: summary.hook };
+  if (summary.body) {
+    newSummary.body = summary.body;
+  }
+  frontmatter.summary = newSummary;
+
+  const updatedFrontmatterYaml = yaml.dump(frontmatter, {
+    sortKeys: false,
+    lineWidth: Infinity,
+    noRefs: true,
+    quotingType: '"',
+    forceQuotes: false,
+  } as yaml.DumpOptions);
+
+  const updatedContent = `---\n${updatedFrontmatterYaml.trimEnd()}\n---\n\n${bodyMdx}\n`;
+
+  try {
+    writeFileSync(filePath, updatedContent, "utf-8");
+  } catch (err) {
+    console.error(`Failed to write ${filePath}:`, err);
+    return null;
+  }
+
+  console.error(`  ✅ Summary written to ${filePath}`);
+  return filePath;
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -86,96 +169,10 @@ async function main(): Promise<void> {
   const modifiedFiles: string[] = [];
 
   for (const filePath of filePaths) {
-    let content: string;
-
-    try {
-      content = readFileSync(filePath, "utf-8");
-    } catch (err) {
-      console.error(`Failed to read ${filePath}:`, err);
-      continue;
+    const result = await processFile(filePath);
+    if (result) {
+      modifiedFiles.push(result);
     }
-
-    // Split on frontmatter delimiters
-    const parts = content.split(/^---$/m);
-    if (parts.length < 3) {
-      // No frontmatter at all — skip silently (not a valid post)
-      continue;
-    }
-
-    const frontmatterYaml = parts[1].trim();
-    const bodyMdx = parts.slice(2).join("---").trim();
-
-    let frontmatter: Record<string, unknown>;
-    try {
-      frontmatter = yaml.load(frontmatterYaml) as Record<string, unknown>;
-    } catch {
-      // Unparseable YAML — skip
-      continue;
-    }
-
-    if (!frontmatter || typeof frontmatter !== "object" || Array.isArray(frontmatter)) {
-      continue;
-    }
-
-    // Only process published posts
-    if (frontmatter.published !== true) {
-      continue;
-    }
-
-    // Check whether a summary hook already exists
-    const existingSummary = frontmatter.summary as
-      | { hook?: string; body?: string }
-      | undefined;
-
-    if (existingSummary?.hook) {
-      continue; // Already has a manual hook — nothing to generate
-    }
-
-    // ── Generate summary ────────────────────────────────────────────────────
-    const excerpt = (frontmatter.excerpt as string) ?? "";
-    const plainBody = mdxToPlainText(bodyMdx);
-
-    console.error(`Generating summary for "${filePath}"...`);
-
-    const summary = await getSummary({
-      frontmatter: { summary: existingSummary, excerpt },
-      rawBody: plainBody,
-    });
-
-    // ── Update frontmatter ──────────────────────────────────────────────────
-    const newSummary: Record<string, string> = { hook: summary.hook };
-    if (summary.body) {
-      newSummary.body = summary.body;
-    }
-    frontmatter.summary = newSummary;
-
-    // Serialize back to YAML, preserving key order and disabling line wrapping
-    // so the frontmatter stays compact and predictable.
-    // Note: js-yaml@5 supports quotingType / forceQuotes, but the installed
-    // @types/js-yaml@4 types do not — we cast to bypass the strict check
-    // since the runtime package (v5) accepts these options.
-    const updatedFrontmatterYaml = yaml.dump(frontmatter, {
-      sortKeys: false,
-      lineWidth: Infinity,
-      noRefs: true,
-      quotingType: '"',
-      forceQuotes: false,
-    } as yaml.DumpOptions);
-
-    // Reconstruct the full file content and write it back.
-    // The trailing newline ensures the file ends cleanly.
-    const updatedContent =
-      `---\n${updatedFrontmatterYaml.trimRight()}\n---\n\n${bodyMdx}\n`;
-
-    try {
-      writeFileSync(filePath, updatedContent, "utf-8");
-    } catch (err) {
-      console.error(`Failed to write ${filePath}:`, err);
-      continue;
-    }
-
-    modifiedFiles.push(filePath);
-    console.error(`  ✅ Summary written to ${filePath}`);
   }
 
   // ── Output modified paths to stdout for CI detection ──────────────────────

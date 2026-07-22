@@ -11,26 +11,26 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
         with:
           node-version: 22
           cache: npm
       
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       
       # ── Gate ──────────────────────────────────────────────────────────
       - name: Build Velite
-        run: npx velite build
+        run: npx --no-install velite build
         env:
           NODE_ENV: production
       
       - name: Run tests
-        run: npx vitest run
+        run: npx --no-install vitest run
       
       - name: Check for placeholders
-        run: npx tsx scripts/check-placeholders.ts
+        run: npx --no-install tsx scripts/check-placeholders.ts
       
       # ── Find ready posts ──────────────────────────────────────────────
       # IMPORTANT: We check for summary.hook presence BEFORE publishing.
@@ -41,7 +41,7 @@ jobs:
       - name: Find posts ready for publishing
         id: find
         run: |
-          npx tsx scripts/find-ready-posts.ts > ready.json
+          npx --no-install tsx scripts/find-ready-posts.ts > ready.json
           echo "count=$(node -e "console.log(require('./ready.json').publish.length)")" >> $GITHUB_OUTPUT
       
       # ── Publish ───────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ jobs:
             for (const p of posts) console.log(p.slug);
           "); do
             echo "::group::Publishing $slug to dev.to"
-            npx tsx scripts/publish-devto.ts "$slug"
+            npx --no-install tsx scripts/publish-devto.ts "$slug"
             echo "::endgroup::"
           done
         env:
@@ -74,7 +74,7 @@ jobs:
             for (const p of posts) console.log(p.slug);
           "); do
             echo "::group::Posting $slug to Buffer"
-            npx tsx scripts/publish-buffer.ts "$slug"
+            npx --no-install tsx scripts/publish-buffer.ts "$slug"
             echo "::endgroup::"
           done
         env:
@@ -89,7 +89,7 @@ jobs:
       # re-publish. Main requires PR review, so use create-pull-request.
       - name: Commit devToId changes
         if: steps.find.outputs.count != '0'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@67ccf781d68cd99b580ae25a5c18a1cc84ffff0f
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: record devToId after publishing"

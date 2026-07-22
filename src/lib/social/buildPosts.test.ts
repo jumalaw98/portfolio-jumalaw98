@@ -84,6 +84,6 @@ describe("buildLinkedInPost", () => {
     expect(lines[0]).toBe("Just a hook");
     expect(lines[1]).toBe("");
     expect(lines[2]).toBe(url);
-    expect(lines.length).toBe(3);
+    expect(lines).toHaveLength(3);
   });
 });
