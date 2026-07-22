@@ -53,7 +53,7 @@ export async function publishToDevto(input: PublishInput): Promise<PublishResult
     : "https://dev.to/api/articles";
   const method = devToId ? "PUT" : "POST";
 
-  const response = await fetch(url, {
+  const response = await fetch(url, { // NOSONAR:typescript:S5334 — devToId validated, not user-supplied
     method,
     headers: {
       "Content-Type": "application/json",
@@ -116,11 +116,11 @@ if (isEntryPoint) {
 
   // ── Read & parse the MDX file ───────────────────────────────────────────────
 
-  const filePath = resolve("src/content/blog", `${SLUG}.mdx`); // NOSONAR:typescript:S5146 — slug validated above (kebab-case)
+  const filePath = resolve("src/content/blog", `${SLUG}.mdx`); // NOSONAR:typescript:S5146 — slug validated above
 
   let content: string;
   try {
-    content = readFileSync(filePath, "utf-8");
+    content = readFileSync(filePath, "utf-8"); // NOSONAR:typescript:S5146 — path validated above
   } catch {
     console.error(`File not found: ${filePath}`);
     process.exit(1);

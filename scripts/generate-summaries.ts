@@ -50,7 +50,7 @@ function mdxToPlainText(mdx: string): string {
       // Remove markdown image references
       .replace(/!\[.*?\]\(.*?\)/g, "")
       // Unwrap link syntax: [text](url) → text (per-line bound to prevent backtracking)
-      .replace(/\[([^\n\]]+)\]\([^\n\s)]+\)/g, "$1")
+      .replace(/\[([^\n\]]+)\]\([^\n)]+\)/g, "$1")
       // Remove code-fence markers but keep content
       .replace(/```\w*/g, "")
       .trim()

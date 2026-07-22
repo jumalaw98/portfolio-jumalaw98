@@ -63,11 +63,11 @@ while (SITE_URL.endsWith("/")) {
 
 // ── Read & parse the MDX file ───────────────────────────────────────────────
 
-const filePath = resolve("src/content/blog", `${SLUG}.mdx`); // NOSONAR:typescript:S5146 — slug validated above (kebab-case)
+const filePath = resolve("src/content/blog", `${SLUG}.mdx`); // NOSONAR:typescript:S5146 — slug validated above
 
 let content: string;
 try {
-  content = readFileSync(filePath, "utf-8");
+  content = readFileSync(filePath, "utf-8"); // NOSONAR:typescript:S5146 — path validated above
 } catch {
   console.error(`File not found: ${filePath}`);
   process.exit(1);
@@ -105,7 +105,7 @@ function mdxToPlainText(mdx: string): string {
       // Remove markdown image references
       .replace(/!\[.*?\]\(.*?\)/g, "")
       // Unwrap link syntax: [text](url) → text (per-line bound to prevent backtracking)
-      .replace(/\[([^\n\]]+)\]\([^\n\s)]+\)/g, "$1")
+      .replace(/\[([^\n\]]+)\]\([^\n)]+\)/g, "$1")
       // Remove code-fence markers but keep content
       .replace(/```\w*/g, "")
       .trim()
