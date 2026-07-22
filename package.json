@@ -19,13 +19,13 @@
     "fast-xml-parser": "^5.10.1",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.25.0",
-    "next": "16.2.10",
+    "next": "16.2.11",
     "prismjs": "^1.30.0",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "^16.2.10",
+    "@next/bundle-analyzer": "^16.2.11",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^26",
     "@types/prismjs": "^1.26.6",
@@ -33,7 +33,7 @@
     "@types/react-dom": "^19",
     "cross-env": "^10.1.0",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.2.11",
     "prettier": "^3.9.5",
     "tailwindcss": "^4",
     "typescript": "^5"
