@@ -48,11 +48,11 @@ export async function publishToDevto(input: PublishInput): Promise<PublishResult
 
   const validatedDevToId = devToId && Number.isFinite(devToId) ? devToId : undefined;
   const url = validatedDevToId
-    ? `https://dev.to/api/articles/${validatedDevToId}`
+    ? `https://dev.to/api/articles/${validatedDevToId}` // NOSONAR:S8690 — devToId validated via Number.isFinite
     : "https://dev.to/api/articles";
   const method = devToId ? "PUT" : "POST";
 
-  const response = await fetch(url, { // NOSONAR:typescript:S8690 — devToId validated with Number.isFinite above
+  const response = await fetch(url, {
     method,
     headers: {
       "Content-Type": "application/json",

@@ -51,7 +51,6 @@ const getEnv = (name: string): string => {
   return val;
 };
 
-const BUFFER_API_KEY = getEnv("BUFFER_API_KEY");
 const LINKEDIN_CHANNEL_ID = getEnv("BUFFER_LINKEDIN_CHANNEL_ID");
 const X_CHANNEL_ID = getEnv("BUFFER_X_CHANNEL_ID");
 
