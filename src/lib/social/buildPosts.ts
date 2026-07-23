@@ -73,8 +73,7 @@ export function buildXPost(summary: Summary, url: string): string {
  *   {url}
  *
  * LinkedIn has no hard character limit, but the first ~210 characters are
- * visible before "see more" truncation.  No truncation is applied here —
- * the `LINKEDIN_HOOK_TARGET` constant is used by the summary generator but
+ * visible before "see more" truncation. No truncation is applied here —
  * this builder lets the full text through.
  */
 export function buildLinkedInPost(summary: Summary, url: string): string {

@@ -12,7 +12,6 @@
  * LinkedIn:
  *   - No hard character limit, but the "See more" truncation kicks in at
  *     roughly 210 characters for the first visible paragraph.
- *   - LINKEDIN_HOOK_TARGET is the practical target, not a hard limit.
  */
 
 /** X/Twitter total character limit per post. */
@@ -23,13 +22,3 @@ export const X_LINK_RESERVED = 23;
 
 /** Characters available for hook text on X (total − link − space). */
 export const X_TEXT_BUDGET = X_CHAR_LIMIT - X_LINK_RESERVED - 1;
-
-/**
- * Practical target for the LinkedIn hook — the visible-before-"see more"
- * threshold. Not a hard limit; LinkedIn allows longer posts.
- *
- * Intentionally exported for future use by the summary generator.
- * When wiring LinkedIn post building (`src/lib/social/buildPosts.ts`),
- * replace any inline target with this constant to keep both layers in sync.
- */
-export const LINKEDIN_HOOK_TARGET = 210;

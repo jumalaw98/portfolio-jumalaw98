@@ -221,8 +221,8 @@ if (isEntryPoint) {
         writeFileSync(filePath, updatedContent, "utf-8"); // NOSONAR:typescript:S5146 — path validated above
         console.log("✏️  devToId written to frontmatter");
       }
-    } catch {
-      console.error("Publish failed.");
+    } catch (err) {
+      console.error("Publish failed:", err instanceof Error ? err.message : String(err));
       process.exit(1);
     }
   }

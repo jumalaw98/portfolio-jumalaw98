@@ -20,11 +20,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const livePosts = await getAllPosts();
-  // Placeholders are for local dev only (Hashnode not configured). When the
-  // publication IS configured we emit no blog routes on failure/empty rather
-  // than advertising demo slugs to crawlers.
+  const portfolioPosts = await getPortfolioPosts();
+  const configured = isHashnodeConfigured();
+  const hasRealPortfolioContent = portfolioPosts.length > 0;
+  const usingPlaceholders = !configured && !hasRealPortfolioContent;
+
+  // Placeholders are for local dev only (Hashnode not configured and no local posts).
+  // When the publication IS configured or we have real local posts we emit no blog
+  // routes on failure/empty rather than advertising demo slugs to crawlers.
   let blogPosts: BlogPost[];
-  if (!isHashnodeConfigured()) {
+  if (usingPlaceholders) {
     blogPosts = placeholderBlogPosts;
   } else if (livePosts.ok) {
     blogPosts = livePosts.data;
@@ -33,7 +38,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // Merge with portfolio (Velite MDX) posts
-  const portfolioPosts = await getPortfolioPosts();
   blogPosts = [...blogPosts, ...portfolioPosts];
 
   const blogRoutes = blogPosts.map((post) => ({

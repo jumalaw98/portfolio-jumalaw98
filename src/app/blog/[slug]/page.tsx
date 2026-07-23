@@ -105,7 +105,12 @@ async function resolvePost(slug: string): Promise<ResolvedPost> {
   }
 
   // 2. Fall through to Hashnode / placeholders.
-  if (!isHashnodeConfigured()) {
+  const portfolioPosts = await getAllPortfolioDetails();
+  const configured = isHashnodeConfigured();
+  const hasRealPortfolioContent = portfolioPosts.length > 0;
+  const usingPlaceholders = !configured && !hasRealPortfolioContent;
+
+  if (usingPlaceholders) {
     const post = placeholderBlogPosts.find((p) => p.slug === slug) ?? null;
     if (post) {
       return {
@@ -116,11 +121,14 @@ async function resolvePost(slug: string): Promise<ResolvedPost> {
         fetchFailed: false,
       };
     }
+  }
+
+  if (!configured) {
     return {
       kind: "missing",
       post: null,
       allPosts: [],
-      usingPlaceholders: true,
+      usingPlaceholders: false,
       fetchFailed: false,
     };
   }
@@ -168,9 +176,13 @@ export async function generateStaticParams() {
 
   // Hashnode slugs
   let hashnodeSlugs: { slug: string }[] = [];
-  if (!isHashnodeConfigured()) {
+  const configured = isHashnodeConfigured();
+  const hasRealPortfolioContent = portfolioPosts.length > 0;
+  const usingPlaceholders = !configured && !hasRealPortfolioContent;
+
+  if (usingPlaceholders) {
     hashnodeSlugs = placeholderBlogPosts.map((p) => ({ slug: p.slug }));
-  } else {
+  } else if (configured) {
     const result = await getAllPosts();
     const posts = result.ok ? result.data : [];
     hashnodeSlugs = posts.map((p) => ({ slug: p.slug }));

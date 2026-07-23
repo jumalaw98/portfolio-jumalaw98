@@ -19,8 +19,12 @@ export default async function ShortLinkPage({ params }: ShortLinkPageProps) {
     redirect(`/blog/${portfolioPost.slug}`);
   }
 
+  const configured = isHashnodeConfigured();
+  const hasRealPortfolioContent = portfolioPosts.length > 0;
+  const usingPlaceholders = !configured && !hasRealPortfolioContent;
+
   // 2. Check Hashnode posts
-  if (isHashnodeConfigured()) {
+  if (configured) {
     const result = await getAllPosts(RSS_FEED_MAX_SIZE);
 
     // On fetch failure: propagate the error so ISR can retain the previous
@@ -33,9 +37,13 @@ export default async function ShortLinkPage({ params }: ShortLinkPageProps) {
     redirect(`/blog/${post.slug}`);
   }
 
-  // 3. Check placeholder posts (dev/staging without Hashnode)
-  const placeholderPost = placeholderBlogPosts.find((p) => p.shortId === code);
-  if (!placeholderPost) notFound();
+  // 3. Check placeholder posts (dev/staging without Hashnode and no local posts)
+  if (usingPlaceholders) {
+    const placeholderPost = placeholderBlogPosts.find((p) => p.shortId === code);
+    if (placeholderPost) {
+      redirect(`/blog/${placeholderPost.slug}`);
+    }
+  }
 
-  redirect(`/blog/${placeholderPost.slug}`);
+  notFound();
 }

@@ -5,11 +5,14 @@ import type { NextConfig } from "next";
 // Runs during Next.js config evaluation, generating .velite/ before pages compile.
 const runningVeliteDev = process.argv.includes("dev");
 const runningVeliteBuild = process.argv.includes("build");
+let velitePromise: Promise<void> | null = null;
 if (!process.env.VELITE_STARTED && (runningVeliteDev || runningVeliteBuild)) {
   process.env.VELITE_STARTED = "1";
   // Use promise chain (not top-level await) — Next.js config loader does
   // not support top-level await in TypeScript config files.
-  import("velite").then((m) => m.build({ watch: runningVeliteDev, clean: !runningVeliteDev }));
+  velitePromise = import("velite")
+    .then((m) => m.build({ watch: runningVeliteDev, clean: !runningVeliteDev }))
+    .then(() => {});
 }
 
 // ─── Content Security Policy ─────────────────────────────────────────────────
@@ -106,4 +109,11 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
   openAnalyzer: false,
 });
 
-export default withBundleAnalyzer(nextConfig);
+const config = async () => {
+  if (velitePromise) {
+    await velitePromise;
+  }
+  return withBundleAnalyzer(nextConfig);
+};
+
+export default config;
