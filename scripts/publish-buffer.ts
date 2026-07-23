@@ -154,14 +154,10 @@ if (xResult.success) {
   console.error(`❌ X: ${xResult.error}`);
 }
 
-// Exit non-zero only if BOTH channels failed
-if (!linkedInResult.success && !xResult.success) {
-  console.error("\nBoth channels failed — exiting with error.");
-  process.exit(1);
-}
-
+// Exit non-zero if ANY channel failed
 if (!linkedInResult.success || !xResult.success) {
-  console.log("\n⚠️  One channel failed — see errors above.");
+  console.error("\n⚠️  One or both channels failed — exiting with error.");
+  process.exit(1);
 }
 
 console.log("\nDone.");

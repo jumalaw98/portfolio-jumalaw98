@@ -6,6 +6,9 @@
  * limit and `…` is appended — this guarantees the result never exceeds
  * `limit` characters and never contains a partial word.
  *
+ * If no space exists within the limit, hard-truncates with "…" to guarantee
+ * the result never exceeds `limit` characters (may cut mid-word).
+ *
  * @param text — the string to truncate.
  * @param limit — maximum allowed character length.
  * @returns the original text or a word-boundary-truncated version.

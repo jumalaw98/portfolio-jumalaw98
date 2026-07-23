@@ -192,7 +192,7 @@ if (isEntryPoint) {
         apiKey: API_KEY,
       });
 
-      console.log("\n✅ Published to dev.to");
+      console.log(`\n✅ Published to dev.to: ${result.url}`);
 
       // If this was a new article, persist the devToId into frontmatter.
       if (!result.isUpdate) {
