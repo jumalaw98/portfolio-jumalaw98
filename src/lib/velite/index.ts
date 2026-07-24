@@ -51,8 +51,8 @@ interface VeliteModule {
 async function loadPosts(): Promise<VeliteRaw[]> {
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
-      const { existsSync, readFileSync } = await import("fs");
-      const { join } = await import("path");
+      const { existsSync, readFileSync } = await import("node:fs");
+      const { join } = await import("node:path");
       const velitePath = join(process.cwd(), ".velite/posts.json");
       if (existsSync(velitePath)) {
         const content = readFileSync(velitePath, "utf-8");

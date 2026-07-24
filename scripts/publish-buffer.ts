@@ -20,7 +20,7 @@
  *   - Exits non-zero only if BOTH channels fail
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import yaml from "js-yaml";
 import { getSummary } from "@/lib/summary/getSummary";
@@ -159,5 +159,36 @@ if (!linkedInResult.success || !xResult.success) {
   console.error("\n⚠️  One or both channels failed — exiting with error.");
   process.exit(1);
 }
+
+// ── Persist bufferPostedAt ────────────────────────────────────────────────────
+// Written ONLY after both channels succeed. find-ready-posts.ts gates on this
+// field so a Buffer failure on a previous run will cause the post to be retried
+// (dev.to will receive a harmless PUT update; Buffer will be attempted again).
+
+const postedAt = new Date().toISOString();
+const frontmatterLines = frontmatterYaml.split("\n");
+const bufferPostedAtIndex = frontmatterLines.findIndex((l) => l.startsWith("bufferPostedAt:"));
+
+if (bufferPostedAtIndex >= 0) {
+  frontmatterLines[bufferPostedAtIndex] = `bufferPostedAt: "${postedAt}"`;
+} else {
+  frontmatterLines.push(`bufferPostedAt: "${postedAt}"`);
+}
+
+const updatedFrontmatter = frontmatterLines.join("\n");
+const updatedContent = content.replace(
+  /^---\n[\s\S]*?\n---\n/m,
+  `---\n${updatedFrontmatter}\n---\n`,
+);
+
+if (updatedContent === content) {
+  console.error(
+    "Failed to replace frontmatter in the file content. Frontmatter delimiter pattern did not match.",
+  );
+  process.exit(1);
+}
+
+writeFileSync(filePath, updatedContent, "utf-8"); // NOSONAR:typescript:S5146 — path validated above
+console.log(`✏️  bufferPostedAt written to frontmatter (${postedAt})`);
 
 console.log("\nDone.");

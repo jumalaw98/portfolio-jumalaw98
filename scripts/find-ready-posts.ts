@@ -8,7 +8,7 @@
  * A post is considered "ready for publishing" when:
  *   1. `published: true`
  *   2. `summary.hook` is present (truthy)
- *   3. `devToId` is absent (not set or falsy)
+ *   3. `bufferPostedAt` is absent — social posting has not yet completed successfully
  *
  * Usage:
  *   tsx scripts/find-ready-posts.ts
@@ -40,6 +40,7 @@ interface Frontmatter {
   slug?: string;
   published?: boolean;
   devToId?: unknown;
+  bufferPostedAt?: unknown;
   summary?: { hook?: unknown };
 }
 
@@ -129,8 +130,11 @@ function run(): void {
       continue;
     }
 
-    // Condition 3: devToId must be absent (not set or falsy)
-    if (frontmatter.devToId) {
+    // Condition 3: post must not have completed social posting.
+    // bufferPostedAt is written by publish-buffer.ts only after BOTH channels
+    // succeed. A post that has devToId but no bufferPostedAt still needs Buffer
+    // to run — dev.to will receive a harmless PUT update on retry.
+    if (frontmatter.bufferPostedAt) {
       continue;
     }
 

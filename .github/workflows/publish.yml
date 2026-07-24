@@ -54,24 +54,6 @@ jobs:
         env:
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
 
-      # ── Commit devToId changes back ──────────────────────────────────
-      # publish-devto.ts writes devToId into frontmatter when creating
-      # a new article. We commit this back so subsequent runs don't
-      # re-publish. Main requires PR review, so use create-pull-request.
-      # Run BEFORE social posting (Buffer) so devToId is never lost
-      # if the Buffer step fails.
-      - name: Commit devToId changes
-        if: steps.find.outputs.count != '0'
-        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: record devToId after publishing"
-          title: "chore: record devToId for published posts"
-          body: |
-            Auto-committing devToId values after publishing via the Publish workflow.
-          branch: bot/devto-id-backfill
-          delete-branch: true
-
       - name: Post to Buffer (LinkedIn / X)
         if: steps.find.outputs.count != '0'
         run: |
@@ -88,3 +70,26 @@ jobs:
           BUFFER_LINKEDIN_CHANNEL_ID: ${{ secrets.BUFFER_LINKEDIN_CHANNEL_ID }}
           BUFFER_X_CHANNEL_ID: ${{ secrets.BUFFER_X_CHANNEL_ID }}
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+      # ── Commit devToId and bufferPostedAt changes back ────────────────
+      # publish-devto.ts writes devToId and publish-buffer.ts writes
+      # bufferPostedAt into frontmatter on success. We commit BOTH here,
+      # AFTER Buffer succeeds. This ensures that a Buffer failure leaves
+      # neither field committed, so the next push retries the full publish
+      # cycle. On retry, publish-devto.ts issues a PUT (update) to dev.to
+      # rather than a duplicate POST, since devToId is already on disk.
+      # find-ready-posts.ts gates on bufferPostedAt being absent, so once
+      # both fields are committed the post is permanently excluded.
+      # Main requires PR review, so use create-pull-request.
+      - name: Commit devToId and bufferPostedAt changes
+        if: steps.find.outputs.count != '0'
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: record devToId and bufferPostedAt after publishing"
+          title: "chore: record devToId and bufferPostedAt for published posts"
+          body: |
+            Auto-committing devToId and bufferPostedAt values after successful
+            publishing (dev.to + Buffer) via the Publish workflow.
+          branch: bot/devto-id-backfill
+          delete-branch: true
