@@ -1,0 +1,47 @@
+name: Draft Summary
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/gate
+
+      # Generate summaries for posts that need them
+      - name: Generate summaries
+        id: generate
+        run: |
+          echo "changes<<EOF" >> $GITHUB_OUTPUT
+          npx --no-install tsx scripts/generate-summaries.ts >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+      # Create PR if any files changed
+      - name: Create Pull Request
+        if: steps.generate.outputs.changes != ''
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: auto-generate summary hooks"
+          title: "chore: auto-generated summary hooks"
+          body: |
+            This PR was automatically created by the Draft Summary workflow.
+
+            Posts updated:
+            ```
+            ${{ steps.generate.outputs.changes }}
+            ```
+
+            Please review the generated summaries before merging.
+          branch: bot/generated-summary
+          delete-branch: true
+          reviewers: jumalaw98

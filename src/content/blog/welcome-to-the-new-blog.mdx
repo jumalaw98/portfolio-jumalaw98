@@ -1,0 +1,44 @@
+---
+title: "Welcome to the New Blog — Now Built from MDX"
+slug: welcome-to-the-new-blog
+date: 2026-07-21
+excerpt: "This portfolio is now its own content source of truth. New posts are authored locally as MDX, validated with Velite, and published here first."
+tags: ["meta", "engineering", "Next.js"]
+coverImage: "welcome-cover.svg"
+published: false
+---
+
+## Hello, new world
+
+For years, all my writing lived on Hashnode. That was the right call at the time — it handled hosting, RSS, and community discovery out of the box.
+
+But this portfolio has evolved. It's now running Next.js 16 with Turbopack, Tailwind CSS v4, and a static-first architecture. Adding MDX as a local content source alongside Hashnode's RSS feed was the natural next step.
+
+### Why Velite
+
+Velite validates every post against a Zod schema at build time, generates TypeScript types automatically, and compiles MDX to React components. No runtime CMS, no database, no GraphQL — just markdown files and typed imports.
+
+Here is what a code block looks like:
+
+```typescript
+import { posts } from "#velite";
+
+export function getPost(slug: string) {
+  return posts.find((p) => p.slug === slug);
+}
+```
+
+### What stays, what changes
+
+Hashnode's RSS feed still powers the archive of older posts. New posts like this one live in `src/content/blog/` as `.mdx` files, validated by Velite, and rendered natively by this Next.js app. In a later phase, they will also be mirrored to dev.to with a canonical link pointing back here.
+
+The [blog page](/blog) already merges both sources into a single, date-sorted list.
+
+### Next up
+
+The publishing pipeline is being built in phases:
+
+1. **Content layer** — Velite + MDX (this post)
+2. **dev.to mirror** — auto-publish with canonical URL
+3. **Summary generation** — AI fallback chain for social hooks
+4. **Buffer integration** — LinkedIn and X cross-posting
