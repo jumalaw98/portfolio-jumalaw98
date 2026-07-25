@@ -61,36 +61,39 @@ async function findArticleByCanonicalUrl(
   canonicalUrl: string,
   apiKey: string,
 ): Promise<number | undefined> {
-  try {
-    const response = await fetch("https://dev.to/api/articles/me/all?per_page=1000", {
-      headers: {
-        "api-key": apiKey,
-      },
-    });
+  const response = await fetch("https://dev.to/api/articles/me/all?per_page=1000", {
+    headers: {
+      "api-key": apiKey,
+    },
+  });
 
-    if (!response.ok) {
-      return undefined;
-    }
-
-    const articles = (await response.json()) as Array<{ id?: number; canonical_url?: string }>;
-    if (!Array.isArray(articles)) {
-      return undefined;
-    }
-
-    const targetUrl = normalizeCanonicalUrl(canonicalUrl);
-    const match = articles.find((art) => {
-      if (typeof art.canonical_url !== "string" || typeof art.id !== "number") {
-        return false;
-      }
-      const artUrl = normalizeCanonicalUrl(art.canonical_url);
-      return artUrl === targetUrl;
-    });
-
-    return match?.id;
-  } catch (error) {
-    console.warn("Could not search existing dev.to articles by canonical URL.", error);
-    return undefined;
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`dev.to idempotency lookup failed (${response.status}): ${errorBody}`);
   }
+
+  const articles = (await response.json()) as unknown;
+  if (!Array.isArray(articles)) {
+    throw new Error("dev.to idempotency lookup returned an unexpected response shape.");
+  }
+
+  const targetUrl = normalizeCanonicalUrl(canonicalUrl);
+  const match = articles.find((art) => {
+    if (
+      typeof art !== "object" ||
+      art === null ||
+      !("canonical_url" in art) ||
+      !("id" in art) ||
+      typeof art.canonical_url !== "string" ||
+      typeof art.id !== "number"
+    ) {
+      return false;
+    }
+    const artUrl = normalizeCanonicalUrl(art.canonical_url);
+    return artUrl === targetUrl;
+  });
+
+  return match?.id;
 }
 
 /** Publish or update an article on dev.to. Uses fetch internally — tests can mock global fetch. */
@@ -233,10 +236,6 @@ if (isEntryPoint) {
 
   async function publish(): Promise<void> {
     try {
-      console.log(
-        devToIdRaw ? "Updating existing dev.to article..." : "Creating new dev.to article...",
-      );
-
       const result = await publishToDevto({
         title,
         bodyMarkdown,
@@ -247,6 +246,9 @@ if (isEntryPoint) {
         apiKey: API_KEY,
       });
 
+      console.log(
+        result.isUpdate ? "Updated existing dev.to article." : "Created new dev.to article.",
+      );
       console.log(`\n✅ Published to dev.to: ${result.url}`);
 
       // If devToId was not originally present in frontmatter, persist devToId into frontmatter.

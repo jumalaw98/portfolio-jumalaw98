@@ -163,7 +163,9 @@ describe("publishToDevto", () => {
         text: async () => "Unauthorized: invalid API key",
       });
 
-    await expect(publishToDevto(baseInput)).rejects.toThrow(/401/);
+    await expect(publishToDevto(baseInput)).rejects.toThrow(
+      "dev.to API error (401): Unauthorized: invalid API key",
+    );
   });
 
   it("throws an error on 500 response with error body", async () => {
@@ -179,6 +181,30 @@ describe("publishToDevto", () => {
         text: async () => "Internal server error occurred",
       });
 
-    await expect(publishToDevto(baseInput)).rejects.toThrow(/500/);
+    await expect(publishToDevto(baseInput)).rejects.toThrow(
+      "dev.to API error (500): Internal server error occurred",
+    );
+  });
+
+  it("aborts without creating an article when canonical URL lookup returns non-ok response", async () => {
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      text: async () => "Service unavailable",
+    });
+
+    await expect(publishToDevto(baseInput)).rejects.toThrow(
+      "dev.to idempotency lookup failed (503): Service unavailable",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts without creating an article when canonical URL lookup fails", async () => {
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    fetchMock.mockRejectedValueOnce(new Error("Network unavailable"));
+
+    await expect(publishToDevto(baseInput)).rejects.toThrow("Network unavailable");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
