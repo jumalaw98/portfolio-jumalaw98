@@ -1,4 +1,5 @@
 import { getAllPosts, isHashnodeConfigured } from "@/lib/hashnode";
+import { getPortfolioPosts } from "@/lib/velite";
 import { placeholderBlogPosts } from "@/content/blog-placeholder";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import type { BlogPost } from "@/types/blogPost";
@@ -16,17 +17,26 @@ function escapeXml(value: string): string {
 
 export async function GET() {
   const result = await getAllPosts();
-  // Placeholders are for local dev only (Hashnode not configured). When the
-  // publication IS configured we never publish demo posts — on a fetch failure
-  // or empty feed we emit a real (possibly empty) feed instead.
+  const portfolioPosts = await getPortfolioPosts();
+  const configured = isHashnodeConfigured();
+  const hasRealPortfolioContent = portfolioPosts.length > 0;
+  const usingPlaceholders = !configured && !hasRealPortfolioContent;
+
+  // Placeholders are for local dev only (Hashnode not configured and no local posts).
+  // When the publication IS configured or we have real local posts we never publish
+  // demo posts — on a fetch failure or empty feed we emit a real (possibly empty)
+  // feed instead.
   let posts: BlogPost[];
-  if (!isHashnodeConfigured()) {
+  if (usingPlaceholders) {
     posts = placeholderBlogPosts;
   } else if (result.ok) {
     posts = result.data;
   } else {
     posts = [];
   }
+
+  // Merge with portfolio (Velite MDX) posts
+  posts = [...posts, ...portfolioPosts];
 
   const sorted = [...posts].sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
