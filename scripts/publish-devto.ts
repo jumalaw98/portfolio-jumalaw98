@@ -43,15 +43,71 @@ export interface PublishResult {
   isUpdate: boolean;
 }
 
+const TRAILING_PATH_SEPARATOR = "/";
+
+function normalizeCanonicalUrl(url: string): string {
+  const trimmedUrl = url.trim();
+  let endIndex = trimmedUrl.length;
+
+  while (endIndex > 0 && trimmedUrl.charAt(endIndex - 1) === TRAILING_PATH_SEPARATOR) {
+    endIndex -= 1;
+  }
+
+  return trimmedUrl.slice(0, endIndex).toLowerCase();
+}
+
+/** Helper to search existing user articles on dev.to by canonical URL to ensure idempotent publishing. */
+async function findArticleByCanonicalUrl(
+  canonicalUrl: string,
+  apiKey: string,
+): Promise<number | undefined> {
+  try {
+    const response = await fetch("https://dev.to/api/articles/me/all?per_page=1000", {
+      headers: {
+        "api-key": apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const articles = (await response.json()) as Array<{ id?: number; canonical_url?: string }>;
+    if (!Array.isArray(articles)) {
+      return undefined;
+    }
+
+    const targetUrl = normalizeCanonicalUrl(canonicalUrl);
+    const match = articles.find((art) => {
+      if (typeof art.canonical_url !== "string" || typeof art.id !== "number") {
+        return false;
+      }
+      const artUrl = normalizeCanonicalUrl(art.canonical_url);
+      return artUrl === targetUrl;
+    });
+
+    return match?.id;
+  } catch (error) {
+    console.warn("Could not search existing dev.to articles by canonical URL.", error);
+    return undefined;
+  }
+}
+
 /** Publish or update an article on dev.to. Uses fetch internally — tests can mock global fetch. */
 export async function publishToDevto(input: PublishInput): Promise<PublishResult> {
   const { title, bodyMarkdown, tags, description, canonicalUrl, devToId, apiKey } = input;
 
-  const validatedDevToId = devToId && Number.isFinite(devToId) ? devToId : undefined;
+  let validatedDevToId = devToId && Number.isFinite(devToId) ? devToId : undefined;
+
+  // If devToId was not provided, check dev.to for an existing article matching canonicalUrl
+  if (!validatedDevToId) {
+    validatedDevToId = await findArticleByCanonicalUrl(canonicalUrl, apiKey);
+  }
+
   const url = validatedDevToId
     ? `https://dev.to/api/articles/${validatedDevToId}` // NOSONAR
     : "https://dev.to/api/articles";
-  const method = devToId ? "PUT" : "POST";
+  const method = validatedDevToId ? "PUT" : "POST";
 
   const response = await fetch(url, {
     method,
@@ -77,7 +133,7 @@ export async function publishToDevto(input: PublishInput): Promise<PublishResult
   }
 
   const result = (await response.json()) as DevToArticle;
-  return { id: result.id, url: result.url, isUpdate: !!devToId };
+  return { id: result.id, url: result.url, isUpdate: !!validatedDevToId };
 }
 
 // ── CLI entry point ─────────────────────────────────────────────────────────
@@ -148,15 +204,14 @@ if (isEntryPoint) {
 
   // ── Extract fields ───────────────────────────────────────────────────────────
 
-  const title = frontmatter.title as string;
-  const devToIdRaw = frontmatter.devToId as number | undefined;
-  const tagsRaw = Array.isArray(frontmatter.tags) ? (frontmatter.tags as string[]) : [];
-  const description = (frontmatter.excerpt as string) ?? "";
-
-  if (!title) {
+  if (typeof frontmatter.title !== "string" || !frontmatter.title) {
     console.error("Missing required frontmatter field: title");
     process.exit(1);
   }
+  const title: string = frontmatter.title;
+  const devToIdRaw = frontmatter.devToId as number | undefined;
+  const tagsRaw = Array.isArray(frontmatter.tags) ? (frontmatter.tags as string[]) : [];
+  const description = (frontmatter.excerpt as string) ?? "";
 
   // ── Convert MDX body to plain markdown ───────────────────────────────────────
   // Strips JSX-style MDX component syntax (imports, custom component tags)
@@ -194,8 +249,8 @@ if (isEntryPoint) {
 
       console.log(`\n✅ Published to dev.to: ${result.url}`);
 
-      // If this was a new article, persist the devToId into frontmatter.
-      if (!result.isUpdate) {
+      // If devToId was not originally present in frontmatter, persist devToId into frontmatter.
+      if (!devToIdRaw) {
         const frontmatterLines = frontmatterYaml.split("\n");
         const devToIdIndex = frontmatterLines.findIndex((l) => l.startsWith("devToId:"));
 

@@ -74,10 +74,10 @@ jobs:
       # ── Commit devToId and bufferPostedAt changes back ────────────────
       # publish-devto.ts writes devToId and publish-buffer.ts writes
       # bufferPostedAt into frontmatter on success. We commit BOTH here,
-      # AFTER Buffer succeeds. This ensures that a Buffer failure leaves
-      # neither field committed, so the next push retries the full publish
-      # cycle. On retry, publish-devto.ts issues a PUT (update) to dev.to
-      # rather than a duplicate POST, since devToId is already on disk.
+      # AFTER Buffer succeeds. If Buffer fails, the next workflow run retries
+      # the publish cycle. On retry, publish-devto.ts checks dev.to for an
+      # existing article matching canonicalUrl and issues a PUT (update)
+      # rather than a duplicate POST, ensuring idempotent publishing.
       # find-ready-posts.ts gates on bufferPostedAt being absent, so once
       # both fields are committed the post is permanently excluded.
       # Main requires PR review, so use create-pull-request.
