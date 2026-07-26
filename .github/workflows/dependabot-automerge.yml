@@ -1,0 +1,111 @@
+# ──────────────────────────────────────────────────────────────────
+# Dependabot Auto-merge
+# ──────────────────────────────────────────────────────────────────
+# Automatically merges Dependabot PRs that meet ALL of these criteria:
+#   1. Actor is dependabot[bot] (never runs on human PRs)
+#   2. Update type is patch or minor (major bumps always need review)
+#   3. All required CI checks have passed (enforced via --auto flag)
+#
+# Security model:
+#   - contents: write   — required to merge the PR
+#   - pull-requests: write — required to approve and merge
+#   - Explicit permissions set omitted scopes to none
+#   - GITHUB_TOKEN is used, not a PAT — scoped to this repo only
+#   - Major version updates are explicitly blocked; they open a PR
+#     but require a human to review and merge.
+#
+# How it works:
+#   gh pr merge --auto --squash queues the merge to happen as soon
+#   as all required branch-protection checks pass. If CI is still
+#   running, GitHub will wait and merge once it goes green.
+#   If CI fails, the auto-merge is cancelled — nothing is force-merged.
+# ──────────────────────────────────────────────────────────────────
+
+name: Dependabot Auto-merge
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    name: Auto-merge patch / minor updates
+    runs-on: ubuntu-latest
+    # Only run when Dependabot opened the PR — never on human PRs.
+    if: github.actor == 'dependabot[bot]'
+    timeout-minutes: 5
+
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        # Read the update-type from the PR metadata Dependabot injects.
+        # Returns e.g. "version-update:semver-patch" or "version-update:semver-major".
+        uses: dependabot/fetch-metadata@08eff52bf64351f401fb50d4972fa95b9f2c2d1b # v2.4.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-merge patch updates
+        id: auto-merge-patch
+        # Patch bumps (0.0.x) are the lowest risk — auto-merge unconditionally
+        # once CI passes.
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-merge minor updates
+        id: auto-merge-minor
+        # Minor bumps (0.x.0) add new features but must not break existing APIs
+        # per semver. Auto-merge once CI passes, but log so it's visible.
+        if: steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: |
+          echo "Minor update detected — queuing auto-merge after CI passes."
+          gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip major updates
+        # Major bumps (x.0.0) may have breaking changes — always require
+        # human review. Log clearly so the PR is not silently ignored.
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: |
+          gh pr merge --disable-auto "$PR_URL" || true
+          echo "⚠️  Major version update detected — skipping auto-merge."
+          echo "PR requires manual review: $PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        if: always()
+        run: |
+          UPDATE_TYPE="${{ steps.metadata.outputs.update-type }}"
+          METADATA_RESULT="${{ steps.metadata.outcome }}"
+          PATCH_RESULT="${{ steps.auto-merge-patch.outcome }}"
+          MINOR_RESULT="${{ steps.auto-merge-minor.outcome }}"
+          ACTION="❌ Not queued — metadata unavailable"
+
+          if [[ "$UPDATE_TYPE" == "version-update:semver-major" ]]; then
+            ACTION="⚠️ Skipped — manual review required"
+          elif [[ "$UPDATE_TYPE" == "version-update:semver-patch" && "$PATCH_RESULT" == "success" ]]; then
+            ACTION="✅ Queued for auto-merge after CI"
+          elif [[ "$UPDATE_TYPE" == "version-update:semver-minor" && "$MINOR_RESULT" == "success" ]]; then
+            ACTION="✅ Queued for auto-merge after CI"
+          elif [[ "$METADATA_RESULT" == "success" ]]; then
+            ACTION="❌ Not queued — auto-merge step did not complete"
+          fi
+
+          {
+            echo "## 🤖 Dependabot Auto-merge"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| Update type | \`${UPDATE_TYPE}\` |"
+            echo "| Action | ${ACTION} |"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -107,7 +107,7 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
@@ -119,27 +119,36 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      - name: Check for unexpected lockfile changes
+        # If the lockfile is out of sync with package.json, `npm ci` would have
+        # already failed above. This step adds an explicit git-level check:
+        # if running npm install would produce any diff in package-lock.json,
+        # the lockfile was committed in a dirty state.
+        run: |
+          npm install --package-lock-only --ignore-scripts --quiet
+          if ! git diff --quiet package-lock.json; then
+            echo "❌ package-lock.json is out of sync with package.json."
+            echo "Run 'npm install' locally and commit the updated lockfile."
+            git diff package-lock.json
+            exit 1
+          fi
+          echo "✅ package-lock.json is in sync with package.json."
+
       - name: npm audit
-        # --audit-level=high → fails only on high/critical severity
-        # --include-workspace-root for npm workspaces (safe for single-package too)
+        # --audit-level=high → fails the job on any high/critical severity finding,
+        # blocking the PR before it can reach the build step.
         run: npm audit --audit-level=high
-        continue-on-error: true
-        id: audit
 
       - name: Summary
+        if: success()
         run: |
           {
-            echo "## 🔒 Dependency Audit"
+            echo "## 🔒 Dependency Audit — ✅ Passed"
             echo ""
-            if [ "${{ steps.audit.outcome }}" = "success" ]; then
-              echo "| Status | Severity threshold |"
-              echo "|--------|-------------------|"
-              echo "| ✅ Passed | high (none found) |"
-            else
-              echo "| Status | Severity threshold |"
-              echo "|--------|-------------------|"
-              echo "| ⚠️  Warnings found | high+ (review below) |"
-            fi
+            echo "| Check | Status |"
+            echo "|-------|--------|"
+            echo "| Lockfile integrity | ✅ In sync |"
+            echo "| npm audit (high+) | ✅ No vulnerabilities |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ────────────────────────────────────────────────────────────────
@@ -148,7 +157,7 @@ jobs:
 
   build:
     name: Build
-    needs: [code-quality, type-check]
+    needs: [code-quality, type-check, audit]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
