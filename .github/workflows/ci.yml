@@ -38,7 +38,7 @@ defaults:
     shell: bash
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
   NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://jumalaw98.vercel.app' }}
   NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ${{ vars.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || 'jumalaw98.vercel.app' }}
 
