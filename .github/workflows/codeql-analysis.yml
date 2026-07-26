@@ -60,8 +60,8 @@ jobs:
 
       - name: Build
         run: |
-          npm ci
-          npx next build
+          npm ci --ignore-scripts
+          ./node_modules/.bin/next build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
