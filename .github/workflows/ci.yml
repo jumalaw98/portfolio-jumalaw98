@@ -20,6 +20,11 @@ on:
   push:
     branches: [main]
 
+# Least-privilege default: every job gets read-only token access unless
+# it declares a narrower or broader override inline.
+permissions:
+  contents: read
+
 # ── Concurrency ──────────────────────────────────────────────────
 # Cancel in-progress runs for the same branch/PR. New commits →
 # old runs stop immediately, saving minutes for fast feedback.
@@ -55,7 +60,9 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        # --ignore-scripts prevents lifecycle hooks (postinstall etc.) in
+        # third-party packages from executing arbitrary code on the runner.
+        run: npm ci --ignore-scripts
 
       - name: ESLint
         run: npm run lint
@@ -88,7 +95,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: TypeScript check
         run: npm run typecheck
@@ -163,7 +170,10 @@ jobs:
             nextjs-build-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
 
       - name: Install dependencies
-        run: npm ci
+        # --ignore-scripts blocks postinstall hooks in deps at install time.
+        # The build itself is invoked directly via node_modules/.bin/next,
+        # not through npm run, so this does not affect the Next.js build.
+        run: npm ci --ignore-scripts
 
       - name: Build application
         # Use Next.js directly, not `npm run build`,
@@ -208,7 +218,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build with bundle analyzer
         run: npm run analyze
