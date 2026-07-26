@@ -28,8 +28,7 @@ on:
   workflow_dispatch:
 
 # Deny all permissions by default; the analyze job grants only what it needs.
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: codeql-${{ github.ref }}
