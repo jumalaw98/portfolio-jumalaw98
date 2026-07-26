@@ -110,7 +110,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: npm audit
         # --audit-level=high → fails only on high/critical severity
@@ -166,10 +166,10 @@ jobs:
         run: npm ci
 
       - name: Build application
-        # Use `npx next build` directly, not `npm run build`,
+        # Use Next.js directly, not `npm run build`,
         # because our build script chains lint + type-check
         # which are already covered by upstream jobs.
-        run: npx next build
+        run: ./node_modules/.bin/next build
 
       - name: Summary
         if: success()
