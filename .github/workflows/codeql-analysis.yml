@@ -60,7 +60,7 @@ jobs:
 
       - name: Build
         run: |
-          npm ci --ignore-scripts
+          npm ci
           ./node_modules/.bin/next build
 
       - name: Perform CodeQL Analysis
