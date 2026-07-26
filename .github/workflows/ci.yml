@@ -135,9 +135,10 @@ jobs:
           echo "✅ package-lock.json is in sync with package.json."
 
       - name: npm audit
-        # --audit-level=high → fails the job on any high/critical severity finding,
-        # blocking the PR before it can reach the build step.
-        run: npm audit --audit-level=high
+        # --audit-level=high fails on any high/critical severity finding in production deps.
+        # --omit=dev excludes devDependencies (e.g. eslint plugins) whose vulnerabilities
+        # are confined to CI/dev tooling and never reach the production runtime.
+        run: npm audit --audit-level=high --omit=dev
 
       - name: Summary
         if: success()
