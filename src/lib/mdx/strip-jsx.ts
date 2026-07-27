@@ -126,7 +126,12 @@ function findMarkdownDestinationEnd(markdown: string, startIndex: number): numbe
 
     if (inQuotedTitle !== null) {
       const result = handleQuotedTitle(markdown, index, inQuotedTitle);
-      index = result.newIndex;
+      // handleQuotedTitle returns the position of the closing quote.
+      // Advance past it so the main loop doesn't re-enter the quoted-title
+      // state on the next iteration (which would look for a second closing
+      // quote that doesn't exist, causing findMarkdownDestinationEnd to
+      // return -1).
+      index = result.newIndex + 1;
       inQuotedTitle = result.inQuotedTitle;
       continue;
     }
