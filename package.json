@@ -29,7 +29,6 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.2.11",
-    "@next/swc-win32-x64-msvc": "^16.2.12",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^26",
     "@types/prismjs": "^1.26.6",
