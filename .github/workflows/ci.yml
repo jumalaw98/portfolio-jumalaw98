@@ -119,21 +119,6 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Check for unexpected lockfile changes
-        # If the lockfile is out of sync with package.json, `npm ci` would have
-        # already failed above. This step adds an explicit git-level check:
-        # if running npm install would produce any diff in package-lock.json,
-        # the lockfile was committed in a dirty state.
-        run: |
-          npm install --package-lock-only --ignore-scripts --quiet
-          if ! git diff --quiet package-lock.json; then
-            echo "❌ package-lock.json is out of sync with package.json."
-            echo "Run 'npm install' locally and commit the updated lockfile."
-            git diff package-lock.json
-            exit 1
-          fi
-          echo "✅ package-lock.json is in sync with package.json."
-
       - name: npm audit
         # --audit-level=high fails on any high/critical severity finding in production deps.
         # --omit=dev excludes devDependencies (e.g. eslint plugins) whose vulnerabilities
@@ -148,7 +133,7 @@ jobs:
             echo ""
             echo "| Check | Status |"
             echo "|-------|--------|"
-            echo "| Lockfile integrity | ✅ In sync |"
+            echo "| Lockfile integrity | ✅ Validated by npm ci |"
             echo "| npm audit (high+) | ✅ No vulnerabilities |"
           } >> "$GITHUB_STEP_SUMMARY"
 
