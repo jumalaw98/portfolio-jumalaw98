@@ -17,7 +17,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - uses: ./.github/actions/gate
         with:
@@ -86,7 +86,7 @@ jobs:
       # Main requires PR review, so use create-pull-request.
       - name: Commit devToId and bufferPostedAt changes
         if: steps.find.outputs.count != '0'
-        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: record devToId and bufferPostedAt after publishing"
