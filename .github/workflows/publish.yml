@@ -3,6 +3,7 @@ name: Publish
 on:
   push:
     branches: [main]
+    paths: ["src/content/blog/**"]
 
 permissions:
   contents: write
@@ -19,6 +20,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - uses: ./.github/actions/gate
+        with:
+          node-version: "24"
 
       # ── Find ready posts ──────────────────────────────────────────────
       # IMPORTANT: We check for summary.hook presence BEFORE publishing.

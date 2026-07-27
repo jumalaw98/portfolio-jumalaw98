@@ -38,7 +38,7 @@ defaults:
     shell: bash
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
   NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://jumalaw98.vercel.app' }}
   NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ${{ vars.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || 'jumalaw98.vercel.app' }}
 
@@ -107,7 +107,7 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
@@ -120,26 +120,21 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: npm audit
-        # --audit-level=high → fails only on high/critical severity
-        # --include-workspace-root for npm workspaces (safe for single-package too)
-        run: npm audit --audit-level=high
-        continue-on-error: true
-        id: audit
+        # --audit-level=high fails on any high/critical severity finding in production deps.
+        # --omit=dev excludes devDependencies (e.g. eslint plugins) whose vulnerabilities
+        # are confined to CI/dev tooling and never reach the production runtime.
+        run: npm audit --audit-level=high --omit=dev
 
       - name: Summary
+        if: success()
         run: |
           {
-            echo "## 🔒 Dependency Audit"
+            echo "## 🔒 Dependency Audit — ✅ Passed"
             echo ""
-            if [ "${{ steps.audit.outcome }}" = "success" ]; then
-              echo "| Status | Severity threshold |"
-              echo "|--------|-------------------|"
-              echo "| ✅ Passed | high (none found) |"
-            else
-              echo "| Status | Severity threshold |"
-              echo "|--------|-------------------|"
-              echo "| ⚠️  Warnings found | high+ (review below) |"
-            fi
+            echo "| Check | Status |"
+            echo "|-------|--------|"
+            echo "| Lockfile integrity | ✅ Validated by npm ci |"
+            echo "| npm audit (high+) | ✅ No vulnerabilities |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ────────────────────────────────────────────────────────────────
@@ -148,7 +143,7 @@ jobs:
 
   build:
     name: Build
-    needs: [code-quality, type-check]
+    needs: [code-quality, type-check, audit]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
