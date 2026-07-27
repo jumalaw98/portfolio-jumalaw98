@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.2.11",
+    "@next/swc-win32-x64-msvc": "^16.2.12",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^26",
     "@types/prismjs": "^1.26.6",
@@ -36,7 +37,7 @@
     "@types/react-dom": "^19",
     "cross-env": "^10.1.0",
     "esbuild": "^0.28.1",
-    "eslint": "^10.8.0",
+    "eslint": "^9.39.5",
     "eslint-config-next": "16.2.12",
     "js-yaml": "^5.2.2",
     "prettier": "^3.9.6",
