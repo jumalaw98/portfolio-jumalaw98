@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion, useAnimationControls } from "framer-motion";
@@ -16,6 +16,7 @@ export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
   const shouldReduceMotion = useReducedMotion();
   const controls = useAnimationControls();
   const [mounted, setMounted] = useState(false);
+  const animDoneRef = useRef(false);
 
   // Mount flag: SSR renders with no hidden styles, then client enables
   // the entrance animation after hydration.
@@ -24,27 +25,37 @@ export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
     setMounted(true);
   }, []);
 
-  // Safety timeout: if the scroll observer never fires, force reveal
+  // After mount, kick off the entrance animation from hidden → visible.
+  // Using animate controls (not whileInView) so we can start from the
+  // hidden state that was set after mount, giving a proper staggered
+  // entrance while keeping SSR content visible.
+  useEffect(() => {
+    if (!mounted || shouldReduceMotion) return;
+    controls.start({
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.4, delay: index * 0.06 },
+    });
+  }, [mounted, shouldReduceMotion, controls, index]);
+
+  // Safety timeout: if the scroll observer never fires, force reveal.
+  // Guarded by animDoneRef so it's a no-op when the animation already completed.
   useEffect(() => {
     const timer = setTimeout(() => {
+      if (animDoneRef.current) return;
       controls.start({ opacity: 1, y: 0 });
     }, 3000);
     return () => clearTimeout(timer);
   }, [controls]);
 
-  // SSR and first client render: content visible. After mount: animation
-  // starts from hidden. Framer Motion only reads `initial` once, so the
-  // state change (mounted → true) doesn't re-hide already-visible content.
-  const willAnimate = mounted && !shouldReduceMotion;
-
   return (
     <motion.div
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      initial={willAnimate ? { opacity: 0, y: 16 } : false}
-      whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : false}
       animate={controls}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
+      onAnimationComplete={() => {
+        animDoneRef.current = true;
+      }}
       whileHover={
         shouldReduceMotion
           ? undefined

@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion, useAnimationControls } from "framer-motion";
 
 interface RevealSectionProps {
@@ -38,6 +38,7 @@ export function RevealSection({ children, className, delay = 0, skeleton }: Reve
   const [animStarted, setAnimStarted] = useState(false);
   const [animDone, setAnimDone] = useState(false);
   const [debouncedReady, setDebouncedReady] = useState(false);
+  const animDoneRef = useRef(false);
 
   // Debounce: show skeleton only if content hasn't animated within 200ms.
   // Prevents a brief flash on fast connections where whileInView fires instantly.
@@ -47,32 +48,39 @@ export function RevealSection({ children, className, delay = 0, skeleton }: Reve
     return () => clearTimeout(timer);
   }, [shouldReduceMotion, animStarted, animDone]);
 
-  // Safety timeout: force content visible if observer never fires
+  // Safety timeout: force content visible if observer never fires.
+  // Guarded by animDoneRef so it's a no-op when the animation already completed.
   useEffect(() => {
     const timer = setTimeout(() => {
+      if (animDoneRef.current) return;
       controls.start({ opacity: 1, y: 0 });
     }, 3000);
     return () => clearTimeout(timer);
   }, [controls]);
 
-  // Reduced motion → render content directly with no animation wrappers
-  if (shouldReduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
-
-  const showSkeleton = !!skeleton && !animDone && debouncedReady;
+  // Always render <motion.div> to avoid hydration mismatches.
+  // When reduced motion is preferred, zero out the animation props
+  // so the content is immediately visible with no motion.
+  const showSkeleton = !!skeleton && !animDone && debouncedReady && !shouldReduceMotion;
 
   return (
     <div className={className} style={{ position: "relative" }}>
       <motion.div
-        onAnimationStart={() => setAnimStarted(true)}
-        onAnimationComplete={() => setAnimDone(true)}
+        onAnimationStart={() => {
+          setAnimStarted(true);
+        }}
+        onAnimationComplete={() => {
+          setAnimDone(true);
+          animDoneRef.current = true;
+        }}
         suppressHydrationWarning
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        animate={controls}
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.5, delay, ease: "easeOut" }}
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+        whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+        animate={shouldReduceMotion ? undefined : controls}
+        viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
+        transition={
+          shouldReduceMotion ? { duration: 0 } : { duration: 0.5, delay, ease: "easeOut" }
+        }
         style={{ position: "relative", zIndex: 1 }}
       >
         {children}

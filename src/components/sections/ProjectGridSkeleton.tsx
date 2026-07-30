@@ -1,15 +1,28 @@
+import { useMemo } from "react";
 import { Container } from "@/components/ui/Container";
 import { Skeleton } from "@/components/ui/Skeleton";
 
+interface ProjectGridSkeletonProps {
+  /** Number of skeleton cards to render. Should match the live project count. */
+  readonly count?: number;
+}
+
 /**
  * Skeleton placeholder matching the Featured Projects section layout
- * (heading + grid). Intended as the `skeleton` prop of RevealSection.
+ * (heading + grid). Overlay as the `skeleton` prop of RevealSection.
  *
  * - The outer wrapper mirrors the real section's padding and container.
- * - The heading row and 3-card grid have the same dimensions as real content,
+ * - The heading row and card grid have the same dimensions as real content,
  *   so the overlay covers everything needed during the fade-in transition.
+ * - Accepts a `count` prop so the skeleton card count matches the live
+ *   project count, preventing blank areas during the reveal.
  */
-export function ProjectGridSkeleton() {
+export function ProjectGridSkeleton({ count = 5 }: ProjectGridSkeletonProps) {
+  const skeletonIds = useMemo(
+    () => Array.from({ length: count }, () => crypto.randomUUID()),
+    [count],
+  );
+
   return (
     <section className="py-20">
       <Container>
@@ -21,9 +34,9 @@ export function ProjectGridSkeleton() {
 
         {/* Card grid */}
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
+          {skeletonIds.map((id) => (
             <div
-              key={i}
+              key={id}
               className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
             >
               <div>
