@@ -5,6 +5,11 @@ export const PROJECT_IMAGES = {
     "africa-devops-summit": [u("projects/ads.webp"), u("projects/ads1_RL23GMMJd.webp")],
     "nairobi-devops-community": [u("projects/ndc01.webp"), u("projects/ndc3.webp")],
     "pretalx-azure": [u("projects/px.webp")],
+    "nyota-bilkack-wedding": [
+      u("projects/NB01.webp"),
+      u("projects/NB02.webp"),
+      u("projects/NB.webp"),
+    ],
   },
   blogFallback: [u("blog/blog-1.jpg", 800), u("blog/blog-2.jpg", 800), u("blog/blog-3.jpg", 800)],
 } as const;

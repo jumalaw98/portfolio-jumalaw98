@@ -4,6 +4,7 @@ import { nairobiDevopsCommunity } from "./nairobi-devops-community";
 import { pretalxAzure } from "./pretalx-azure";
 import { kommunitiAfrica } from "./kommuniti-africa";
 import { faithfulheartsEquineLearningCenter } from "./faithfulhearts-equine-learning-center";
+import { nyotaBilkackWedding } from "./nyota-bilkack-wedding";
 
 // Ordered by strategic priority per portfolio-sitemap.md Section 2.
 // kommuniti-africa is included but status "in-progress" — filter it out
@@ -14,10 +15,12 @@ export const allProjects: Project[] = [
   pretalxAzure,
   kommunitiAfrica,
   faithfulheartsEquineLearningCenter,
+  nyotaBilkackWedding,
 ];
 
 export const mvpProjects: Project[] = allProjects.filter((p) => p.status === "live");
 
 export function getProjectBySlug(slug: string): Project | undefined {
-  return allProjects.find((p) => p.slug === slug);
+  const normalized = slug?.toString().trim().toLowerCase();
+  return allProjects.find((p) => p.slug.toString().trim().toLowerCase() === normalized);
 }
