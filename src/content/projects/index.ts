@@ -21,6 +21,6 @@ export const allProjects: Project[] = [
 export const mvpProjects: Project[] = allProjects.filter((p) => p.status === "live");
 
 export function getProjectBySlug(slug: string): Project | undefined {
-  const normalized = slug?.toString().trim().toLowerCase();
+  const normalized = slug.trim().toLowerCase();
   return allProjects.find((p) => p.slug.toString().trim().toLowerCase() === normalized);
 }
