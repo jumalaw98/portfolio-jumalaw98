@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/Button";
 import { Hero } from "@/components/sections/Hero";
 import { StackHighlights } from "@/components/sections/StackHighlights";
 import { ProjectGrid } from "@/components/sections/ProjectGrid";
+import { ProjectGridSkeleton } from "@/components/sections/ProjectGridSkeleton";
+import { CredibilityStripSkeleton } from "@/components/sections/CredibilityStripSkeleton";
 import { CredibilityStrip } from "@/components/sections/CredibilityStrip";
 import { RevealSection } from "@/components/ui/RevealSection";
 import { mvpProjects } from "@/content/projects";
@@ -21,7 +23,8 @@ export default function HomePage() {
         <StackHighlights />
       </RevealSection>
 
-      <RevealSection>
+      {/* Featured Projects — skeleton displays during entrance animation */}
+      <RevealSection skeleton={<ProjectGridSkeleton />}>
         <section className="py-20">
           <Container>
             <div className="flex flex-wrap items-end justify-between gap-4">
@@ -37,7 +40,8 @@ export default function HomePage() {
         </section>
       </RevealSection>
 
-      <RevealSection>
+      {/* Stats numbers — skeleton during entrance animation */}
+      <RevealSection skeleton={<CredibilityStripSkeleton />}>
         <CredibilityStrip />
       </RevealSection>
 

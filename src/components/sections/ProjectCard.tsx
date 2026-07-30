@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useAnimationControls } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
 import type { Project } from "@/types/project";
 
@@ -14,18 +14,35 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
   const shouldReduceMotion = useReducedMotion();
+  const controls = useAnimationControls();
   const [mounted, setMounted] = useState(false);
 
+  // Mount flag: SSR renders with no hidden styles, then client enables
+  // the entrance animation after hydration.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
+  // Safety timeout: if the scroll observer never fires, force reveal
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      controls.start({ opacity: 1, y: 0 });
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [controls]);
+
+  // SSR and first client render: content visible. After mount: animation
+  // starts from hidden. Framer Motion only reads `initial` once, so the
+  // state change (mounted → true) doesn't re-hide already-visible content.
+  const willAnimate = mounted && !shouldReduceMotion;
+
   return (
     <motion.div
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
+      initial={willAnimate ? { opacity: 0, y: 16 } : false}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+      animate={controls}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
       whileHover={
@@ -37,6 +54,7 @@ export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
                 "0 12px 24px -8px rgba(28, 118, 181, 0.18), 0 0 0 1px rgba(28, 118, 181, 0.25)",
             }
       }
+      suppressHydrationWarning
     >
       <div>
         <div className="flex items-start justify-between gap-3">
