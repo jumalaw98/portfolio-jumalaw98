@@ -41,7 +41,7 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
     notFound();
   }
 
-  const currentIndex = mvpProjects.findIndex((p) => p.slug === slug);
+  const currentIndex = mvpProjects.findIndex((p) => p.slug === project.slug);
   const nextProject = mvpProjects[(currentIndex + 1) % mvpProjects.length];
 
   return (
