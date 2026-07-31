@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo } from "react";
 import { Container } from "@/components/ui/Container";
 import { Skeleton } from "@/components/ui/Skeleton";
