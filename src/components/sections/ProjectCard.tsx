@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -14,20 +14,22 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
   const shouldReduceMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
+  const animDoneRef = useRef(false);
 
   return (
     <motion.div
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
+      viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
+      transition={
+        shouldReduceMotion
+          ? { duration: 0 }
+          : { duration: 0.4, delay: index * 0.06, ease: "easeOut" }
+      }
+      onAnimationComplete={() => {
+        animDoneRef.current = true;
+      }}
       whileHover={
         shouldReduceMotion
           ? undefined
@@ -37,6 +39,7 @@ export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
                 "0 12px 24px -8px rgba(28, 118, 181, 0.18), 0 0 0 1px rgba(28, 118, 181, 0.25)",
             }
       }
+      suppressHydrationWarning
     >
       <div>
         <div className="flex items-start justify-between gap-3">
