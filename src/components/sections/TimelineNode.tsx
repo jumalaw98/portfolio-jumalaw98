@@ -7,6 +7,10 @@ interface TimelineNodeProps {
   readonly accent?: boolean;
 }
 
+export function getTimelineNodeInitial(reduced: boolean) {
+  return reduced ? undefined : { scale: 0, opacity: 0 };
+}
+
 export function getTimelineNodeAnimate(reduced: boolean) {
   return reduced ? { scale: 1, opacity: 1 } : undefined;
 }
@@ -37,7 +41,7 @@ export function TimelineNode({ accent = false }: TimelineNodeProps) {
       // Reduced-motion: initial is undefined (server renders visible); the
       // animate target below nudges the client to the final state.
       // suppressHydrationWarning handles the SSR/client mismatch.
-      initial={shouldReduceMotion ? undefined : { scale: 0, opacity: 0 }}
+      initial={getTimelineNodeInitial(shouldReduceMotion)}
       // When reduced motion is enabled, provide a live animate target so
       // toggling the preference at runtime places the node in its final
       // visible state even before it enters the viewport.
