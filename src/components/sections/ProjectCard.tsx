@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useAnimationControls } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
 import type { Project } from "@/types/project";
 
@@ -12,39 +12,35 @@ interface ProjectCardProps {
   readonly index?: number;
 }
 
-export function getProjectCardAnimate(reduced: boolean) {
-  return reduced ? { opacity: 1, y: 0 } : undefined;
-}
-
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
-  const [mounted, setMounted] = useState(false);
-  const animDoneRef = useRef(false);
+  const controls = useAnimationControls();
 
+  // Drive the entrance animation after mount so SSR HTML is always visible.
+  // For reduced-motion users, jump straight to visible. For normal-motion,
+  // set hidden state first, then animate to visible when in view.
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Only apply the hidden initial state after client mount so the SSR HTML
-  // is always visible. Reduced-motion users and JS-disabled clients see
-  // content immediately instead of a blank opacity:0 card.
-  const hiddenInitial = mounted && !shouldReduceMotion;
+    if (shouldReduceMotion) {
+      controls.set({ opacity: 1, y: 0 });
+      return;
+    }
+    // Normal-motion: set hidden state first, then animate when in view
+    controls.set({ opacity: 0, y: 16 });
+    controls.start({ opacity: 1, y: 0 });
+  }, [shouldReduceMotion, controls]);
 
   return (
     <motion.div
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      initial={hiddenInitial ? { opacity: 0, y: 16 } : undefined}
+      initial={undefined}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-      animate={getProjectCardAnimate(shouldReduceMotion)}
+      animate={controls}
       viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
       transition={
         shouldReduceMotion
           ? { duration: 0 }
           : { duration: 0.4, delay: index * 0.06, ease: "easeOut" }
       }
-      onAnimationComplete={() => {
-        animDoneRef.current = true;
-      }}
       whileHover={
         shouldReduceMotion
           ? undefined

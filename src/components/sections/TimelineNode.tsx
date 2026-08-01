@@ -1,19 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect } from "react";
+import { motion, useReducedMotion, useAnimationControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface TimelineNodeProps {
   readonly accent?: boolean;
-}
-
-export function getTimelineNodeInitial(reduced: boolean) {
-  return reduced ? undefined : { scale: 0, opacity: 0 };
-}
-
-export function getTimelineNodeAnimate(reduced: boolean) {
-  return reduced ? { scale: 1, opacity: 1 } : undefined;
 }
 
 /**
@@ -23,16 +15,20 @@ export function getTimelineNodeAnimate(reduced: boolean) {
  */
 export function TimelineNode({ accent = false }: TimelineNodeProps) {
   const shouldReduceMotion = useReducedMotion() === true;
-  const [mounted, setMounted] = useState(false);
+  const controls = useAnimationControls();
 
+  // Drive the entrance animation after mount so SSR HTML is always visible.
+  // For reduced-motion users, jump straight to visible. For normal-motion,
+  // set hidden state first, then animate to visible when in view.
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Only apply the hidden initial state after client mount so the SSR HTML
-  // is always visible. Reduced-motion users and JS-disabled clients see
-  // the node immediately instead of a blank scale:0/opacity:0 element.
-  const hiddenInitial = mounted && !shouldReduceMotion;
+    if (shouldReduceMotion) {
+      controls.set({ scale: 1, opacity: 1 });
+      return;
+    }
+    // Normal-motion: set hidden state first, then animate when in view
+    controls.set({ scale: 0, opacity: 0 });
+    controls.start({ scale: 1, opacity: 1 });
+  }, [shouldReduceMotion, controls]);
 
   return (
     <motion.span
@@ -42,9 +38,9 @@ export function TimelineNode({ accent = false }: TimelineNodeProps) {
         accent ? "bg-brand-orange ring-brand-orange-light" : "bg-brand-blue ring-brand-blue-light",
       )}
       style={{ boxShadow: "0 0 0 4px white" }}
-      initial={hiddenInitial ? { scale: 0, opacity: 0 } : undefined}
+      initial={undefined}
+      animate={controls}
       whileInView={shouldReduceMotion ? undefined : { scale: 1, opacity: 1 }}
-      animate={getTimelineNodeAnimate(shouldReduceMotion)}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.3, ease: "easeOut" }}
     />

@@ -40,15 +40,23 @@ export function RevealSection({
 }: Readonly<RevealSectionProps>) {
   const shouldReduceMotion = useReducedMotion() ?? false;
   const controls = useAnimationControls();
-  const [mounted, setMounted] = useState(false);
   const [animStarted, setAnimStarted] = useState(false);
   const [animDone, setAnimDone] = useState(false);
   const [debouncedReady, setDebouncedReady] = useState(false);
   const animDoneRef = useRef(false);
 
+  // Drive the entrance animation after mount so SSR HTML is always visible.
+  // For reduced-motion users, jump straight to visible. For normal-motion,
+  // set hidden state first, then animate to visible when in view.
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (shouldReduceMotion) {
+      controls.set({ opacity: 1, y: 0 });
+      return;
+    }
+    // Normal-motion: set hidden state first, then animate when in view
+    controls.set({ opacity: 0, y: 20 });
+    controls.start({ opacity: 1, y: 0 });
+  }, [shouldReduceMotion, controls]);
 
   // Debounce: show skeleton only if content hasn't animated within 200ms.
   // Prevents a brief flash on fast connections where whileInView fires instantly.
@@ -85,10 +93,9 @@ export function RevealSection({
           setAnimDone(true);
           animDoneRef.current = true;
         }}
-        suppressHydrationWarning
-        initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
+        initial={undefined}
         whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-        animate={shouldReduceMotion ? { opacity: 1, y: 0 } : controls}
+        animate={controls}
         viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
         transition={
           shouldReduceMotion ? { duration: 0 } : { duration: 0.5, delay, ease: "easeOut" }
@@ -104,7 +111,6 @@ export function RevealSection({
         Removed from DOM once the animation fully completes.
       */}
       {showSkeleton ? (
-        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- skeleton overlay is not a form output; <output> would be semantically incorrect here
         <div
           role="status"
           aria-label="Loading section"

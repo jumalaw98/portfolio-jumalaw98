@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView, useReducedMotion, animate } from "framer-motion";
+import { motion, useInView, useReducedMotion, useAnimationControls, animate } from "framer-motion";
 import { Users, Mic, Building2, CalendarDays, Globe2, Rocket } from "lucide-react";
 import type { ImpactStat, ImpactStatIconKey } from "@/content/impact-stats";
 
@@ -22,31 +22,30 @@ interface AnimatedStatProps {
   readonly index?: number;
 }
 
-export function getAnimatedStatAnimate(reduced: boolean, inView: boolean | undefined) {
-  if (reduced) return { opacity: 1, y: 0 };
-  if (inView) return { opacity: 1, y: 0 };
-  return undefined;
-}
-
 export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
-  // useReducedMotion() returns null during SSR / before the media-query
-  // resolves. Keep three distinct states:
-  //   null  → preference unknown (SSR or hydrating)
-  //   true  → confirmed reduced-motion
-  //   false → confirmed normal-motion
-  //
-  // For `initial` we only suppress the hidden state when the preference is
-  // *explicitly* true; null and false both get the normal entrance so Framer
-  // Motion captures the hidden position on mount and the animation plays.
-  // suppressHydrationWarning handles the SSR/client opacity-0 mismatch.
-  const reducedMotionPreference = useReducedMotion();
-  const shouldReduceMotion = reducedMotionPreference === true;
   const ref = useRef<HTMLDivElement>(null);
   // `once: true` — the count-up plays a single time per page load, the
   // moment the stat scrolls into view, and never re-triggers.
   const isInView = useInView(ref, { once: true, margin: "-80px" });
   const [displayValue, setDisplayValue] = useState(stat.value);
+  const shouldReduceMotion = useReducedMotion() ?? false;
+  const controls = useAnimationControls();
   const Icon = ICONS[stat.icon];
+
+  // Drive the entrance animation after mount so SSR HTML is always visible.
+  // For reduced-motion users, jump straight to visible. For normal-motion,
+  // set hidden state first, then animate to visible when in view.
+  useEffect(() => {
+    if (shouldReduceMotion) {
+      controls.set({ opacity: 1, y: 0 });
+      return;
+    }
+    // Normal-motion: set hidden state first, then animate when in view
+    controls.set({ opacity: 0, y: 16 });
+    if (isInView) {
+      controls.start({ opacity: 1, y: 0 });
+    }
+  }, [shouldReduceMotion, isInView, controls]);
 
   useEffect(() => {
     if (!isInView) return;
@@ -61,26 +60,21 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
 
     setDisplayValue(0);
 
-    const controls = animate(0, stat.value, {
+    const animControls = animate(0, stat.value, {
       duration: 1.4,
       ease: "easeOut",
       onUpdate: (latest) => setDisplayValue(Math.round(latest)),
     });
 
-    return () => controls.stop();
+    return () => animControls.stop();
   }, [isInView, shouldReduceMotion, stat.value]);
 
   return (
     <motion.div
       ref={ref}
       className="rounded-lg border border-border bg-white p-6 text-center"
-      suppressHydrationWarning
-      // Apply the hidden initial state whenever reduced motion is not
-      // explicitly confirmed, so Framer Motion captures it on mount for both
-      // the SSR-unknown (null) and confirmed-normal-motion (false) paths.
-      // suppressHydrationWarning handles the SSR/client opacity-0 mismatch.
-      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
-      animate={getAnimatedStatAnimate(shouldReduceMotion, isInView)}
+      initial={undefined}
+      animate={controls}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
     >
       <Icon size={22} className="mx-auto text-brand-blue" />
