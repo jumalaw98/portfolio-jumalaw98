@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -18,21 +18,15 @@ export function getProjectCardAnimate(reduced: boolean) {
 
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
-  const [mounted, setMounted] = useState(false);
   const animDoneRef = useRef(false);
-
-  useEffect(() => {
-    // Intentionally set after mount to avoid hydration mismatches with
-    // framer-motion's `initial` prop — the component server-renders with
-    // no animation state, then enables entrance animations on the client.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
 
   return (
     <motion.div
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
+      // Always apply the hidden initial state for non-reduced-motion so
+      // Framer Motion captures it on mount. suppressHydrationWarning handles
+      // the SSR/client mismatch — changing `initial` after mount has no effect.
+      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       animate={getProjectCardAnimate(shouldReduceMotion)}
       viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}

@@ -35,21 +35,12 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
   // the element at all.
   const reducedMotionPreference = useReducedMotion();
   const shouldReduceMotion = reducedMotionPreference !== false;
-  const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   // `once: true` — the count-up plays a single time per page load, the
   // moment the stat scrolls into view, and never re-triggers.
   const isInView = useInView(ref, { once: true, margin: "-80px" });
   const [displayValue, setDisplayValue] = useState(stat.value);
   const Icon = ICONS[stat.icon];
-
-  useEffect(() => {
-    // Gate entrance animation behind mount so SSR always emits the element
-    // at its final visible state — prevents non-reduced-motion users from
-    // seeing a flash-of-visible-content followed by the count resetting to 0.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!isInView) return;
@@ -78,7 +69,10 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
       ref={ref}
       className="rounded-lg border border-border bg-white p-6 text-center"
       suppressHydrationWarning
-      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
+      // Always apply the hidden initial state for non-reduced-motion so
+      // Framer Motion captures it on mount. suppressHydrationWarning handles
+      // the SSR/client opacity-0 mismatch without breaking the entrance animation.
+      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
       animate={getAnimatedStatAnimate(shouldReduceMotion, isInView)}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
     >
