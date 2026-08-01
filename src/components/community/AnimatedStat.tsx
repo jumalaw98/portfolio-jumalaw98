@@ -29,12 +29,18 @@ export function getAnimatedStatAnimate(reduced: boolean, inView: boolean | undef
 }
 
 export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
-  // useReducedMotion() returns null during SSR (preference not yet known).
-  // Treat null as true so the server always renders visible content — the
-  // animation opt-in is progressive enhancement, not a requirement to show
-  // the element at all.
+  // useReducedMotion() returns null during SSR / before the media-query
+  // resolves. Keep three distinct states:
+  //   null  → preference unknown (SSR or hydrating)
+  //   true  → confirmed reduced-motion
+  //   false → confirmed normal-motion
+  //
+  // For `initial` we only suppress the hidden state when the preference is
+  // *explicitly* true; null and false both get the normal entrance so Framer
+  // Motion captures the hidden position on mount and the animation plays.
+  // suppressHydrationWarning handles the SSR/client opacity-0 mismatch.
   const reducedMotionPreference = useReducedMotion();
-  const shouldReduceMotion = reducedMotionPreference !== false;
+  const shouldReduceMotion = reducedMotionPreference === true;
   const ref = useRef<HTMLDivElement>(null);
   // `once: true` — the count-up plays a single time per page load, the
   // moment the stat scrolls into view, and never re-triggers.
@@ -69,9 +75,10 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
       ref={ref}
       className="rounded-lg border border-border bg-white p-6 text-center"
       suppressHydrationWarning
-      // Always apply the hidden initial state for non-reduced-motion so
-      // Framer Motion captures it on mount. suppressHydrationWarning handles
-      // the SSR/client opacity-0 mismatch without breaking the entrance animation.
+      // Apply the hidden initial state whenever reduced motion is not
+      // explicitly confirmed, so Framer Motion captures it on mount for both
+      // the SSR-unknown (null) and confirmed-normal-motion (false) paths.
+      // suppressHydrationWarning handles the SSR/client opacity-0 mismatch.
       initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
       animate={getAnimatedStatAnimate(shouldReduceMotion, isInView)}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}

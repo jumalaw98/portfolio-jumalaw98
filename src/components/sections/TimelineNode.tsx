@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -18,16 +17,11 @@ export function getTimelineNodeAnimate(reduced: boolean) {
  * math is needed to keep it centered on the line at any breakpoint.
  */
 export function TimelineNode({ accent = false }: TimelineNodeProps) {
-  const shouldReduceMotion = useReducedMotion() ?? false;
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // Gate entrance animation behind mount so SSR always emits the node
-    // visible — prevents reduced-motion users from receiving opacity:0 in
-    // server HTML that only resolves after client hydration.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
+  // useReducedMotion() returns null during SSR. Treat null the same as
+  // false (normal motion): both get the hidden initial state so Framer
+  // Motion captures it on mount and the scale-in reveal plays. The
+  // animate target only nudges reduced-motion clients to visible.
+  const shouldReduceMotion = useReducedMotion() === true;
 
   return (
     <motion.span
@@ -38,7 +32,12 @@ export function TimelineNode({ accent = false }: TimelineNodeProps) {
       )}
       style={{ boxShadow: "0 0 0 4px white" }}
       suppressHydrationWarning
-      initial={mounted && !shouldReduceMotion ? { scale: 0, opacity: 0 } : undefined}
+      // Normal-motion: hidden on first render so Framer Motion captures the
+      // initial state on mount and the scale-in reveal plays when in view.
+      // Reduced-motion: initial is undefined (server renders visible); the
+      // animate target below nudges the client to the final state.
+      // suppressHydrationWarning handles the SSR/client mismatch.
+      initial={shouldReduceMotion ? undefined : { scale: 0, opacity: 0 }}
       // When reduced motion is enabled, provide a live animate target so
       // toggling the preference at runtime places the node in its final
       // visible state even before it enters the viewport.
