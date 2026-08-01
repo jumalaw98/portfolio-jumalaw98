@@ -58,7 +58,7 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
       ref={ref}
       className="rounded-lg border border-border bg-white p-6 text-center"
       suppressHydrationWarning
-      initial={!shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
+      initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
       animate={isInView && !shouldReduceMotion ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
     >

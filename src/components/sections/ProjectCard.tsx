@@ -19,7 +19,7 @@ export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
   return (
     <motion.div
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+      initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
       transition={

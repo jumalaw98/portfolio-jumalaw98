@@ -74,9 +74,9 @@ export function RevealSection({ children, className, delay = 0, skeleton }: Reve
           animDoneRef.current = true;
         }}
         suppressHydrationWarning
-        initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+        initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
         whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-        animate={shouldReduceMotion ? undefined : controls}
+        animate={shouldReduceMotion ? { opacity: 1, y: 0 } : controls}
         viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
         transition={
           shouldReduceMotion ? { duration: 0 } : { duration: 0.5, delay, ease: "easeOut" }

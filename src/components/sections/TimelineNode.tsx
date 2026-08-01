@@ -24,7 +24,7 @@ export function TimelineNode({ accent = false }: TimelineNodeProps) {
       )}
       style={{ boxShadow: "0 0 0 4px white" }}
       suppressHydrationWarning
-      initial={!shouldReduceMotion ? { scale: 0, opacity: 0 } : undefined}
+      initial={shouldReduceMotion ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
       whileInView={shouldReduceMotion ? undefined : { scale: 1, opacity: 1 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.3, ease: "easeOut" }}
