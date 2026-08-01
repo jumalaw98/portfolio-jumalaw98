@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { motion, useReducedMotion, useAnimationControls } from "framer-motion";
+import { motion, useReducedMotion, useAnimationControls, useInView } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
 import type { Project } from "@/types/project";
 
@@ -15,24 +15,37 @@ interface ProjectCardProps {
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
   const controls = useAnimationControls();
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Intentionally set after mount to avoid hydration mismatches with
+    // framer-motion's `initial` prop — the component server-renders with
+    // no animation state, then enables entrance animations on the client.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   // Drive the entrance animation after mount so SSR HTML is always visible.
   // For reduced-motion users, jump straight to visible. For normal-motion,
-  // set hidden state first, then animate to visible when in view.
+  // set hidden state via `initial`, then animate to visible when in view.
   useEffect(() => {
     if (shouldReduceMotion) {
       controls.set({ opacity: 1, y: 0 });
       return;
     }
-    // Normal-motion: set hidden state first, then animate when in view
-    controls.set({ opacity: 0, y: 16 });
-    controls.start({ opacity: 1, y: 0 });
-  }, [shouldReduceMotion, controls]);
+    // Normal-motion: animate only when the card scrolls into view
+    if (isInView) {
+      controls.start({ opacity: 1, y: 0 });
+    }
+  }, [shouldReduceMotion, isInView, controls]);
 
   return (
     <motion.div
+      ref={ref}
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      initial={undefined}
+      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       animate={controls}
       viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}

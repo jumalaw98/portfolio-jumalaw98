@@ -40,22 +40,25 @@ export function RevealSection({
 }: Readonly<RevealSectionProps>) {
   const shouldReduceMotion = useReducedMotion() ?? false;
   const controls = useAnimationControls();
+  const [mounted, setMounted] = useState(false);
   const [animStarted, setAnimStarted] = useState(false);
   const [animDone, setAnimDone] = useState(false);
   const [debouncedReady, setDebouncedReady] = useState(false);
   const animDoneRef = useRef(false);
 
-  // Drive the entrance animation after mount so SSR HTML is always visible.
-  // For reduced-motion users, jump straight to visible. For normal-motion,
-  // set hidden state first, then animate to visible when in view.
+  // Gate `initial` behind mount so SSR HTML is always visible (no flash).
+  // Once mounted, framer-motion applies the hidden initial state synchronously
+  // before the next paint, avoiding the visible-then-hidden snap.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  // For reduced-motion users, jump straight to visible after mount.
   useEffect(() => {
     if (shouldReduceMotion) {
       controls.set({ opacity: 1, y: 0 });
-      return;
     }
-    // Normal-motion: set hidden state first, then animate when in view
-    controls.set({ opacity: 0, y: 20 });
-    controls.start({ opacity: 1, y: 0 });
   }, [shouldReduceMotion, controls]);
 
   // Debounce: show skeleton only if content hasn't animated within 200ms.
@@ -93,7 +96,7 @@ export function RevealSection({
           setAnimDone(true);
           animDoneRef.current = true;
         }}
-        initial={undefined}
+        initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 20 } : undefined}
         whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
         animate={controls}
         viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
@@ -111,8 +114,7 @@ export function RevealSection({
         Removed from DOM once the animation fully completes.
       */}
       {showSkeleton ? (
-        <div
-          role="status"
+        <output
           aria-label="Loading section"
           style={{
             position: "absolute",
@@ -124,7 +126,7 @@ export function RevealSection({
           }}
         >
           {skeleton}
-        </div>
+        </output>
       ) : null}
     </div>
   );
