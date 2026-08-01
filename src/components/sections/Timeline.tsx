@@ -19,7 +19,7 @@ interface TimelineProps {
  */
 export function Timeline({ entries }: Readonly<TimelineProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const shouldReduceMotion = useReducedMotion();
+  const shouldReduceMotion = useReducedMotion() ?? false;
 
   const { scrollYProgress } = useScroll({
     target: containerRef,

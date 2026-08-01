@@ -8,13 +8,13 @@ import { cn } from "@/lib/utils";
 import type { TimelineEntry } from "@/content/timeline";
 
 interface TimelineItemProps {
-  entry: TimelineEntry;
-  side: "left" | "right";
-  index: number;
+  readonly entry: TimelineEntry;
+  readonly side: "left" | "right";
+  readonly index: number;
 }
 
-export function TimelineItem({ entry, side, index }: TimelineItemProps) {
-  const shouldReduceMotion = useReducedMotion();
+export function TimelineItem({ entry, side, index }: Readonly<TimelineItemProps>) {
+  const shouldReduceMotion = useReducedMotion() ?? false;
   const [mounted, setMounted] = useState(false);
   const isLeft = side === "left";
 

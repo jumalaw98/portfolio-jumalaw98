@@ -4,7 +4,11 @@ import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface TimelineNodeProps {
-  accent?: boolean;
+  readonly accent?: boolean;
+}
+
+export function getTimelineNodeAnimate(reduced: boolean) {
+  return reduced ? { scale: 1, opacity: 1 } : undefined;
 }
 
 /**
@@ -13,7 +17,7 @@ interface TimelineNodeProps {
  * math is needed to keep it centered on the line at any breakpoint.
  */
 export function TimelineNode({ accent = false }: TimelineNodeProps) {
-  const shouldReduceMotion = useReducedMotion();
+  const shouldReduceMotion = useReducedMotion() ?? false;
 
   return (
     <motion.span
@@ -25,7 +29,11 @@ export function TimelineNode({ accent = false }: TimelineNodeProps) {
       style={{ boxShadow: "0 0 0 4px white" }}
       suppressHydrationWarning
       initial={shouldReduceMotion ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+      // When reduced motion is enabled, provide a live animate target so
+      // toggling the preference at runtime places the node in its final
+      // visible state even before it enters the viewport.
       whileInView={shouldReduceMotion ? undefined : { scale: 1, opacity: 1 }}
+      animate={shouldReduceMotion ? { scale: 1, opacity: 1 } : undefined}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.3, ease: "easeOut" }}
     />

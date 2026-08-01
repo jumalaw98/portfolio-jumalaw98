@@ -12,8 +12,12 @@ interface ProjectCardProps {
   readonly index?: number;
 }
 
+export function getProjectCardAnimate(reduced: boolean) {
+  return reduced ? { opacity: 1, y: 0 } : undefined;
+}
+
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
-  const shouldReduceMotion = useReducedMotion();
+  const shouldReduceMotion = useReducedMotion() ?? false;
   const animDoneRef = useRef(false);
 
   return (
@@ -21,6 +25,7 @@ export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
       initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+      animate={getProjectCardAnimate(shouldReduceMotion)}
       viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
       transition={
         shouldReduceMotion
