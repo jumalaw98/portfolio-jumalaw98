@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -21,11 +22,17 @@ export function getTimelineNodeAnimate(reduced: boolean) {
  * math is needed to keep it centered on the line at any breakpoint.
  */
 export function TimelineNode({ accent = false }: TimelineNodeProps) {
-  // useReducedMotion() returns null during SSR. Treat null the same as
-  // false (normal motion): both get the hidden initial state so Framer
-  // Motion captures it on mount and the scale-in reveal plays. The
-  // animate target only nudges reduced-motion clients to visible.
   const shouldReduceMotion = useReducedMotion() === true;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Only apply the hidden initial state after client mount so the SSR HTML
+  // is always visible. Reduced-motion users and JS-disabled clients see
+  // the node immediately instead of a blank scale:0/opacity:0 element.
+  const hiddenInitial = mounted && !shouldReduceMotion;
 
   return (
     <motion.span
@@ -35,16 +42,7 @@ export function TimelineNode({ accent = false }: TimelineNodeProps) {
         accent ? "bg-brand-orange ring-brand-orange-light" : "bg-brand-blue ring-brand-blue-light",
       )}
       style={{ boxShadow: "0 0 0 4px white" }}
-      suppressHydrationWarning
-      // Normal-motion: hidden on first render so Framer Motion captures the
-      // initial state on mount and the scale-in reveal plays when in view.
-      // Reduced-motion: initial is undefined (server renders visible); the
-      // animate target below nudges the client to the final state.
-      // suppressHydrationWarning handles the SSR/client mismatch.
-      initial={getTimelineNodeInitial(shouldReduceMotion)}
-      // When reduced motion is enabled, provide a live animate target so
-      // toggling the preference at runtime places the node in its final
-      // visible state even before it enters the viewport.
+      initial={hiddenInitial ? { scale: 0, opacity: 0 } : undefined}
       whileInView={shouldReduceMotion ? undefined : { scale: 1, opacity: 1 }}
       animate={getTimelineNodeAnimate(shouldReduceMotion)}
       viewport={{ once: true, margin: "-60px" }}

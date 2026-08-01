@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -18,15 +18,22 @@ export function getProjectCardAnimate(reduced: boolean) {
 
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
+  const [mounted, setMounted] = useState(false);
   const animDoneRef = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Only apply the hidden initial state after client mount so the SSR HTML
+  // is always visible. Reduced-motion users and JS-disabled clients see
+  // content immediately instead of a blank opacity:0 card.
+  const hiddenInitial = mounted && !shouldReduceMotion;
 
   return (
     <motion.div
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      // Always apply the hidden initial state for non-reduced-motion so
-      // Framer Motion captures it on mount. suppressHydrationWarning handles
-      // the SSR/client mismatch — changing `initial` after mount has no effect.
-      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
+      initial={hiddenInitial ? { opacity: 0, y: 16 } : undefined}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       animate={getProjectCardAnimate(shouldReduceMotion)}
       viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
@@ -47,7 +54,6 @@ export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
                 "0 12px 24px -8px rgba(28, 118, 181, 0.18), 0 0 0 1px rgba(28, 118, 181, 0.25)",
             }
       }
-      suppressHydrationWarning
     >
       <div>
         <div className="flex items-start justify-between gap-3">

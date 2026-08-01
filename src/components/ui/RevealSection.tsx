@@ -40,10 +40,15 @@ export function RevealSection({
 }: Readonly<RevealSectionProps>) {
   const shouldReduceMotion = useReducedMotion() ?? false;
   const controls = useAnimationControls();
+  const [mounted, setMounted] = useState(false);
   const [animStarted, setAnimStarted] = useState(false);
   const [animDone, setAnimDone] = useState(false);
   const [debouncedReady, setDebouncedReady] = useState(false);
   const animDoneRef = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Debounce: show skeleton only if content hasn't animated within 200ms.
   // Prevents a brief flash on fast connections where whileInView fires instantly.
@@ -81,7 +86,7 @@ export function RevealSection({
           animDoneRef.current = true;
         }}
         suppressHydrationWarning
-        initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+        initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
         whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
         animate={shouldReduceMotion ? { opacity: 1, y: 0 } : controls}
         viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
