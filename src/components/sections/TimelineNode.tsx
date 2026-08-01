@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,15 @@ export function getTimelineNodeAnimate(reduced: boolean) {
  */
 export function TimelineNode({ accent = false }: TimelineNodeProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Gate entrance animation behind mount so SSR always emits the node
+    // visible — prevents reduced-motion users from receiving opacity:0 in
+    // server HTML that only resolves after client hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   return (
     <motion.span
@@ -28,7 +38,7 @@ export function TimelineNode({ accent = false }: TimelineNodeProps) {
       )}
       style={{ boxShadow: "0 0 0 4px white" }}
       suppressHydrationWarning
-      initial={shouldReduceMotion ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+      initial={mounted && !shouldReduceMotion ? { scale: 0, opacity: 0 } : undefined}
       // When reduced motion is enabled, provide a live animate target so
       // toggling the preference at runtime places the node in its final
       // visible state even before it enters the viewport.
