@@ -99,7 +99,9 @@ export function RevealSection({
         Removed from DOM once the animation fully completes.
       */}
       {showSkeleton ? (
-        <output
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- skeleton overlay is not a form output; <output> would be semantically incorrect here
+        <div
+          role="status"
           aria-label="Loading section"
           style={{
             position: "absolute",
@@ -111,7 +113,7 @@ export function RevealSection({
           }}
         >
           {skeleton}
-        </output>
+        </div>
       ) : null}
     </div>
   );

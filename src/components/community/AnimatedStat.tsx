@@ -29,7 +29,12 @@ export function getAnimatedStatAnimate(reduced: boolean, inView: boolean | undef
 }
 
 export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  // useReducedMotion() returns null during SSR (preference not yet known).
+  // Treat null as true so the server always renders visible content — the
+  // animation opt-in is progressive enhancement, not a requirement to show
+  // the element at all.
+  const reducedMotionPreference = useReducedMotion();
+  const shouldReduceMotion = reducedMotionPreference !== false;
   const ref = useRef<HTMLDivElement>(null);
   // `once: true` — the count-up plays a single time per page load, the
   // moment the stat scrolls into view, and never re-triggers.

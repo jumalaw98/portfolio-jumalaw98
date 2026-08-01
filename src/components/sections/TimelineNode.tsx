@@ -33,7 +33,7 @@ export function TimelineNode({ accent = false }: TimelineNodeProps) {
       // toggling the preference at runtime places the node in its final
       // visible state even before it enters the viewport.
       whileInView={shouldReduceMotion ? undefined : { scale: 1, opacity: 1 }}
-      animate={shouldReduceMotion ? { scale: 1, opacity: 1 } : undefined}
+      animate={getTimelineNodeAnimate(shouldReduceMotion)}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.3, ease: "easeOut" }}
     />
