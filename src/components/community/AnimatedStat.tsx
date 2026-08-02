@@ -23,13 +23,22 @@ interface AnimatedStatProps {
 }
 
 export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
-  const shouldReduceMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   // `once: true` — the count-up plays a single time per page load, the
   // moment the stat scrolls into view, and never re-triggers.
   const isInView = useInView(ref, { once: true, margin: "-80px" });
   const [displayValue, setDisplayValue] = useState(stat.value);
+  const shouldReduceMotion = useReducedMotion() ?? false;
+  const [mounted, setMounted] = useState(false);
   const Icon = ICONS[stat.icon];
+
+  useEffect(() => {
+    // Intentionally set after mount to avoid hydration mismatches with
+    // framer-motion's `initial` prop — the component server-renders with
+    // no animation state, then enables entrance animations on the client.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isInView) return;
@@ -44,22 +53,22 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
 
     setDisplayValue(0);
 
-    const controls = animate(0, stat.value, {
+    const animControls = animate(0, stat.value, {
       duration: 1.4,
       ease: "easeOut",
       onUpdate: (latest) => setDisplayValue(Math.round(latest)),
     });
 
-    return () => controls.stop();
+    return () => animControls.stop();
   }, [isInView, shouldReduceMotion, stat.value]);
 
   return (
     <motion.div
       ref={ref}
       className="rounded-lg border border-border bg-white p-6 text-center"
-      suppressHydrationWarning
-      initial={!shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
-      animate={isInView && !shouldReduceMotion ? { opacity: 1, y: 0 } : undefined}
+      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
+      whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+      viewport={shouldReduceMotion ? undefined : { once: true, margin: "-80px" }}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
     >
       <Icon size={22} className="mx-auto text-brand-blue" />

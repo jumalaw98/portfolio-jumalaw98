@@ -4,9 +4,9 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion, useAnimationControls } from "framer-motion";
 
 interface RevealSectionProps {
-  children: ReactNode;
-  className?: string;
-  delay?: number;
+  readonly children: ReactNode;
+  readonly className?: string;
+  readonly delay?: number;
   /**
    * Optional skeleton shown as an overlay while content animates in.
    * The skeleton is positioned absolutely (no layout shift) and fades
@@ -16,7 +16,7 @@ interface RevealSectionProps {
    * A 200ms debounce prevents the skeleton from flashing on fast
    * connections where the observer fires immediately.
    */
-  skeleton?: ReactNode;
+  readonly skeleton?: ReactNode;
 }
 
 /**
@@ -32,13 +32,34 @@ interface RevealSectionProps {
  * Always renders <motion.div> regardless of state to avoid hydration
  * mismatches — only the initial/animate props change between paths.
  */
-export function RevealSection({ children, className, delay = 0, skeleton }: RevealSectionProps) {
-  const shouldReduceMotion = useReducedMotion();
+export function RevealSection({
+  children,
+  className,
+  delay = 0,
+  skeleton,
+}: Readonly<RevealSectionProps>) {
+  const shouldReduceMotion = useReducedMotion() ?? false;
   const controls = useAnimationControls();
+  const [mounted, setMounted] = useState(false);
   const [animStarted, setAnimStarted] = useState(false);
   const [animDone, setAnimDone] = useState(false);
   const [debouncedReady, setDebouncedReady] = useState(false);
   const animDoneRef = useRef(false);
+
+  // Gate `initial` behind mount so SSR HTML is always visible (no flash).
+  // Once mounted, framer-motion applies the hidden initial state synchronously
+  // before the next paint, avoiding the visible-then-hidden snap.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  // For reduced-motion users, jump straight to visible after mount.
+  useEffect(() => {
+    if (shouldReduceMotion) {
+      controls.set({ opacity: 1, y: 0 });
+    }
+  }, [shouldReduceMotion, controls]);
 
   // Debounce: show skeleton only if content hasn't animated within 200ms.
   // Prevents a brief flash on fast connections where whileInView fires instantly.
@@ -62,6 +83,8 @@ export function RevealSection({ children, className, delay = 0, skeleton }: Reve
   // When reduced motion is preferred, zero out the animation props
   // so the content is immediately visible with no motion.
   const showSkeleton = !!skeleton && !animDone && debouncedReady && !shouldReduceMotion;
+  const skeletonTransition =
+    delay > 0 ? `opacity 0.5s ease-out ${delay}s` : "opacity 0.5s ease-out";
 
   return (
     <div className={className} style={{ position: "relative" }}>
@@ -73,10 +96,9 @@ export function RevealSection({ children, className, delay = 0, skeleton }: Reve
           setAnimDone(true);
           animDoneRef.current = true;
         }}
-        suppressHydrationWarning
-        initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+        initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 20 } : undefined}
         whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-        animate={shouldReduceMotion ? undefined : controls}
+        animate={controls}
         viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
         transition={
           shouldReduceMotion ? { duration: 0 } : { duration: 0.5, delay, ease: "easeOut" }
@@ -92,20 +114,19 @@ export function RevealSection({ children, className, delay = 0, skeleton }: Reve
         Removed from DOM once the animation fully completes.
       */}
       {showSkeleton ? (
-        <div
-          role="status"
+        <output
           aria-label="Loading section"
           style={{
             position: "absolute",
             inset: 0,
             zIndex: 2,
             opacity: animStarted ? 0 : 1,
-            transition: `opacity 0.5s ease-out${delay > 0 ? ` ${delay}s` : ""}`,
+            transition: skeletonTransition,
             pointerEvents: "none",
           }}
         >
           {skeleton}
-        </div>
+        </output>
       ) : null}
     </div>
   );

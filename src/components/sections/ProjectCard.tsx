@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useAnimationControls } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
 import type { Project } from "@/types/project";
 
@@ -13,13 +13,27 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
-  const shouldReduceMotion = useReducedMotion();
-  const animDoneRef = useRef(false);
+  const shouldReduceMotion = useReducedMotion() ?? false;
+  const controls = useAnimationControls();
+
+  // Drive the entrance animation after mount so SSR HTML is always visible.
+  // For reduced-motion users, jump straight to visible. For normal-motion,
+  // hide via controls.set first, then animate to visible when in view.
+  useEffect(() => {
+    if (shouldReduceMotion) {
+      controls.set({ opacity: 1, y: 0 });
+      return;
+    }
+    // Normal-motion: apply hidden state first (initial prop is ignored after
+    // mount, so controls.set is the only reliable way), then reveal on scroll.
+    controls.set({ opacity: 0, y: 16 });
+  }, [shouldReduceMotion, controls]);
 
   return (
     <motion.div
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+      initial={undefined}
+      animate={controls}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
       transition={
@@ -27,9 +41,6 @@ export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
           ? { duration: 0 }
           : { duration: 0.4, delay: index * 0.06, ease: "easeOut" }
       }
-      onAnimationComplete={() => {
-        animDoneRef.current = true;
-      }}
       whileHover={
         shouldReduceMotion
           ? undefined
@@ -39,7 +50,6 @@ export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
                 "0 12px 24px -8px rgba(28, 118, 181, 0.18), 0 0 0 1px rgba(28, 118, 181, 0.25)",
             }
       }
-      suppressHydrationWarning
     >
       <div>
         <div className="flex items-start justify-between gap-3">

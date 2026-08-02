@@ -16,7 +16,7 @@ interface SkeletonProps {
  * Each block is `aria-hidden` — the outer container should use `role="status"`
  * or `aria-busy` so screen readers announce the loading state.
  */
-export function Skeleton({ className = "", shimmer = false }: SkeletonProps) {
+export function Skeleton({ className = "", shimmer = false }: Readonly<SkeletonProps>) {
   return (
     <div
       className={`relative isolate overflow-hidden rounded-lg bg-zinc-200 ${className}`}
