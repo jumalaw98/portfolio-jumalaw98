@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView, useReducedMotion, useAnimationControls, animate } from "framer-motion";
+import { motion, useInView, useReducedMotion, animate } from "framer-motion";
 import { Users, Mic, Building2, CalendarDays, Globe2, Rocket } from "lucide-react";
 import type { ImpactStat, ImpactStatIconKey } from "@/content/impact-stats";
 
@@ -29,23 +29,16 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
   const isInView = useInView(ref, { once: true, margin: "-80px" });
   const [displayValue, setDisplayValue] = useState(stat.value);
   const shouldReduceMotion = useReducedMotion() ?? false;
-  const controls = useAnimationControls();
+  const [mounted, setMounted] = useState(false);
   const Icon = ICONS[stat.icon];
 
-  // Drive the entrance animation after mount so SSR HTML is always visible.
-  // For reduced-motion users, jump straight to visible. For normal-motion,
-  // set hidden state first, then animate to visible when in view.
   useEffect(() => {
-    if (shouldReduceMotion) {
-      controls.set({ opacity: 1, y: 0 });
-      return;
-    }
-    // Normal-motion: set hidden state first, then animate when in view
-    controls.set({ opacity: 0, y: 16 });
-    if (isInView) {
-      controls.start({ opacity: 1, y: 0 });
-    }
-  }, [shouldReduceMotion, isInView, controls]);
+    // Intentionally set after mount to avoid hydration mismatches with
+    // framer-motion's `initial` prop — the component server-renders with
+    // no animation state, then enables entrance animations on the client.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isInView) return;
@@ -73,8 +66,9 @@ export function AnimatedStat({ stat, index = 0 }: AnimatedStatProps) {
     <motion.div
       ref={ref}
       className="rounded-lg border border-border bg-white p-6 text-center"
-      initial={undefined}
-      animate={controls}
+      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
+      whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+      viewport={shouldReduceMotion ? undefined : { once: true, margin: "-80px" }}
       transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
     >
       <Icon size={22} className="mx-auto text-brand-blue" />
