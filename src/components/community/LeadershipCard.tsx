@@ -169,7 +169,7 @@ function IconLink({ href, label, Icon }: Readonly<IconLinkProps>) {
 // ---------------------------------------------------------------------------
 
 export function LeadershipCard({ role, index = 0 }: Readonly<LeadershipCardProps>) {
-  const shouldReduceMotion = useReducedMotion();
+  const shouldReduceMotion = useReducedMotion() ?? false;
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

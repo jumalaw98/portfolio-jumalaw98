@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useAnimationControls } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
 import type { Project } from "@/types/project";
 
@@ -13,21 +13,34 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
-  const shouldReduceMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
+  const shouldReduceMotion = useReducedMotion() ?? false;
+  const controls = useAnimationControls();
 
+  // Drive the entrance animation after mount so SSR HTML is always visible.
+  // For reduced-motion users, jump straight to visible. For normal-motion,
+  // hide via controls.set first, then animate to visible when in view.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
+    if (shouldReduceMotion) {
+      controls.set({ opacity: 1, y: 0 });
+      return;
+    }
+    // Normal-motion: apply hidden state first (initial prop is ignored after
+    // mount, so controls.set is the only reliable way), then reveal on scroll.
+    controls.set({ opacity: 0, y: 16 });
+  }, [shouldReduceMotion, controls]);
 
   return (
     <motion.div
       className="flex h-full flex-col justify-between rounded-lg border border-border bg-white p-6"
-      initial={mounted && !shouldReduceMotion ? { opacity: 0, y: 16 } : undefined}
+      initial={undefined}
+      animate={controls}
       whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.06 }}
+      viewport={shouldReduceMotion ? undefined : { once: true, margin: "-50px" }}
+      transition={
+        shouldReduceMotion
+          ? { duration: 0 }
+          : { duration: 0.4, delay: index * 0.06, ease: "easeOut" }
+      }
       whileHover={
         shouldReduceMotion
           ? undefined

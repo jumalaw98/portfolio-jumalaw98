@@ -10,13 +10,13 @@ import type { BlogPost } from "@/types/blogPost";
 import { formatBlogDate, formatReadTime } from "./blogFormat";
 
 interface BlogCardProps {
-  post: BlogPost;
-  priority?: boolean;
-  index?: number;
+  readonly post: BlogPost;
+  readonly priority?: boolean;
+  readonly index?: number;
 }
 
 export function BlogCard({ post, priority = false, index = 0 }: BlogCardProps) {
-  const shouldReduceMotion = useReducedMotion();
+  const shouldReduceMotion = useReducedMotion() ?? false;
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

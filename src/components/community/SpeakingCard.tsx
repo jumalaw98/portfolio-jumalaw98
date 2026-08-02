@@ -11,7 +11,7 @@ interface SpeakingCardProps {
 }
 
 export function SpeakingCard({ talk }: Readonly<SpeakingCardProps>) {
-  const shouldReduceMotion = useReducedMotion();
+  const shouldReduceMotion = useReducedMotion() ?? false;
   const hasResources = Boolean(
     talk.resources?.slidesUrl || talk.resources?.videoUrl || talk.resources?.eventPageUrl,
   );

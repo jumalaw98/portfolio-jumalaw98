@@ -65,6 +65,16 @@ samp {
   font-family: var(--font-mono), monospace;
 }
 
+/* Skeleton shimmer for loading placeholders */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
 /* Visible keyboard focus states everywhere — accessibility floor per branding-guide.md */
 a:focus-visible,
 button:focus-visible,

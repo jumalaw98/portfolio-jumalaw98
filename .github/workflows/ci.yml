@@ -20,6 +20,11 @@ on:
   push:
     branches: [main]
 
+# Least-privilege default: every job gets read-only token access unless
+# it declares a narrower or broader override inline.
+permissions:
+  contents: read
+
 # ── Concurrency ──────────────────────────────────────────────────
 # Cancel in-progress runs for the same branch/PR. New commits →
 # old runs stop immediately, saving minutes for fast feedback.
@@ -33,7 +38,7 @@ defaults:
     shell: bash
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
   NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://jumalaw98.vercel.app' }}
   NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ${{ vars.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || 'jumalaw98.vercel.app' }}
 
@@ -47,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -55,7 +60,9 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        # --ignore-scripts prevents lifecycle hooks (postinstall etc.) in
+        # third-party packages from executing arbitrary code on the runner.
+        run: npm ci --ignore-scripts
 
       - name: ESLint
         run: npm run lint
@@ -80,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -88,7 +95,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: TypeScript check
         run: npm run typecheck
@@ -100,9 +107,9 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -110,29 +117,24 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: npm audit
-        # --audit-level=high → fails only on high/critical severity
-        # --include-workspace-root for npm workspaces (safe for single-package too)
-        run: npm audit --audit-level=high
-        continue-on-error: true
-        id: audit
+        # --audit-level=high fails on any high/critical severity finding in production deps.
+        # --omit=dev excludes devDependencies (e.g. eslint plugins) whose vulnerabilities
+        # are confined to CI/dev tooling and never reach the production runtime.
+        run: npm audit --audit-level=high --omit=dev
 
       - name: Summary
+        if: success()
         run: |
           {
-            echo "## 🔒 Dependency Audit"
+            echo "## 🔒 Dependency Audit — ✅ Passed"
             echo ""
-            if [ "${{ steps.audit.outcome }}" = "success" ]; then
-              echo "| Status | Severity threshold |"
-              echo "|--------|-------------------|"
-              echo "| ✅ Passed | high (none found) |"
-            else
-              echo "| Status | Severity threshold |"
-              echo "|--------|-------------------|"
-              echo "| ⚠️  Warnings found | high+ (review below) |"
-            fi
+            echo "| Check | Status |"
+            echo "|-------|--------|"
+            echo "| Lockfile integrity | ✅ Validated by npm ci |"
+            echo "| npm audit (high+) | ✅ No vulnerabilities |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ────────────────────────────────────────────────────────────────
@@ -141,11 +143,11 @@ jobs:
 
   build:
     name: Build
-    needs: [code-quality, type-check]
+    needs: [code-quality, type-check, audit]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -163,13 +165,16 @@ jobs:
             nextjs-build-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
 
       - name: Install dependencies
-        run: npm ci
+        # --ignore-scripts blocks postinstall hooks in deps at install time.
+        # The build itself is invoked directly via node_modules/.bin/next,
+        # not through npm run, so this does not affect the Next.js build.
+        run: npm ci --ignore-scripts
 
       - name: Build application
-        # Use `npx next build` directly, not `npm run build`,
+        # Use Next.js directly, not `npm run build`,
         # because our build script chains lint + type-check
         # which are already covered by upstream jobs.
-        run: npx next build
+        run: ./node_modules/.bin/next build
 
       - name: Summary
         if: success()
@@ -200,7 +205,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -208,7 +213,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build with bundle analyzer
         run: npm run analyze
