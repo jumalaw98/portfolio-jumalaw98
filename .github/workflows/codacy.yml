@@ -33,13 +33,27 @@ jobs:
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     name: Codacy Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # For trusted runs (not fork PRs), ensure the Codacy token is present
+      - name: Ensure Codacy project token is set for trusted runs
+        if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if [ -z "${CODACY_PROJECT_TOKEN}" ]; then
+            echo "CODACY_PROJECT_TOKEN is not set. Failing trusted run to avoid non-gated results."
+            exit 1
+          fi
 
       # Execute Codacy Analysis CLI and generate a SARIF output with the security issues identified during the analysis
+      # Skip on fork PRs where secrets are not available
       - name: Run Codacy Analysis CLI
+        if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
         uses: codacy/codacy-analysis-cli-action@d840f886c4bd4edc059706d09c6a1586111c540b
         with:
           # Check https://github.com/codacy/codacy-analysis-cli#project-token to get your project token from your Codacy repository
@@ -56,6 +70,7 @@ jobs:
 
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file
-        uses: github/codeql-action/upload-sarif@v3
+        if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
         with:
           sarif_file: results.sarif
