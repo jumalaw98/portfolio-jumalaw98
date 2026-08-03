@@ -39,7 +39,7 @@ jobs:
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # For trusted runs (not fork PRs), ensure the Codacy token is present
       - name: Ensure Codacy project token is set for trusted runs
@@ -54,7 +54,7 @@ jobs:
       # Skip on fork PRs where secrets are not available
       - name: Run Codacy Analysis CLI
         if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
-        uses: codacy/codacy-analysis-cli-action@d840f886c4bd4edc059706d09c6a1586111c540b
+        uses: codacy/codacy-analysis-cli-action@562ee3e92b8e92df8b67e0a5ff8aa8e261919c08
         with:
           # Check https://github.com/codacy/codacy-analysis-cli#project-token to get your project token from your Codacy repository
           # You can also omit the token and run the tools that support default configurations
@@ -71,6 +71,6 @@ jobs:
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file
         if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
-        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
         with:
           sarif_file: results.sarif
