@@ -8,14 +8,7 @@
     "repositoryName": "portfolio-jumalaw98",
     "createdAt": "2026-08-02T03:48:21.182Z",
     "updatedAt": "2026-08-02T03:48:21.182Z",
-    "languages": [
-      "CSS",
-      "Javascript",
-      "JSON",
-      "Markdown",
-      "TypeScript",
-      "YAML"
-    ]
+    "languages": ["CSS", "Javascript", "JSON", "Markdown", "TypeScript", "YAML"]
   },
   "tools": [
     {
