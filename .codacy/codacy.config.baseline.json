@@ -15,12 +15,6 @@
       "toolId": "Stylelint",
       "patterns": [
         {
-          "patternId": "Stylelint_selector-not-notation",
-          "parameters": {
-            "selector-not-notation": "complex"
-          }
-        },
-        {
           "patternId": "Stylelint_function-url-scheme-disallowed-list",
           "parameters": {
             "function-url-scheme-disallowed-list": "null"
