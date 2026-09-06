@@ -68,6 +68,12 @@ jobs:
           # This will handover control about PR rejection to the GitHub side
           max-allowed-issues: 2147483647
 
+      # Codacy aggregates several tools into one SARIF file. GitHub requires
+      # each run for a given tool in that file to have a distinct category.
+      - name: Prepare SARIF for GitHub Code Scanning
+        if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
+        run: node .github/scripts/prepare-codacy-sarif.mjs results.sarif
+
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file
         if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
