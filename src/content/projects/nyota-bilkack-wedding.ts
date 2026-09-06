@@ -35,5 +35,6 @@ export const nyotaBilkackWedding: Project = {
     "The project taught me the importance of balancing technical excellence with emotional storytelling in web development. I learned to optimize image delivery at scale while maintaining quality, and how to create performant animations that enhance rather than distract from the content. The experience reinforced the value of component-driven architecture for maintainability and the importance of thorough testing for production reliability. I would now prioritize more aggressive caching strategies and implement additional performance monitoring for future deployments.",
 
   liveUrl: "https://nyotawedsbilkack.vercel.app/",
+  githubUrl: "https://github.com/Ua-Bella-Florist/nyota-bilkack-cinematic",
   screenshots: [...PROJECT_IMAGES.projects["nyota-bilkack-wedding"]],
 };
