@@ -55,9 +55,9 @@ get_version_from_yaml() {
 get_latest_version() {
     local response
     if [ -n "$GH_TOKEN" ]; then
-        response=$(curl -Lq --proto-redir =https --header "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/codacy/codacy-cli-v2/releases/latest" 2>/dev/null)
+        response=$(curl -Lq --proto '=https' --proto-redir '=https' --header "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/codacy/codacy-cli-v2/releases/latest" 2>/dev/null)
     else
-        response=$(curl -Lq --proto-redir =https "https://api.github.com/repos/codacy/codacy-cli-v2/releases/latest" 2>/dev/null)
+        response=$(curl -Lq --proto '=https' --proto-redir '=https' "https://api.github.com/repos/codacy/codacy-cli-v2/releases/latest" 2>/dev/null)
     fi
 
     handle_rate_limit "$response"
@@ -80,9 +80,9 @@ download_file() {
 
     echo "Downloading from URL: ${url}"
     if command -v curl > /dev/null 2>&1; then
-        curl -# -LS "$url" -O
+        curl -# -LS --proto '=https' --proto-redir '=https' "$url" -O
     elif command -v wget > /dev/null 2>&1; then
-        wget "$url"
+        wget --https-only "$url"
     else
         fatal "Error: Could not find curl or wget, please install one."
     fi

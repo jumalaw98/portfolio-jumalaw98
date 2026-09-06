@@ -13,13 +13,14 @@ import { mvpProjects } from "@/content/projects";
 export const dynamic = "force-dynamic";
 
 function shuffle<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = randomInt(0, i + 1);
-    const temp = shuffled[i];
-    shuffled[i] = shuffled[j];
-    shuffled[j] = temp;
+  const remaining = [...array];
+  const shuffled: T[] = [];
+
+  while (remaining.length > 0) {
+    const selectedIndex = randomInt(0, remaining.length);
+    shuffled.push(...remaining.splice(selectedIndex, 1));
   }
+
   return shuffled;
 }
 
