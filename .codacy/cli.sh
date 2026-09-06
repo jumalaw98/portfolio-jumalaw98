@@ -3,6 +3,11 @@
 
 set -e +o pipefail
 
+fatal() {
+    echo "$1" >&2
+    exit 1
+}
+
 # Set up paths first
 bin_name="codacy-cli-v2"
 
@@ -49,13 +54,16 @@ get_version_from_yaml() {
 get_latest_version() {
     local response
     if [ -n "$GH_TOKEN" ]; then
-        response=$(curl -Lq --header "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/codacy/codacy-cli-v2/releases/latest" 2>/dev/null)
+        response=$(curl -Lq --proto-redir =https --header "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/codacy/codacy-cli-v2/releases/latest" 2>/dev/null)
     else
-        response=$(curl -Lq "https://api.github.com/repos/codacy/codacy-cli-v2/releases/latest" 2>/dev/null)
+        response=$(curl -Lq --proto-redir =https "https://api.github.com/repos/codacy/codacy-cli-v2/releases/latest" 2>/dev/null)
     fi
 
     handle_rate_limit "$response"
     local version=$(echo "$response" | grep -m 1 tag_name | cut -d'"' -f4)
+    if [ -z "$version" ]; then
+        fatal "Error: Could not determine latest version from GitHub API"
+    fi
     echo "$version"
 }
 
@@ -111,18 +119,18 @@ if [ -n "$CODACY_CLI_V2_VERSION" ] && [ "$1" = "update" ]; then
     echo "    Unset CODACY_CLI_V2_VERSION to use the latest version"
 fi
 
-# Ensure version.yaml exists and is up to date
-if [ ! -f "$version_file" ] || [ "$1" = "update" ]; then
+# Fetch latest version from GitHub only when needed
+if [ -n "$CODACY_CLI_V2_VERSION" ] && [ "$1" != "update" ]; then
+    version="$CODACY_CLI_V2_VERSION"
+elif [ ! -f "$version_file" ] || [ "$1" = "update" ]; then
     echo "ℹ️  Fetching latest version..."
     version=$(get_latest_version)
     mkdir -p "$CODACY_CLI_V2_TMP_FOLDER"
     echo "version: \"$version\"" > "$version_file"
 fi
 
-# Set the version to use
-if [ -n "$CODACY_CLI_V2_VERSION" ]; then
-    version="$CODACY_CLI_V2_VERSION"
-else
+# Set the version to use (fallback to version.yaml)
+if [ -z "$version" ]; then
     version=$(get_version_from_yaml)
 fi
 
@@ -145,5 +153,5 @@ fi
 if [ "$#" -eq 1 ] && [ "$1" = "download" ]; then
     echo "Codacy cli v2 download succeeded"
 else
-    eval "$run_command $*"
+    "$run_command" "$@"
 fi

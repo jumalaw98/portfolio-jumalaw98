@@ -3,7 +3,7 @@ runtimes:
     - node@22.2.0
     - python@3.11.11
 tools:
-    - eslint@8.57.0
+    - eslint@9.39.5
     - lizard@1.23.0
     - opengrep@1.26.0
     - pmd@6.55.0

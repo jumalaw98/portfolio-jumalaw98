@@ -13,10 +13,14 @@ import { mvpProjects } from "@/content/projects";
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  const featuredProjects = mvpProjects
-    .filter((project) => project.featured)
-    .sort(() => randomInt(3) - 1)
-    .slice(0, 3);
+  const featuredProjects = (() => {
+    const pool = mvpProjects.filter((project) => project.featured);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = randomInt(i + 1);
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, 3);
+  })();
 
   return (
     <>
