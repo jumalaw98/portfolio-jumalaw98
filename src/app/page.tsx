@@ -12,15 +12,19 @@ import { mvpProjects } from "@/content/projects";
 
 export const dynamic = "force-dynamic";
 
+function shuffle<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = randomInt(0, i + 1);
+    const temp = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = temp;
+  }
+  return shuffled;
+}
+
 export default function HomePage() {
-  const featuredProjects = (() => {
-    const pool = mvpProjects.filter((project) => project.featured);
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = randomInt(i + 1);
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    return pool.slice(0, 3);
-  })();
+  const featuredProjects = shuffle(mvpProjects.filter((project) => project.featured)).slice(0, 3);
 
   return (
     <>

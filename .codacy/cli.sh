@@ -38,6 +38,7 @@ if [ -z "$CODACY_CLI_V2_TMP_FOLDER" ]; then
 fi
 
 version_file="$CODACY_CLI_V2_TMP_FOLDER/version.yaml"
+version=""
 
 
 get_version_from_yaml() {
@@ -120,7 +121,7 @@ if [ -n "$CODACY_CLI_V2_VERSION" ] && [ "$1" = "update" ]; then
 fi
 
 # Fetch latest version from GitHub only when needed
-if [ -n "$CODACY_CLI_V2_VERSION" ] && [ "$1" != "update" ]; then
+if [ -n "$CODACY_CLI_V2_VERSION" ]; then
     version="$CODACY_CLI_V2_VERSION"
 elif [ ! -f "$version_file" ] || [ "$1" = "update" ]; then
     echo "ℹ️  Fetching latest version..."
@@ -131,7 +132,9 @@ fi
 
 # Set the version to use (fallback to version.yaml)
 if [ -z "$version" ]; then
-    version=$(get_version_from_yaml)
+    if ! version=$(get_version_from_yaml); then
+        fatal "Error: Could not determine CLI version from $version_file"
+    fi
 fi
 
 
