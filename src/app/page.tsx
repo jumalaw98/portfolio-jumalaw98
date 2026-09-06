@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Hero } from "@/components/sections/Hero";
@@ -9,8 +10,22 @@ import { CredibilityStrip } from "@/components/sections/CredibilityStrip";
 import { RevealSection } from "@/components/ui/RevealSection";
 import { mvpProjects } from "@/content/projects";
 
+export const dynamic = "force-dynamic";
+
+function shuffle<T>(array: T[]): T[] {
+  const remaining = [...array];
+  const shuffled: T[] = [];
+
+  while (remaining.length > 0) {
+    const selectedIndex = randomInt(0, remaining.length);
+    shuffled.push(...remaining.splice(selectedIndex, 1));
+  }
+
+  return shuffled;
+}
+
 export default function HomePage() {
-  const featuredProjects = mvpProjects.filter((p) => p.featured);
+  const featuredProjects = shuffle(mvpProjects.filter((project) => project.featured)).slice(0, 3);
 
   return (
     <>
