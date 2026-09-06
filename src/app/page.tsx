@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Hero } from "@/components/sections/Hero";
@@ -9,8 +10,13 @@ import { CredibilityStrip } from "@/components/sections/CredibilityStrip";
 import { RevealSection } from "@/components/ui/RevealSection";
 import { mvpProjects } from "@/content/projects";
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
-  const featuredProjects = mvpProjects.filter((p) => p.featured);
+  const featuredProjects = mvpProjects
+    .filter((project) => project.featured)
+    .sort(() => randomInt(3) - 1)
+    .slice(0, 3);
 
   return (
     <>
