@@ -12,3 +12,4 @@ public/fallback-*.js
 *.tsbuildinfo
 next-env.d.ts
 package-lock.json
+.codacy/

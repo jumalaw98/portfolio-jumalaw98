@@ -18,6 +18,7 @@ export interface Project {
   reflection: string | string[];
 
   liveUrl?: string;
+  githubUrl?: string;
   screenshots?: string[];
   designCredit?: string;
 }
