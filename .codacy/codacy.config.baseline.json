@@ -6,14 +6,27 @@
     "organization": "jumalaw98",
     "repositoryId": "894165",
     "repositoryName": "portfolio-jumalaw98",
-    "createdAt": "2026-08-02T03:48:21.182Z",
-    "updatedAt": "2026-08-02T03:48:21.182Z",
-    "languages": ["CSS", "Javascript", "JSON", "Markdown", "TypeScript", "YAML"]
+    "createdAt": "2026-09-06T12:05:08.409Z",
+    "updatedAt": "2026-09-06T12:05:08.409Z",
+    "languages": [
+      "CSS",
+      "Javascript",
+      "JSON",
+      "Markdown",
+      "TypeScript",
+      "YAML"
+    ]
   },
   "tools": [
     {
       "toolId": "Stylelint",
       "patterns": [
+        {
+          "patternId": "Stylelint_selector-not-notation",
+          "parameters": {
+            "selector-not-notation": "complex"
+          }
+        },
         {
           "patternId": "Stylelint_function-url-scheme-disallowed-list",
           "parameters": {

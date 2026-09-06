@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
+import { GithubIcon } from "@/components/ui/BrandIcons";
 import { Container } from "@/components/ui/Container";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +13,10 @@ interface CaseStudyLayoutProps {
   readonly nextProject?: Project;
 }
 
-const sections: { heading: string; field: keyof Project }[] = [
+type CaseStudyField =
+  "problem" | "constraints" | "decisions" | "whatWasBuilt" | "outcome" | "reflection";
+
+const sections: { heading: string; field: CaseStudyField }[] = [
   { heading: "Problem", field: "problem" },
   { heading: "Constraints", field: "constraints" },
   { heading: "Decisions", field: "decisions" },
@@ -20,6 +24,23 @@ const sections: { heading: string; field: keyof Project }[] = [
   { heading: "Outcome", field: "outcome" },
   { heading: "What's Next / Reflection", field: "reflection" },
 ];
+
+function getCaseStudyContent(project: Project, field: CaseStudyField): string | string[] {
+  switch (field) {
+    case "problem":
+      return project.problem;
+    case "constraints":
+      return project.constraints;
+    case "decisions":
+      return project.decisions;
+    case "whatWasBuilt":
+      return project.whatWasBuilt;
+    case "outcome":
+      return project.outcome;
+    case "reflection":
+      return project.reflection;
+  }
+}
 
 export function CaseStudyLayout({ project, nextProject }: CaseStudyLayoutProps) {
   return (
@@ -41,16 +62,32 @@ export function CaseStudyLayout({ project, nextProject }: CaseStudyLayoutProps) 
               </Badge>
             ))}
           </div>
-          {project.liveUrl ? (
-            <a
-              href={project.liveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-blue hover:text-brand-blue-dark"
-            >
-              Visit live site
-              <ExternalLink size={16} />
-            </a>
+          {project.liveUrl || project.githubUrl ? (
+            <div className="mt-6 flex flex-wrap gap-4">
+              {project.liveUrl ? (
+                <a
+                  href={project.liveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-blue hover:text-brand-blue-dark"
+                >
+                  Visit live site
+                  <ExternalLink size={16} />
+                </a>
+              ) : null}
+              {project.githubUrl ? (
+                <a
+                  href={project.githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="View source code on GitHub (opens in a new tab)"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-blue hover:text-brand-blue-dark"
+                >
+                  View source code on GitHub
+                  <GithubIcon width={16} height={16} />
+                </a>
+              ) : null}
+            </div>
           ) : null}
         </Container>
       </header>
@@ -89,11 +126,9 @@ export function CaseStudyLayout({ project, nextProject }: CaseStudyLayoutProps) 
                 </p> */}
                 <div className="mt-3 space-y-4 text-base leading-relaxed text-text-body">
                   {(() => {
-                    const raw = project[field];
-                    if (!raw) return null;
-                    const paragraphs: string[] =
-                      typeof raw === "string" ? raw.split("\n\n") : (raw as string[]);
-                    return paragraphs.map((para, i) => <p key={`${field}-${i}`}>{para}</p>);
+                    const raw = getCaseStudyContent(project, field);
+                    const paragraphs = typeof raw === "string" ? raw.split("\n\n") : raw;
+                    return paragraphs.map((para, i) => <p key={`${heading}-${i}`}>{para}</p>);
                   })()}
                 </div>
               </section>
