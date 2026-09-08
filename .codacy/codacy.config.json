@@ -6,13 +6,14 @@
     "organization": "jumalaw98",
     "repositoryId": "894165",
     "repositoryName": "portfolio-jumalaw98",
-    "createdAt": "2026-09-06T12:05:08.409Z",
-    "updatedAt": "2026-09-06T12:05:08.409Z",
+    "createdAt": "2026-09-08T08:35:15.472Z",
+    "updatedAt": "2026-09-08T08:35:15.472Z",
     "languages": [
       "CSS",
       "Javascript",
       "JSON",
       "Markdown",
+      "Shell",
       "TypeScript",
       "YAML"
     ]
@@ -716,6 +717,65 @@
     {
       "toolId": "Lizard",
       "patterns": []
+    },
+    {
+      "toolId": "shellcheck",
+      "patterns": [
+        {
+          "patternId": "shellcheck_SC2156"
+        },
+        {
+          "patternId": "shellcheck_SC2115"
+        },
+        {
+          "patternId": "shellcheck_SC2035"
+        },
+        {
+          "patternId": "shellcheck_SC2025"
+        },
+        {
+          "patternId": "shellcheck_SC2029"
+        },
+        {
+          "patternId": "shellcheck_SC2001"
+        },
+        {
+          "patternId": "shellcheck_SC2024"
+        },
+        {
+          "patternId": "shellcheck_SC2004"
+        },
+        {
+          "patternId": "shellcheck_SC2002"
+        },
+        {
+          "patternId": "shellcheck_SC2026"
+        },
+        {
+          "patternId": "shellcheck_SC2033"
+        },
+        {
+          "patternId": "shellcheck_SC2015"
+        },
+        {
+          "patternId": "shellcheck_SC2034"
+        },
+        {
+          "patternId": "shellcheck_SC2020"
+        },
+        {
+          "patternId": "shellcheck_SC2027"
+        },
+        {
+          "patternId": "shellcheck_SC2036"
+        },
+        {
+          "patternId": "shellcheck_SC2031"
+        },
+        {
+          "patternId": "shellcheck_SC2022"
+        }
+      ]
     },
     {
       "toolId": "Semgrep",

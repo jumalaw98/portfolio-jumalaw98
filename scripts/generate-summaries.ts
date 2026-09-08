@@ -75,7 +75,10 @@ async function processFile(filePath: string): Promise<string | null> {
 
   let frontmatter: Record<string, unknown>;
   try {
-    frontmatter = yaml.load(frontmatterYaml) as Record<string, unknown>;
+    frontmatter = yaml.load(frontmatterYaml, { schema: yaml.JSON_SCHEMA }) as Record<
+      string,
+      unknown
+    >;
   } catch {
     return null;
   }

@@ -1,8 +1,11 @@
+import "server-only";
+
 import { NextResponse, after } from "next/server";
 import { CONTACT_EMAIL } from "@/lib/constants";
 import { validateContactForm } from "@/lib/validation";
 import { contactLimiter, getClientIp } from "@/lib/rate-limit";
 import { track } from "@/lib/instrument";
+import { validateOrigin } from "@/lib/csrf";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -84,6 +87,12 @@ async function sendViaResend(params: SendEmailParams): Promise<NextResponse> {
 
 export async function POST(request: Request) {
   try {
+    // ── CSRF: Origin / Referer validation ───────────────────────────
+    const originCheck = validateOrigin(request);
+    if (!originCheck.ok) {
+      return NextResponse.json({ error: "Request rejected." }, { status: 403 });
+    }
+
     // ── Rate limiting ─────────────────────────────────────────────────--
     const ip = getClientIp(request);
 

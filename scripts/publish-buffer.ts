@@ -84,7 +84,7 @@ const bodyMdx = parts.slice(2).join("---").trim();
 
 let frontmatter: Record<string, unknown>;
 try {
-  const parsed = yaml.load(frontmatterYaml);
+  const parsed = yaml.load(frontmatterYaml, { schema: yaml.JSON_SCHEMA });
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     console.error("Invalid frontmatter: YAML parsed to a non-object value");
     process.exit(1);

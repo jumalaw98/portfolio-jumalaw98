@@ -199,7 +199,10 @@ if (isEntryPoint) {
 
   let frontmatter: Record<string, unknown>;
   try {
-    frontmatter = yaml.load(frontmatterYaml) as Record<string, unknown>;
+    frontmatter = yaml.load(frontmatterYaml, { schema: yaml.JSON_SCHEMA }) as Record<
+      string,
+      unknown
+    >;
   } catch (err) {
     console.error("Failed to parse frontmatter YAML:", err);
     process.exit(1);

@@ -88,7 +88,7 @@ function parseFrontmatter(content: string): Frontmatter | null {
   const frontmatterYaml = parts[1].trim();
 
   try {
-    const parsed = yaml.load(frontmatterYaml) as Frontmatter;
+    const parsed = yaml.load(frontmatterYaml, { schema: yaml.JSON_SCHEMA }) as Frontmatter;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return null;
     }

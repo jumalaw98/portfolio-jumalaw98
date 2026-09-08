@@ -14,8 +14,11 @@
  * prevents flooding (max ~1 email / 5 min per type) across all instances.
  */
 
+import "server-only";
+
 import { after } from "next/server";
 import { Redis } from "@upstash/redis";
+import { validateWebhookUrl } from "@/lib/ssrf";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -147,6 +150,17 @@ async function sendWebhook(event: {
 }): Promise<void> {
   if (!WEBHOOK_URL) return;
 
+  const url = validateWebhookUrl(WEBHOOK_URL);
+  if (!url) {
+    console.warn(
+      JSON.stringify({
+        event: "monitor.webhook_invalid_url",
+        correlationId: event.correlationId,
+      }),
+    );
+    return;
+  }
+
   const payload: WebhookPayload = {
     username: "Contact Monitor",
     content: [
@@ -158,7 +172,7 @@ async function sendWebhook(event: {
   };
 
   try {
-    const res = await fetch(WEBHOOK_URL, {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
