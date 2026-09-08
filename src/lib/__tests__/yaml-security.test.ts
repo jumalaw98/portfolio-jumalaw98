@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as yaml from "js-yaml";
+import { parseFrontmatterObject } from "@/lib/frontmatter";
 
 /**
  * Security tests for YAML frontmatter parsing.
@@ -14,23 +15,21 @@ import * as yaml from "js-yaml";
 const SAFE_OPTIONS = { schema: yaml.JSON_SCHEMA };
 
 describe("YAML frontmatter parsing — security", () => {
-  it("rejects !!js/function tags (code execution)", () => {
+  it("parses frontmatter through a strict helper and rejects dangerous tags", () => {
     const malicious = 'title: test\ncustom: !!js/function "function() { return process.exit(1); }"';
+    expect(() => parseFrontmatterObject(malicious)).toThrow();
     expect(() => yaml.load(malicious, SAFE_OPTIONS)).toThrow();
   });
 
-  it("rejects !!js/object tags (object injection)", () => {
-    const malicious = 'title: test\ncustom: !!js/object "function prototype pollution() {}"';
-    expect(() => yaml.load(malicious, SAFE_OPTIONS)).toThrow();
-  });
-
-  it("rejects !!js/regexp tags", () => {
-    const malicious = "title: test\ncustom: !!js/regexp '.+'";
-    expect(() => yaml.load(malicious, SAFE_OPTIONS)).toThrow();
-  });
-
-  it("rejects !!js/undefined tags", () => {
-    const malicious = "title: test\ncustom: !!js/undefined";
+  it.each([
+    [
+      "!!js/function",
+      'title: test\ncustom: !!js/function "function() { return process.exit(1); }"',
+    ],
+    ["!!js/object", 'title: test\ncustom: !!js/object "function prototype pollution() {}"'],
+    ["!!js/regexp", "title: test\ncustom: !!js/regexp '.+'"],
+    ["!!js/undefined", "title: test\ncustom: !!js/undefined"],
+  ])("rejects %s tags", (_label, malicious) => {
     expect(() => yaml.load(malicious, SAFE_OPTIONS)).toThrow();
   });
 
@@ -76,7 +75,7 @@ describe("YAML frontmatter parsing — security", () => {
     const result = yaml.load(frontmatter, SAFE_OPTIONS);
     const fm = result as Record<string, unknown>;
     expect(fm.title).toBe("test");
-    // JSON_SCHEMA converts bare null to empty string
+    // JSON_SCHEMA converts bare null to empty string.
     expect(fm.summary).toBe("");
     expect(fm.excerpt).toBe("hello");
   });

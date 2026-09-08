@@ -22,6 +22,7 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import yaml from "js-yaml";
+import { parseFrontmatterObject } from "@/lib/frontmatter";
 import { getSummary } from "@/lib/summary/getSummary";
 import { mdxToPlainText } from "../src/lib/mdx/strip-jsx";
 
@@ -75,15 +76,8 @@ async function processFile(filePath: string): Promise<string | null> {
 
   let frontmatter: Record<string, unknown>;
   try {
-    frontmatter = yaml.load(frontmatterYaml, { schema: yaml.JSON_SCHEMA }) as Record<
-      string,
-      unknown
-    >;
+    frontmatter = parseFrontmatterObject(frontmatterYaml);
   } catch {
-    return null;
-  }
-
-  if (!frontmatter || typeof frontmatter !== "object" || Array.isArray(frontmatter)) {
     return null;
   }
 

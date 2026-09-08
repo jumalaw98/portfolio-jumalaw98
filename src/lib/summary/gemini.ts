@@ -7,6 +7,10 @@
  * time but model identifiers change independently of this code.
  */
 
+import "server-only";
+
+import { env } from "@/lib/env";
+
 const MODEL = "gemini-3.6-flash";
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -39,7 +43,7 @@ export function buildSummaryPrompt(postBody: string): string {
 }
 
 export async function generateSummaryGemini(postBody: string): Promise<SummaryResult> {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  const apiKey = env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is required. Set it in your environment or .env.local.");
   }

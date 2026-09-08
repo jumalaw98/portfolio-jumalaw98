@@ -23,6 +23,7 @@ import "server-only";
 
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { env } from "@/lib/env";
 
 // ─── Ephemeral cache ─────────────────────────────────────────────────────────
 
@@ -115,8 +116,8 @@ const inMemoryLimiter = {
 
 // ─── Limiter construction ─────────────────────────────────────────────────────
 
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const REDIS_URL = env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = env.UPSTASH_REDIS_REST_TOKEN;
 
 const isRedisConfigured = Boolean(REDIS_URL && REDIS_TOKEN);
 

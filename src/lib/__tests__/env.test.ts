@@ -1,11 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 describe("env — centralized environment validation", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv, NODE_ENV: "test" };
+    for (const key of [
+      "NEXT_PUBLIC_SITE_URL",
+      "CONTACT_RECEIVER_EMAIL",
+      "MONITOR_WEBHOOK_URL",
+      "MONITOR_EMAIL_TO",
+      "MONITOR_EMAIL_FROM",
+      "BUFFER_API_KEY",
+      "GEMINI_API_KEY",
+      "OPENROUTER_API_KEY",
+      "RESEND_API_KEY",
+    ]) {
+      delete process.env[key];
+    }
   });
 
   afterEach(() => {
@@ -15,7 +30,7 @@ describe("env — centralized environment validation", () => {
   it("returns defaults for optional vars", async () => {
     const { env } = await import("@/lib/env");
     expect(env.NEXT_PUBLIC_SITE_URL).toBe("https://jumalaw98.vercel.app");
-    expect(env.CONTACT_RECEIVER_EMAIL).toBe("jumalaw98@gmail.com");
+    expect(env.CONTACT_RECEIVER_EMAIL).toBe("jumalawrence98@gmail.com");
     expect(env.MONITOR_WEBHOOK_URL).toBeNull();
     expect(env.MONITOR_EMAIL_TO).toBeNull();
     expect(env.MONITOR_EMAIL_FROM).toBe("Portfolio Monitor <onboarding@resend.dev>");

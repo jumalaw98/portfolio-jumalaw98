@@ -1,0 +1,8 @@
+---
+# The sanitizer test deliberately constructs adversarial HTML strings. Exclude
+# it from Codacy's XSS string-literal heuristic while retaining analysis of all
+# application code and the test suite's runtime coverage.
+engines:
+  eslint-8:
+    exclude_paths:
+      - "src/lib/__tests__/html-sanitize.test.ts"

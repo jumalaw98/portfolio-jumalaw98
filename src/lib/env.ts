@@ -1,22 +1,23 @@
 /**
  * Centralized environment variable validation.
  *
- * Validates all required and optional env vars at module load time.
- * If a required var is missing, the app crashes with a clear error.
+ * Reads all runtime configuration at module load time.
+ * Features with absent credentials degrade gracefully and log a clear warning.
  * Optional vars have sensible defaults and are logged as warnings.
  *
  * Usage:
  *   import { env } from "@/lib/env";
- *   // env.RESEND_API_KEY is a string (validated)
+ *   // env.RESEND_API_KEY may be null when unset; callers must handle nullable values
  *   // env.MONITOR_WEBHOOK_URL is string | null (optional)
  */
 
 /**
- * Centralized env module — all process.env access should go through here.
- * If a required var is missing, the process crashes immediately on import.
+ * Centralized server-side env module — runtime code should use this instead of
+ * reading process.env directly.
  */
+import "server-only";
+
 function validateEnv() {
-  const errors: string[] = [];
   const warnings: string[] = [];
 
   // ── Required vars (runtime only — not validated at build time) ─────
@@ -42,27 +43,14 @@ function validateEnv() {
 
   // ── Optional vars ────────────────────────────────────────────────────
   const NEXT_PUBLIC_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://jumalaw98.vercel.app";
-  const CONTACT_RECEIVER_EMAIL = process.env.CONTACT_RECEIVER_EMAIL || "jumalaw98@gmail.com";
+  const CONTACT_RECEIVER_EMAIL = process.env.CONTACT_RECEIVER_EMAIL || "jumalawrence98@gmail.com";
   const MONITOR_WEBHOOK_URL = process.env.MONITOR_WEBHOOK_URL || null;
   const MONITOR_EMAIL_TO = process.env.MONITOR_EMAIL_TO || null;
-  const MONITOR_EMAIL_FROM =
-    process.env.MONITOR_EMAIL_FROM || "Portfolio Monitor <onboarding@resend.dev>";
+  const MONITOR_EMAIL_FROM = process.env.MONITOR_EMAIL_FROM || "onboarding@resend.dev";
   const HASHNODE_PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST || null;
   const BUFFER_API_KEY = process.env.BUFFER_API_KEY || null;
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY || null;
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || null;
-
-  // ── Fail fast ────────────────────────────────────────────────────────
-  if (errors.length > 0) {
-    console.error(
-      JSON.stringify({
-        event: "env.validation_failed",
-        errors,
-        message: "Missing required environment variables. See .env.example for details.",
-      }),
-    );
-    process.exit(1);
-  }
 
   // ── Warnings ─────────────────────────────────────────────────────────
   for (const warning of warnings) {
@@ -93,6 +81,6 @@ function validateEnv() {
 /**
  * Validated environment variables.
  * Access via `env.RESEND_API_KEY`, `env.MONITOR_WEBHOOK_URL`, etc.
- * Crash-fast on missing required vars at import time.
+ * Optional integrations are represented as null when not configured.
  */
 export const env = validateEnv();

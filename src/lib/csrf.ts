@@ -8,6 +8,8 @@
  * No session, no cookies, no tokens — just header validation.
  */
 
+import "server-only";
+
 /**
  * Result of origin validation.
  */
@@ -21,19 +23,34 @@ export interface OriginCheckResult {
  * Derived from NEXT_PUBLIC_SITE_URL at module scope.
  */
 function getAllowedOrigins(): string[] {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  const origins: string[] = [];
-
-  if (siteUrl) {
-    // Normalise: strip trailing slash
-    origins.push(siteUrl.replace(/\/+$/, ""));
+  // URL.origin canonicalizes casing, default ports, and any configured path.
+  // Fall back only when no site URL is configured; a custom deployment must
+  // not keep an old deployment origin trusted indefinitely.
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jumalaw98.vercel.app";
+  try {
+    return [new URL(configuredUrl).origin];
+  } catch {
+    return [];
   }
+}
 
-  // Always allow the default Vercel deployment
-  origins.push("https://jumalaw98.vercel.app");
+function normaliseOrigin(value: string): string | null {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
 
-  // Deduplicate
-  return [...new Set(origins)];
+function isDevelopmentOrigin(origin: string): boolean {
+  if (process.env.NODE_ENV !== "development") return false;
+
+  try {
+    const url = new URL(origin);
+    return url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -52,9 +69,8 @@ export function validateOrigin(request: Request): OriginCheckResult {
   // Try Origin header first
   const origin = request.headers.get("origin");
   if (origin) {
-    // Strip trailing slash for comparison
-    const normalised = origin.replace(/\/+$/, "");
-    if (allowedOrigins.includes(normalised)) {
+    const normalised = normaliseOrigin(origin);
+    if (normalised && (allowedOrigins.includes(normalised) || isDevelopmentOrigin(normalised))) {
       return { ok: true };
     }
     return { ok: false, reason: `Origin "${origin}" not in allowlist` };
@@ -64,9 +80,8 @@ export function validateOrigin(request: Request): OriginCheckResult {
   const referer = request.headers.get("referer");
   if (referer) {
     try {
-      const refererUrl = new URL(referer);
-      const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
-      if (allowedOrigins.includes(refererOrigin)) {
+      const refererOrigin = new URL(referer).origin;
+      if (allowedOrigins.includes(refererOrigin) || isDevelopmentOrigin(refererOrigin)) {
         return { ok: true };
       }
       return { ok: false, reason: `Referer origin "${refererOrigin}" not in allowlist` };

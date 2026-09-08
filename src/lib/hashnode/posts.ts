@@ -3,6 +3,7 @@ import { fetchHashnodeRss, parseHashnodeRss, extractText, type HashnodeResult } 
 import { generateShortId } from "@/lib/shortId";
 import { stripHtmlToText } from "./html";
 import { sanitizeExternalHtml } from "@/lib/html-sanitize";
+import { env } from "@/lib/env";
 
 /**
  * Maximum number of RSS items fetched when resolving short-links or article
@@ -17,7 +18,7 @@ export const RSS_FEED_MAX_SIZE = 200;
  */
 const HASHNODE_CUTOFF = new Date("2026-01-01T00:00:00.000Z");
 
-const PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST;
+const PUBLICATION_HOST = env.HASHNODE_PUBLICATION_HOST;
 
 /** True once a real Hashnode publication is configured. */
 export function isHashnodeConfigured(): boolean {

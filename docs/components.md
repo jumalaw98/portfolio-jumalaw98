@@ -283,7 +283,8 @@ Large hero card for the most recent blog post (first page only).
 ### `ArticleContent`
 
 Renders Hashnode article HTML (`dangerouslySetInnerHTML`) with safe CSS
-scoping. Does not sanitize — Hashnode content is first-party.
+scoping. Hashnode HTML is sanitized server-side before it reaches this
+component because it is treated as external, untrusted content.
 
 ### `TableOfContents`
 

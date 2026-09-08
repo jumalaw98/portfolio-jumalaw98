@@ -22,7 +22,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import yaml from "js-yaml";
+import { parseFrontmatterObject } from "@/lib/frontmatter";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -88,11 +88,7 @@ function parseFrontmatter(content: string): Frontmatter | null {
   const frontmatterYaml = parts[1].trim();
 
   try {
-    const parsed = yaml.load(frontmatterYaml, { schema: yaml.JSON_SCHEMA }) as Frontmatter;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return null;
-    }
-    return parsed;
+    return parseFrontmatterObject(frontmatterYaml) as Frontmatter;
   } catch {
     return null;
   }

@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+vi.mock("server-only", () => ({}));
 import { validateOrigin } from "@/lib/csrf";
 
 function makeRequest(headers: Record<string, string>): Request {
@@ -16,6 +18,7 @@ describe("validateOrigin — CSRF protection", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("allows same-origin request via Origin header", () => {
@@ -85,11 +88,36 @@ describe("validateOrigin — CSRF protection", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("always allows the default Vercel URL even when env is not set", () => {
+  it("uses the default deployment only when no site URL is configured", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
     const req = makeRequest({ origin: "https://jumalaw98.vercel.app" });
     const result = validateOrigin(req);
     expect(result.ok).toBe(true);
+  });
+
+  it("canonicalizes configured URLs and Origin headers", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://EXAMPLE.com:443/portfolio");
+    const req = makeRequest({ origin: "https://example.com" });
+    expect(validateOrigin(req).ok).toBe(true);
+  });
+
+  it("does not trust the default deployment when a custom URL is configured", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://my-custom-site.com");
+    const req = makeRequest({ origin: "https://jumalaw98.vercel.app" });
+    expect(validateOrigin(req).ok).toBe(false);
+  });
+
+  it("allows localhost during development", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const req = makeRequest({ origin: "http://localhost:3000" });
+    expect(validateOrigin(req).ok).toBe(true);
+  });
+
+  it("ignores malformed development origins instead of throwing", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const req = makeRequest({ origin: "not a valid origin" });
+    expect(validateOrigin(req).ok).toBe(false);
+    expect(validateOrigin(req).reason).toContain("not in allowlist");
   });
 
   it("prefers Origin over Referer", () => {

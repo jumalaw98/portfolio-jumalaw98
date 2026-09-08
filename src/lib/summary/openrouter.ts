@@ -7,13 +7,16 @@
  * and per-day rate limits (20 RPM, 50 RPD without credits as of July 2026).
  */
 
+import "server-only";
+
+import { env } from "@/lib/env";
 import { buildSummaryPrompt, type SummaryResult } from "./gemini";
 
 const MODEL = "google/gemma-4-31b-it:free";
 const API_BASE = "https://openrouter.ai/api/v1";
 
 export async function generateSummaryOpenRouter(postBody: string): Promise<SummaryResult> {
-  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  const apiKey = env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("OPENROUTER_API_KEY is required. Set it in your environment or .env.local.");
   }

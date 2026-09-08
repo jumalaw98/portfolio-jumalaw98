@@ -3,9 +3,9 @@ import { validateWebhookUrl } from "@/lib/ssrf";
 
 describe("validateWebhookUrl — SSRF prevention", () => {
   it("accepts a valid HTTPS URL", () => {
-    const result = validateWebhookUrl("https://hooks.example.com/webhook");
+    const result = validateWebhookUrl("https://hooks.slack.com/services/test");
     expect(result).toBeInstanceOf(URL);
-    expect(result?.href).toBe("https://hooks.example.com/webhook");
+    expect(result?.href).toBe("https://hooks.slack.com/services/test");
   });
 
   it("rejects HTTP URLs", () => {
@@ -23,11 +23,32 @@ describe("validateWebhookUrl — SSRF prevention", () => {
   it("rejects localhost", () => {
     expect(validateWebhookUrl("https://localhost/api")).toBeNull();
     expect(validateWebhookUrl("https://sub.localhost/api")).toBeNull();
+    expect(validateWebhookUrl("https://localhost./api")).toBeNull();
+    expect(validateWebhookUrl("https://sub.localhost./api")).toBeNull();
   });
 
   it("rejects loopback IPs", () => {
     expect(validateWebhookUrl("https://127.0.0.1/api")).toBeNull();
     expect(validateWebhookUrl("https://[::1]/api")).toBeNull();
+  });
+
+  it("rejects private, link-local, multicast, and mapped IPv6 literals", () => {
+    for (const address of [
+      "fc00::1",
+      "fd00::1",
+      "fe80::1",
+      "febf::1",
+      "ff00::1",
+      "::ffff:127.0.0.1",
+    ]) {
+      expect(validateWebhookUrl(`https://[${address}]/api`)).toBeNull();
+    }
+  });
+
+  it("allows only supported webhook provider destinations", () => {
+    expect(validateWebhookUrl("https://example.com/webhook")).toBeNull();
+    expect(validateWebhookUrl("https://discord.com/api/webhooks/123/token")).toBeInstanceOf(URL);
+    expect(validateWebhookUrl("https://discord.com/not-a-webhook")).toBeNull();
   });
 
   it("rejects private IPv4 ranges (10.x)", () => {
@@ -54,13 +75,13 @@ describe("validateWebhookUrl — SSRF prevention", () => {
     expect(validateWebhookUrl("https://metadata.google.internal/computeMetadata/")).toBeNull();
   });
 
-  it("rejects non-standard ports", () => {
-    expect(validateWebhookUrl("https://example.com:8080/api")).toBeNull();
-    expect(validateWebhookUrl("https://example.com:9999/api")).toBeNull();
+  it("rejects non-standard ports on allowlisted hosts", () => {
+    expect(validateWebhookUrl("https://hooks.slack.com:8080/services/test")).toBeNull();
+    expect(validateWebhookUrl("https://hooks.slack.com:9999/services/test")).toBeNull();
   });
 
   it("accepts explicit port 443 (default HTTPS port)", () => {
-    const result = validateWebhookUrl("https://example.com:443/api");
+    const result = validateWebhookUrl("https://hooks.slack.com:443/services/test");
     expect(result).toBeInstanceOf(URL);
     // URL constructor normalizes :443 to empty string
     expect(result?.port).toBe("");

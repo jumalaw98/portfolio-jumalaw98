@@ -30,15 +30,16 @@ export function validateWebhookUrl(urlString: string): URL | null {
   }
 
   // 3. Block private / loopback / link-local / metadata IPs
-  const hostname = url.hostname;
+  // URL.hostname retains brackets around IPv6 literals. Remove those and a
+  // DNS root dot before comparing or passing the value to node:net.
+  const hostname = url.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "");
 
   // Block localhost variants
   if (
     hostname === "localhost" ||
     hostname.endsWith(".localhost") ||
     hostname === "127.0.0.1" ||
-    hostname === "::1" ||
-    hostname === "[::1]"
+    hostname === "::1"
   ) {
     return null;
   }
@@ -64,6 +65,14 @@ export function validateWebhookUrl(urlString: string): URL | null {
     hostname === "169.254.169.254.nip.io" || // DNS rebinding variant
     hostname.endsWith(".169.254.169.254.nip.io") // DNS rebinding variant
   ) {
+    return null;
+  }
+
+  // Monitoring webhooks are intentionally limited to the supported providers.
+  // This is an egress allowlist: DNS for an arbitrary user-controlled host is
+  // never resolved or fetched, which prevents DNS rebinding from turning a
+  // syntactically safe hostname into an internal destination.
+  if (!isAllowedWebhookDestination(url, hostname)) {
     return null;
   }
 
@@ -126,12 +135,29 @@ function isPrivateIPv6(ip: string): boolean {
 
   // Loopback ::1
   if (normalised === "::1") return true;
+  // Unspecified address
+  if (normalised === "::") return true;
   // Link-local fe80::/10
-  if (normalised.startsWith("fe80")) return true;
+  if (/^fe[89ab]/.test(normalised)) return true;
   // Unique local fc00::/7
   if (normalised.startsWith("fc") || normalised.startsWith("fd")) return true;
   // Multicast ff00::/8
   if (normalised.startsWith("ff")) return true;
 
+  // IPv4-mapped IPv6. URL normalizes dotted notation to hex hextets, e.g.
+  // ::ffff:127.0.0.1 becomes ::ffff:7f00:1, so decode the final 32 bits.
+  const mapped = normalised.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (mapped) {
+    const high = Number.parseInt(mapped[1], 16);
+    const low = Number.parseInt(mapped[2], 16);
+    const embeddedIPv4 = [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
+    return isPrivateIPv4(embeddedIPv4);
+  }
+
   return false;
+}
+
+function isAllowedWebhookDestination(url: URL, hostname: string): boolean {
+  if (hostname === "hooks.slack.com") return true;
+  return hostname === "discord.com" && url.pathname.startsWith("/api/webhooks/");
 }
