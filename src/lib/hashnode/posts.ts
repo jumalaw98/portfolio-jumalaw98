@@ -2,6 +2,8 @@ import type { BlogPost, BlogPostDetail } from "@/types/blogPost";
 import { fetchHashnodeRss, parseHashnodeRss, extractText, type HashnodeResult } from "./rss";
 import { generateShortId } from "@/lib/shortId";
 import { stripHtmlToText } from "./html";
+import { sanitizeExternalHtml } from "@/lib/html-sanitize";
+import { env } from "@/lib/env";
 
 /**
  * Maximum number of RSS items fetched when resolving short-links or article
@@ -16,7 +18,7 @@ export const RSS_FEED_MAX_SIZE = 200;
  */
 const HASHNODE_CUTOFF = new Date("2026-01-01T00:00:00.000Z");
 
-const PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST;
+const PUBLICATION_HOST = env.HASHNODE_PUBLICATION_HOST;
 
 /** True once a real Hashnode publication is configured. */
 export function isHashnodeConfigured(): boolean {
@@ -107,9 +109,11 @@ function mapSummary(item: ReturnType<typeof parseHashnodeRss>[number]): BlogPost
 function mapFull(item: ReturnType<typeof parseHashnodeRss>[number]): BlogPostDetail {
   const summary = mapSummary(item);
   const content = extractText(item["content:encoded"]);
+  // Sanitize external HTML before it reaches dangerouslySetInnerHTML.
+  // This is the security boundary: all Hashnode content is untrusted.
   return {
     ...summary,
-    contentHtml: content,
+    contentHtml: sanitizeExternalHtml(content),
     ogImageUrl: summary.coverImageUrl,
   };
 }

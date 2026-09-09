@@ -23,6 +23,11 @@ interface ArticleContentProps {
  * any <pre><code class="language-xxx"> blocks after mount. Hashnode's HTML
  * export already uses standard `language-*` class names, so no HTML
  * transformation is needed — just highlighting.
+ *
+ * SECURITY: The `html` prop originates from Hashnode's RSS feed
+ * (src/lib/hashnode/posts.ts → mapFull()). It is sanitized server-side
+ * by sanitizeExternalHtml() before reaching this client component.
+ * Do NOT remove the sanitization in posts.ts — that is the security boundary.
  */
 export function ArticleContent({ html }: ArticleContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,12 +38,13 @@ export function ArticleContent({ html }: ArticleContentProps) {
     }
   }, [html]);
 
+  // Content is sanitized server-side in hashnode/posts.ts (mapFull).
+  // Do NOT remove the sanitization — that is the security boundary.
   return (
     <div
       ref={containerRef}
       id="article-content"
       className="prose-article"
-      // Content originates from our own Hashnode publication, not user input.
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

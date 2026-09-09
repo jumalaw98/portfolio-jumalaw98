@@ -14,8 +14,12 @@
  * prevents flooding (max ~1 email / 5 min per type) across all instances.
  */
 
+import "server-only";
+
 import { after } from "next/server";
 import { Redis } from "@upstash/redis";
+import { validateWebhookUrl } from "@/lib/ssrf";
+import { env } from "@/lib/env";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,16 +45,15 @@ const EMAIL_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
 
 // ─── Env bindings (module-scoped, read once at first import) ─────────────────
 
-const WEBHOOK_URL = process.env.MONITOR_WEBHOOK_URL ?? null;
-const RESEND_API_KEY = process.env.RESEND_API_KEY ?? null;
-const MONITOR_EMAIL_TO = process.env.MONITOR_EMAIL_TO ?? null;
-const MONITOR_EMAIL_FROM =
-  process.env.MONITOR_EMAIL_FROM || "Portfolio Monitor <onboarding@resend.dev>";
+const WEBHOOK_URL = env.MONITOR_WEBHOOK_URL;
+const RESEND_API_KEY = env.RESEND_API_KEY;
+const MONITOR_EMAIL_TO = env.MONITOR_EMAIL_TO;
+const MONITOR_EMAIL_FROM = env.MONITOR_EMAIL_FROM;
 
 // ─── Redis-backed email throttle (shared across all instances) ──────────────
 
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const REDIS_URL = env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = env.UPSTASH_REDIS_REST_TOKEN;
 const isRedisConfigured = Boolean(REDIS_URL && REDIS_TOKEN);
 
 /**
@@ -147,6 +150,17 @@ async function sendWebhook(event: {
 }): Promise<void> {
   if (!WEBHOOK_URL) return;
 
+  const url = validateWebhookUrl(WEBHOOK_URL);
+  if (!url) {
+    console.warn(
+      JSON.stringify({
+        event: "monitor.webhook_invalid_url",
+        correlationId: event.correlationId,
+      }),
+    );
+    return;
+  }
+
   const payload: WebhookPayload = {
     username: "Contact Monitor",
     content: [
@@ -158,7 +172,7 @@ async function sendWebhook(event: {
   };
 
   try {
-    const res = await fetch(WEBHOOK_URL, {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

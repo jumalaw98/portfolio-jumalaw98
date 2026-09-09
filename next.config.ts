@@ -20,7 +20,18 @@ if (!process.env.VELITE_STARTED && (runningVeliteDev || runningVeliteBuild)) {
 // Next.js hydration scripts, framer-motion inline styles, and Google Fonts
 // loader. 'unsafe-eval' is only added in development (Next.js hot-reload
 // requires it); production omits it to block eval-based script gadgets.
-// Adopt nonce-based CSP via middleware if the threat model demands it.
+//
+// TRADE-OFF: 'unsafe-inline' in script-src cannot be removed without
+// switching to nonce-based CSP (requires middleware + nonce generation).
+// Risk is mitigated because:
+//   1. No user-generated script execution
+//   2. MDX content uses new Function() only with Velite-authored code
+//   3. Content-Security-Policy-Report-Only can monitor violations first
+//
+// RECOMMENDATION: Enable CSP report-only mode before tightening:
+//   - Deploy with Content-Security-Policy-Report-Only header first
+//   - Add report-uri or report-to directive to collect violation reports
+//   - Once violations are at zero, switch to enforced CSP
 const isDev = process.env.NODE_ENV === "development";
 const scriptSrc = isDev
   ? `script-src 'self' 'unsafe-eval' 'unsafe-inline'`

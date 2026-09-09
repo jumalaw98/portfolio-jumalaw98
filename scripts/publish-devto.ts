@@ -17,7 +17,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import yaml from "js-yaml";
+import { parseFrontmatterObject } from "@/lib/frontmatter";
 import { mdxToMarkdown } from "../src/lib/mdx/strip-jsx";
 
 // ── Interfaces & core publish function ──────────────────────────────────────
@@ -74,7 +74,7 @@ async function findArticleByCanonicalUrl(
 
   const articles = (await response.json()) as unknown;
   if (!Array.isArray(articles)) {
-    throw new Error("dev.to idempotency lookup returned an unexpected response shape.");
+    throw new TypeError("dev.to idempotency lookup returned an unexpected response shape.");
   }
 
   const targetUrl = normalizeCanonicalUrl(canonicalUrl);
@@ -199,7 +199,7 @@ if (isEntryPoint) {
 
   let frontmatter: Record<string, unknown>;
   try {
-    frontmatter = yaml.load(frontmatterYaml) as Record<string, unknown>;
+    frontmatter = parseFrontmatterObject(frontmatterYaml);
   } catch (err) {
     console.error("Failed to parse frontmatter YAML:", err);
     process.exit(1);

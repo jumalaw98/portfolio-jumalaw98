@@ -5,7 +5,16 @@
  * produce validated JSON.  See the research note in the module docstring
  * for the current recommended model — this was verified at implementation
  * time but model identifiers change independently of this code.
+ *
+ * `import "server-only"` prevents this module from being included in any
+ * client bundle. This module sends `env.GEMINI_API_KEY` in the
+ * `x-goog-api-key` header — if this import is removed, Next.js will
+ * silently bundle the credential-bearing code into client-side code.
  */
+
+import "server-only";
+
+import { env } from "@/lib/env";
 
 const MODEL = "gemini-3.6-flash";
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
@@ -39,7 +48,7 @@ export function buildSummaryPrompt(postBody: string): string {
 }
 
 export async function generateSummaryGemini(postBody: string): Promise<SummaryResult> {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  const apiKey = env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is required. Set it in your environment or .env.local.");
   }

@@ -22,7 +22,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import yaml from "js-yaml";
+import { parseFrontmatterObject } from "@/lib/frontmatter";
 import { getSummary } from "@/lib/summary/getSummary";
 import { buildXPost, buildLinkedInPost } from "@/lib/social/buildPosts";
 import { postToBuffer } from "@/lib/social/buffer";
@@ -84,12 +84,7 @@ const bodyMdx = parts.slice(2).join("---").trim();
 
 let frontmatter: Record<string, unknown>;
 try {
-  const parsed = yaml.load(frontmatterYaml);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    console.error("Invalid frontmatter: YAML parsed to a non-object value");
-    process.exit(1);
-  }
-  frontmatter = parsed as Record<string, unknown>;
+  frontmatter = parseFrontmatterObject(frontmatterYaml);
 } catch (err) {
   console.error("Failed to parse frontmatter YAML:", err);
   process.exit(1);

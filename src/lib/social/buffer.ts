@@ -10,6 +10,8 @@
  * @see https://developers.buffer.com
  */
 
+import { env } from "@/lib/env";
+
 export interface BufferPostResult {
   success: boolean;
   postId?: string;
@@ -60,7 +62,7 @@ export async function postToBuffer(
   channelId: string,
   opts?: { saveToDraft?: boolean; dueAt?: string },
 ): Promise<BufferPostResult> {
-  const apiKey = process.env.BUFFER_API_KEY?.trim();
+  const apiKey = env.BUFFER_API_KEY?.trim();
   if (!apiKey) {
     return {
       success: false,

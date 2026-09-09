@@ -4,6 +4,7 @@ import { Nav } from "@/components/layout/Nav";
 import { Footer } from "@/components/layout/Footer";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { defaultMetadata, personJsonLd } from "@/lib/seo";
+import "@/lib/env";
 import "./globals.css";
 
 export const metadata = defaultMetadata;
