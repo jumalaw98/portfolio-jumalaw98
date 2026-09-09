@@ -79,5 +79,5 @@ jobs:
           {
             echo "## ✅ Secret Scan — No secrets found"
             echo ""
-            echo "Gitleaks scan completed with verified results only."
+            echo "Gitleaks scan completed — no secrets found."
           } >> "$GITHUB_STEP_SUMMARY"

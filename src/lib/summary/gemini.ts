@@ -5,7 +5,14 @@
  * produce validated JSON.  See the research note in the module docstring
  * for the current recommended model — this was verified at implementation
  * time but model identifiers change independently of this code.
+ *
+ * `import "server-only"` prevents this module from being included in any
+ * client bundle. This module sends `env.GEMINI_API_KEY` in the
+ * `x-goog-api-key` header — if this import is removed, Next.js will
+ * silently bundle the credential-bearing code into client-side code.
  */
+
+import "server-only";
 
 import { env } from "@/lib/env";
 

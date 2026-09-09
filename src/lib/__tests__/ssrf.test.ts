@@ -40,6 +40,7 @@ describe("validateWebhookUrl — SSRF prevention", () => {
       "febf::1",
       "ff00::1",
       "::ffff:127.0.0.1",
+      "::ffff:192.168.0.1",
     ]) {
       expect(validateWebhookUrl(`https://[${address}]/api`)).toBeNull();
     }
@@ -98,6 +99,7 @@ describe("validateWebhookUrl — SSRF prevention", () => {
 
   it("rejects DNS rebinding via nip.io", () => {
     expect(validateWebhookUrl("https://169.254.169.254.nip.io/api")).toBeNull();
+    expect(validateWebhookUrl("https://metadata.169.254.169.254.nip.io/api")).toBeNull();
     expect(validateWebhookUrl("https://169.254.169.254.nip.io:8080/api")).toBeNull();
   });
 
