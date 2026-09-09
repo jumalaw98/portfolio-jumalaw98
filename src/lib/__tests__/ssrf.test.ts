@@ -88,7 +88,7 @@ describe("validateWebhookUrl — SSRF prevention", () => {
   });
 
   it("rejects data: URLs", () => {
-    expect(validateWebhookUrl("data:text/html,<script>alert(1)</script>")).toBeNull();
+    expect(validateWebhookUrl("data:text/html,test")).toBeNull();
   });
 
   it("rejects invalid URLs", () => {

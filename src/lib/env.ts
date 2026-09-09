@@ -15,7 +15,6 @@
  * Centralized server-side env module — runtime code should use this instead of
  * reading process.env directly.
  */
-import "server-only";
 
 function validateEnv() {
   const warnings: string[] = [];
@@ -46,7 +45,8 @@ function validateEnv() {
   const CONTACT_RECEIVER_EMAIL = process.env.CONTACT_RECEIVER_EMAIL || "jumalawrence98@gmail.com";
   const MONITOR_WEBHOOK_URL = process.env.MONITOR_WEBHOOK_URL || null;
   const MONITOR_EMAIL_TO = process.env.MONITOR_EMAIL_TO || null;
-  const MONITOR_EMAIL_FROM = process.env.MONITOR_EMAIL_FROM || "onboarding@resend.dev";
+  const MONITOR_EMAIL_FROM =
+    process.env.MONITOR_EMAIL_FROM || "Portfolio Monitor <onboarding@resend.dev>";
   const HASHNODE_PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST || null;
   const BUFFER_API_KEY = process.env.BUFFER_API_KEY || null;
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY || null;

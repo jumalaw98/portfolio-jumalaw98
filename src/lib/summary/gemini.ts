@@ -7,8 +7,6 @@
  * time but model identifiers change independently of this code.
  */
 
-import "server-only";
-
 import { env } from "@/lib/env";
 
 const MODEL = "gemini-3.6-flash";

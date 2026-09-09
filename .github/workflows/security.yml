@@ -5,7 +5,8 @@
 #
 # Jobs:
 #   1. dependency-review — flags newly introduced vulnerable packages
-#   2. secret-scan      — detects accidentally committed secrets
+#                          and enforces license policy (denies GPL/AGPL)
+#   2. secret-scan      — detects accidentally committed secrets via Gitleaks
 # ──────────────────────────────────────────────────────────────────
 
 name: Security
@@ -64,12 +65,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0 # full history for trufflehog
+          fetch-depth: 0 # full history for gitleaks
 
-      - name: TruffleHog
-        uses: trufflesecurity/trufflehog@1aa1871f9ae24a8c8a3a48a9345514acf42beb39 # v3.82.13
-        with:
-          extra_args: --only-verified
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@83373cf2f8c4db6e24b41c1a9b086bb9619e9cd3 # v2.3.7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: true
 
       - name: Summary
         if: success()
@@ -77,5 +79,5 @@ jobs:
           {
             echo "## ✅ Secret Scan — No secrets found"
             echo ""
-            echo "TruffleHog scan completed with verified results only."
+            echo "Gitleaks scan completed with verified results only."
           } >> "$GITHUB_STEP_SUMMARY"

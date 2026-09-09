@@ -10,6 +10,8 @@
 
 import "server-only";
 
+import { env } from "@/lib/env";
+
 /**
  * Result of origin validation.
  */
@@ -24,9 +26,10 @@ export interface OriginCheckResult {
  */
 function getAllowedOrigins(): string[] {
   // URL.origin canonicalizes casing, default ports, and any configured path.
-  // Fall back only when no site URL is configured; a custom deployment must
+  // Read process.env at runtime so deployments can override without a rebuild;
+  // fall back to the centralized default when unset. A custom deployment must
   // not keep an old deployment origin trusted indefinitely.
-  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jumalaw98.vercel.app";
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL || env.NEXT_PUBLIC_SITE_URL;
   try {
     return [new URL(configuredUrl).origin];
   } catch {

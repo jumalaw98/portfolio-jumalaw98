@@ -12,7 +12,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 export function parseFrontmatterObject(rawYaml: string): Record<string, unknown> {
   const value = yaml.load(rawYaml, {
     schema: yaml.JSON_SCHEMA,
-    json: true,
   });
 
   if (!isPlainObject(value)) {

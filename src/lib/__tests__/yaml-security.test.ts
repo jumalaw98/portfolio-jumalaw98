@@ -30,6 +30,7 @@ describe("YAML frontmatter parsing — security", () => {
     ["!!js/regexp", "title: test\ncustom: !!js/regexp '.+'"],
     ["!!js/undefined", "title: test\ncustom: !!js/undefined"],
   ])("rejects %s tags", (_label, malicious) => {
+    expect(() => parseFrontmatterObject(malicious)).toThrow();
     expect(() => yaml.load(malicious, SAFE_OPTIONS)).toThrow();
   });
 

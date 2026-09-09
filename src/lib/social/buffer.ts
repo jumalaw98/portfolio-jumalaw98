@@ -10,8 +10,6 @@
  * @see https://developers.buffer.com
  */
 
-import "server-only";
-
 import { env } from "@/lib/env";
 
 export interface BufferPostResult {

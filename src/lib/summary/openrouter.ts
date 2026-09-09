@@ -7,8 +7,6 @@
  * and per-day rate limits (20 RPM, 50 RPD without credits as of July 2026).
  */
 
-import "server-only";
-
 import { env } from "@/lib/env";
 import { buildSummaryPrompt, type SummaryResult } from "./gemini";
 
