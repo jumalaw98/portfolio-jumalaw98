@@ -111,4 +111,34 @@ describe("validateWebhookUrl — SSRF prevention", () => {
     expect(validateWebhookUrl("https://224.0.0.1/api")).toBeNull();
     expect(validateWebhookUrl("https://239.255.255.250/api")).toBeNull();
   });
+
+  it("rejects CGNAT shared address space (100.64.0.0/10)", () => {
+    expect(validateWebhookUrl("https://100.64.0.1/api")).toBeNull();
+    expect(validateWebhookUrl("https://100.127.255.255/api")).toBeNull();
+  });
+
+  it("rejects benchmarking range (198.18.0.0/15)", () => {
+    expect(validateWebhookUrl("https://198.18.0.1/api")).toBeNull();
+    expect(validateWebhookUrl("https://198.19.255.255/api")).toBeNull();
+  });
+
+  it("rejects documentation ranges (198.51.100.0/24, 203.0.113.0/24)", () => {
+    expect(validateWebhookUrl("https://198.51.100.1/api")).toBeNull();
+    expect(validateWebhookUrl("https://203.0.113.1/api")).toBeNull();
+  });
+
+  it("rejects IETF protocol assignments (192.0.0.0/24)", () => {
+    expect(validateWebhookUrl("https://192.0.0.1/api")).toBeNull();
+  });
+
+  it("rejects reserved addresses (240.0.0.0/4)", () => {
+    expect(validateWebhookUrl("https://240.0.0.1/api")).toBeNull();
+    expect(validateWebhookUrl("https://255.255.255.255/api")).toBeNull();
+  });
+
+  it("rejects IPv6 unique local addresses (fc00::/7)", () => {
+    expect(validateWebhookUrl("https://[fc00::1]/api")).toBeNull();
+    expect(validateWebhookUrl("https://[fd00::1]/api")).toBeNull();
+    expect(validateWebhookUrl("https://[fcff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]/api")).toBeNull();
+  });
 });

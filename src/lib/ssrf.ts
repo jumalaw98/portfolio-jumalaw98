@@ -19,6 +19,25 @@ const GOOGLE_METADATA_HOSTNAME = "metadata.google.internal";
 const CLOUD_METADATA_NIP_IO_SUFFIX = `.${CLOUD_METADATA_IPV4}.nip.io`;
 
 /**
+ * IPv4 private/reserved ranges that must not be reachable from outbound requests.
+ * Each entry defines the first octet and the inclusive range for the second octet.
+ * @see https://en.wikipedia.org/wiki/Reserved_IP_addresses
+ */
+const IPV4_PRIVATE_RANGES: ReadonlyArray<{ a: number; bMin: number; bMax: number }> = [
+  { a: 0, bMin: 0, bMax: 255 }, // 0.0.0.0/8 — "This" network
+  { a: 10, bMin: 0, bMax: 255 }, // 10.0.0.0/8 — Private
+  { a: 100, bMin: 64, bMax: 127 }, // 100.64.0.0/10 — Shared address space (CGNAT)
+  { a: 127, bMin: 0, bMax: 255 }, // 127.0.0.0/8 — Loopback
+  { a: 169, bMin: 254, bMax: 254 }, // 169.254.0.0/16 — Link-local
+  { a: 172, bMin: 16, bMax: 31 }, // 172.16.0.0/12 — Private
+  { a: 192, bMin: 0, bMax: 0 }, // 192.0.0.0/24 — IETF protocol assignments
+  { a: 192, bMin: 168, bMax: 168 }, // 192.168.0.0/16 — Private
+  { a: 198, bMin: 18, bMax: 19 }, // 198.18.0.0/15 — Benchmarking
+  { a: 198, bMin: 51, bMax: 51 }, // 198.51.100.0/24 — Documentation
+  { a: 203, bMin: 0, bMax: 0 }, // 203.0.113.0/24 — Documentation
+];
+
+/**
  * Result of webhook URL validation.
  * Returns a validated URL object on success, null on failure.
  */
@@ -39,7 +58,7 @@ export function validateWebhookUrl(urlString: string): URL | null {
   // 3. Block private / loopback / link-local / metadata IPs
   // URL.hostname retains brackets around IPv6 literals. Remove those and a
   // DNS root dot before comparing or passing the value to node:net.
-  const hostname = url.hostname.replace(/[\[\]]/g, "").replace(/\.$/, "");
+  const hostname = url.hostname.replaceAll("[", "").replaceAll("]", "").replace(/\.$/, "");
 
   if (isBlockedHostname(hostname)) return null;
 
@@ -61,6 +80,7 @@ export function validateWebhookUrl(urlString: string): URL | null {
 
 /**
  * Check if an IPv4 address is in a private/reserved range.
+ * Uses a data-driven lookup table to keep cognitive complexity low.
  * @see https://en.wikipedia.org/wiki/Reserved_IP_addresses
  */
 function isPrivateIPv4(ip: string): boolean {
@@ -71,34 +91,13 @@ function isPrivateIPv4(ip: string): boolean {
 
   const [a, b] = parts;
 
-  // 0.0.0.0/8 — "This" network
-  if (a === 0) return true;
-  // 10.0.0.0/8 — Private
-  if (a === 10) return true;
-  // 100.64.0.0/10 — Shared address space (CGNAT)
-  if (a === 100 && b >= 64 && b <= 127) return true;
-  // 127.0.0.0/8 — Loopback
-  if (a === 127) return true;
-  // 169.254.0.0/16 — Link-local
-  if (a === 169 && b === 254) return true;
-  // 172.16.0.0/12 — Private
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  // 192.0.0.0/24 — IETF protocol assignments
-  if (a === 192 && b === 0) return true;
-  // 192.168.0.0/16 — Private
-  if (a === 192 && b === 168) return true;
-  // 198.18.0.0/15 — Benchmarking
-  if (a === 198 && (b === 18 || b === 19)) return true;
-  // 198.51.100.0/24 — Documentation
-  if (a === 198 && b === 51) return true;
-  // 203.0.113.0/24 — Documentation
-  if (a === 203 && b === 0) return true;
-  // 224.0.0.0/4 — Multicast
-  if (a >= 224 && a <= 239) return true;
-  // 240.0.0.0/4 — Reserved
-  if (a >= 240) return true;
+  // Match against private/reserved ranges (10.x, 172.16-31.x, 192.168.x, etc.)
+  if (IPV4_PRIVATE_RANGES.some((range) => a === range.a && b >= range.bMin && b <= range.bMax)) {
+    return true;
+  }
 
-  return false;
+  // 224.0.0.0/4 — Multicast and 240.0.0.0/4 — Reserved
+  return a >= 224;
 }
 
 /**
@@ -106,7 +105,7 @@ function isPrivateIPv4(ip: string): boolean {
  * Simplified — covers the most common cases.
  */
 function isPrivateIPv6(ip: string): boolean {
-  const normalised = ip.toLowerCase().replace(/\[|\]/g, "");
+  const normalised = ip.toLowerCase().replaceAll("[", "").replaceAll("]", "");
 
   // Loopback ::1
   if (normalised === "::1") return true;
@@ -115,7 +114,7 @@ function isPrivateIPv6(ip: string): boolean {
   // Link-local fe80::/10
   if (/^fe[89ab]/.test(normalised)) return true;
   // Unique local fc00::/7
-  if (normalised.startsWith("fc") || normalised.startsWith("fd")) return true;
+  if (/^f[cd]/.test(normalised)) return true;
   // Multicast ff00::/8
   if (normalised.startsWith("ff")) return true;
 
