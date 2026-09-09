@@ -83,7 +83,7 @@ export function validateWebhookUrl(urlString: string): URL | null {
  * Uses a data-driven lookup table to keep cognitive complexity low.
  * @see https://en.wikipedia.org/wiki/Reserved_IP_addresses
  */
-function isPrivateIPv4(ip: string): boolean {
+export function isPrivateIPv4(ip: string): boolean {
   const parts = ip.split(".").map(Number);
   if (parts.length !== 4 || parts.some((part) => !isValidIPv4Part(part))) {
     return false;
@@ -104,7 +104,7 @@ function isPrivateIPv4(ip: string): boolean {
  * Check if an IPv6 address is in a private/reserved range.
  * Simplified — covers the most common cases.
  */
-function isPrivateIPv6(ip: string): boolean {
+export function isPrivateIPv6(ip: string): boolean {
   const normalised = ip.toLowerCase().replaceAll("[", "").replaceAll("]", "");
 
   // Loopback ::1
@@ -118,14 +118,23 @@ function isPrivateIPv6(ip: string): boolean {
   // Multicast ff00::/8
   if (normalised.startsWith("ff")) return true;
 
-  // IPv4-mapped IPv6. URL normalizes dotted notation to hex hextets, e.g.
-  // ::ffff:127.0.0.1 becomes ::ffff:7f00:1, so decode the final 32 bits.
-  const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(normalised);
-  if (mapped) {
-    const high = Number.parseInt(mapped[1], 16);
-    const low = Number.parseInt(mapped[2], 16);
-    const embeddedIPv4 = [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
-    return isPrivateIPv4(embeddedIPv4);
+  // IPv4-mapped IPv6 may appear in either dotted-quad form (::ffff:127.0.0.1)
+  // or normalized hextet form (::ffff:7f00:1). Decode the embedded 32 bits in
+  // either case before checking the private/reserved IPv4 ranges.
+  if (normalised.startsWith("::ffff:")) {
+    const embedded = normalised.slice("::ffff:".length);
+
+    if (embedded.includes(".")) {
+      return isPrivateIPv4(embedded);
+    }
+
+    const mapped = /^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(embedded);
+    if (mapped) {
+      const high = Number.parseInt(mapped[1], 16);
+      const low = Number.parseInt(mapped[2], 16);
+      const embeddedIPv4 = [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
+      return isPrivateIPv4(embeddedIPv4);
+    }
   }
 
   return false;

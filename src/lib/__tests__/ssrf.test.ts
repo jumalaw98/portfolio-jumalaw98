@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateWebhookUrl } from "@/lib/ssrf";
+import { isPrivateIPv4, isPrivateIPv6, validateWebhookUrl } from "@/lib/ssrf";
 
 describe("validateWebhookUrl — SSRF prevention", () => {
   it("accepts a valid HTTPS URL", () => {
@@ -112,33 +112,24 @@ describe("validateWebhookUrl — SSRF prevention", () => {
     expect(validateWebhookUrl("https://239.255.255.250/api")).toBeNull();
   });
 
-  it("rejects CGNAT shared address space (100.64.0.0/10)", () => {
-    expect(validateWebhookUrl("https://100.64.0.1/api")).toBeNull();
-    expect(validateWebhookUrl("https://100.127.255.255/api")).toBeNull();
+  it("detects reserved IPv4 ranges directly", () => {
+    expect(isPrivateIPv4("100.64.0.1")).toBe(true);
+    expect(isPrivateIPv4("100.127.255.255")).toBe(true);
+    expect(isPrivateIPv4("198.18.0.1")).toBe(true);
+    expect(isPrivateIPv4("198.19.255.255")).toBe(true);
+    expect(isPrivateIPv4("198.51.100.1")).toBe(true);
+    expect(isPrivateIPv4("203.0.113.1")).toBe(true);
+    expect(isPrivateIPv4("192.0.0.1")).toBe(true);
+    expect(isPrivateIPv4("240.0.0.1")).toBe(true);
+    expect(isPrivateIPv4("255.255.255.255")).toBe(true);
   });
 
-  it("rejects benchmarking range (198.18.0.0/15)", () => {
-    expect(validateWebhookUrl("https://198.18.0.1/api")).toBeNull();
-    expect(validateWebhookUrl("https://198.19.255.255/api")).toBeNull();
-  });
-
-  it("rejects documentation ranges (198.51.100.0/24, 203.0.113.0/24)", () => {
-    expect(validateWebhookUrl("https://198.51.100.1/api")).toBeNull();
-    expect(validateWebhookUrl("https://203.0.113.1/api")).toBeNull();
-  });
-
-  it("rejects IETF protocol assignments (192.0.0.0/24)", () => {
-    expect(validateWebhookUrl("https://192.0.0.1/api")).toBeNull();
-  });
-
-  it("rejects reserved addresses (240.0.0.0/4)", () => {
-    expect(validateWebhookUrl("https://240.0.0.1/api")).toBeNull();
-    expect(validateWebhookUrl("https://255.255.255.255/api")).toBeNull();
-  });
-
-  it("rejects IPv6 unique local addresses (fc00::/7)", () => {
-    expect(validateWebhookUrl("https://[fc00::1]/api")).toBeNull();
-    expect(validateWebhookUrl("https://[fd00::1]/api")).toBeNull();
-    expect(validateWebhookUrl("https://[fcff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]/api")).toBeNull();
+  it("detects reserved IPv6 ranges directly", () => {
+    expect(isPrivateIPv6("fc00::1")).toBe(true);
+    expect(isPrivateIPv6("fd00::1")).toBe(true);
+    expect(isPrivateIPv6("fe80::1")).toBe(true);
+    expect(isPrivateIPv6("fcff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")).toBe(true);
+    expect(isPrivateIPv6("::ffff:127.0.0.1")).toBe(true);
+    expect(isPrivateIPv6("::ffff:192.168.0.1")).toBe(true);
   });
 });
