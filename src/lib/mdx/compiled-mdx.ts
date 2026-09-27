@@ -21,6 +21,9 @@
 /** Largest compiled body we are willing to evaluate (defence against a runaway artifact). */
 const MAX_COMPILED_MDX_BYTES = 5 * 1024 * 1024;
 
+/** Measures the UTF-8 byte size of a candidate artifact. */
+const textEncoder = new TextEncoder();
+
 /**
  * Marker emitted by the MDX compiler for function-body output: the runtime
  * (`{ Fragment, jsx, jsxs }`) is read from `arguments[0]`.
@@ -51,7 +54,11 @@ export function asCompiledMdxCode(raw: unknown): CompiledMdxCode | null {
   if (typeof raw !== "string") return null;
 
   const code = raw.trim();
-  if (code.length === 0 || code.length > MAX_COMPILED_MDX_BYTES) return null;
+  if (code.length === 0) return null;
+  // `code.length` counts UTF-16 code units, not bytes: an artifact heavy in
+  // multibyte characters could exceed the byte limit unnoticed. Measure the
+  // UTF-8 byte size before branding.
+  if (textEncoder.encode(code).length > MAX_COMPILED_MDX_BYTES) return null;
   if (!code.includes(MDX_FUNCTION_BODY_MARKER)) return null;
 
   return code as CompiledMdxCode;

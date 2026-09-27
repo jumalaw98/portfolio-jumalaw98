@@ -24,15 +24,19 @@ describe("parseApiErrors", () => {
   });
 
   it("ignores keys outside the allowlist (prototype pollution payloads)", () => {
-    const result = parseApiErrors({
-      fields: {
-        __proto__: "polluted",
-        constructor: "polluted",
-        prototype: "polluted",
-        name: "ok",
-        toString: "polluted",
-      },
-    });
+    // Built with JSON.parse because an object literal silently drops a
+    // `__proto__` key whose value is a primitive (only object/null values set
+    // the prototype). JSON.parse is also how an untrusted `response.json()`
+    // body actually arrives, and it creates `__proto__` as a real own
+    // property — the actual vector this test needs to cover.
+    const body = JSON.parse(
+      '{"fields":{"__proto__":"polluted","constructor":"polluted","prototype":"polluted","name":"ok","toString":"polluted"}}',
+    ) as Record<string, unknown>;
+    expect(Object.getOwnPropertyNames(body.fields as Record<string, unknown>)).toContain(
+      "__proto__",
+    );
+
+    const result = parseApiErrors(body);
 
     expect(result).toEqual({ name: "ok" });
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();

@@ -40,12 +40,17 @@ import { assertRealPathWithinBase, listFilesWithinBase } from "@/lib/safe-path";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+
+/** Repository root (the parent of `scripts/`), used to validate the blog root. */
+const REPO_ROOT = resolve(SCRIPT_DIR, "..");
+
 /**
  * Blog content root, resolved from this script's own location so the scan and
  * the writes are always confined to the repository's content tree, regardless
  * of the current working directory.
  */
-const BLOG_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", "src", "content", "blog");
+const BLOG_DIR = resolve(SCRIPT_DIR, "..", "src", "content", "blog");
 
 /** Glob for authored posts, evaluated relative to BLOG_DIR. */
 const MDX_PATTERN = "**/*.mdx";
@@ -55,12 +60,20 @@ const MDX_PATTERN = "**/*.mdx";
 /**
  * Every `.mdx` file inside BLOG_DIR, sorted for stable output.
  *
- * Symlinks are deliberately excluded: a symlinked file committed under
- * src/content/blog/ could otherwise be read (leaking its contents to the AI
- * providers) and then overwritten.
+ * The blog root is validated against the repository tree before the walk:
+ * `realpath(BLOG_DIR)` is the walk's containment boundary, so a symlinked
+ * `src/content/blog` would otherwise become its own trusted boundary and this
+ * script would read and rewrite `.mdx` files in the link target. Throwing
+ * here — outside any catch — aborts the run (fail closed), as documented in
+ * the TRUST BOUNDARY note in the header.
+ *
+ * Symlinks are also excluded from the results: a symlinked file committed
+ * under src/content/blog/ could otherwise be read (leaking its contents to
+ * the AI providers) and then overwritten.
  */
 function findMdxFiles(): string[] {
-  return listFilesWithinBase({ baseDir: BLOG_DIR, pattern: MDX_PATTERN, extension: ".mdx" });
+  const blogRoot = assertRealPathWithinBase(REPO_ROOT, BLOG_DIR);
+  return listFilesWithinBase({ baseDir: blogRoot, pattern: MDX_PATTERN, extension: ".mdx" });
 }
 
 // ── Per-file processing ───────────────────────────────────────────────────────
@@ -134,9 +147,13 @@ async function processFile(filePath: string): Promise<string | null> {
 
   const updatedContent = `---\n${updatedFrontmatterYaml.trimEnd()}\n---\n\n${bodyMdx}\n`;
 
+  // Re-assert containment immediately before the write — deliberately outside
+  // the try below: a containment violation must abort the run (see the TRUST
+  // BOUNDARY note in the header), not be swallowed as an ordinary write error
+  // and let the run continue.
+  const writePath = assertRealPathWithinBase(BLOG_DIR, safePath);
   try {
-    // Re-assert containment immediately before the write (see processFile).
-    writeFileSync(assertRealPathWithinBase(BLOG_DIR, safePath), updatedContent, "utf-8");
+    writeFileSync(writePath, updatedContent, "utf-8");
   } catch (err) {
     console.error(`Failed to write ${safePath}:`, err);
     return null;

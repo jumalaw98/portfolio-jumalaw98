@@ -25,8 +25,9 @@ interface ArticleContentProps {
   /**
    * Stable identity of the rendered document (the post slug).
    *
-   * Used purely as the re-highlight trigger below, so that post-render
-   * highlighting never needs the HTML payload to flow through the effect.
+   * Part of the re-highlight trigger below: together with `html` it re-runs
+   * post-render highlighting whenever the rendered document or its content
+   * changes, without the effect needing to read or transform the payload.
    */
   readonly contentId: string;
 }
@@ -48,11 +49,16 @@ interface ArticleContentProps {
 export function ArticleContent({ html, contentId }: ArticleContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Re-highlight after mount and whenever the content changes. `html` is a
+  // dependency (the effect still only reads the DOM through `containerRef`) so
+  // that a same-slug `router.refresh()` delivering updated Hashnode HTML
+  // re-runs highlighting for the new code blocks; `contentId` covers document
+  // identity changes.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     Prism.highlightAllUnder(container);
-  }, [contentId]);
+  }, [contentId, html]);
 
   return (
     <div

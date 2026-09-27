@@ -18,11 +18,16 @@ import { assertRealPathWithinBase, listFilesWithinBase } from "@/lib/safe-path";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+
+/** Repository root (the parent of `scripts/`), used to validate the blog root. */
+const REPO_ROOT = resolve(SCRIPT_DIR, "..");
+
 /**
  * Blog content root, derived from this file's location so the scan is always
  * confined to the repository's content tree (never the current directory).
  */
-const BLOG_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", "src", "content", "blog");
+const BLOG_DIR = resolve(SCRIPT_DIR, "..", "src", "content", "blog");
 
 // ── Pattern definitions ──────────────────────────────────────────────────────
 
@@ -58,9 +63,15 @@ export function checkContent(content: string): string[] {
  * Uses the shared hardened walk (src/lib/safe-path.ts): symlinked directories
  * are not followed and symlinked files are skipped, so a committed symlink
  * cannot make this CI gate read files from outside the content tree.
+ *
+ * The blog root itself is validated against the repository tree first:
+ * `realpath(BLOG_DIR)` is the walk's containment boundary, so a symlinked
+ * `src/content/blog` would otherwise become its own trusted boundary. Throwing
+ * here aborts the run (fail closed).
  */
 function collectMdxFiles(): string[] {
-  return listFilesWithinBase({ baseDir: BLOG_DIR, pattern: "**/*.mdx", extension: ".mdx" });
+  const blogRoot = assertRealPathWithinBase(REPO_ROOT, BLOG_DIR);
+  return listFilesWithinBase({ baseDir: blogRoot, pattern: "**/*.mdx", extension: ".mdx" });
 }
 
 // ── CLI entry point ──────────────────────────────────────────────────────────

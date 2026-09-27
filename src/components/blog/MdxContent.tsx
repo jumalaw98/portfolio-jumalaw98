@@ -55,9 +55,10 @@ export default function MdxContent({ code }: MdxContentProps) {
     Component = (evaluated as { default: React.ComponentType }).default;
   } catch (error) {
     // Fail loudly with context instead of surfacing an opaque render error:
-    // a malformed artifact means the content pipeline is broken.
+    // a malformed artifact means the content pipeline is broken. `{ cause }`
+    // preserves the original stack trace for diagnosis.
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to evaluate compiled MDX: ${message}`);
+    throw new Error(`Failed to evaluate compiled MDX: ${message}`, { cause: error });
   }
 
   return <Component />;

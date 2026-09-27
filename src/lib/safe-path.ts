@@ -2,8 +2,9 @@
  * Filesystem path containment helpers for build/CI scripts.
  *
  * Why this exists: content scripts (`scripts/generate-summaries.ts`,
- * `scripts/publish-devto.ts`, `scripts/check-placeholders.ts`) walk
- * `src/content/blog/`, read every `.mdx` file they find, and write results back.
+ * `scripts/find-ready-posts.ts`, `scripts/publish-devto.ts`,
+ * `scripts/check-placeholders.ts`) walk `src/content/blog/`, read every
+ * `.mdx` file they find, and write results back.
  * Any path handed to `node:fs` must therefore be constrained to a trusted base
  * directory, otherwise a path that escapes the content tree (e.g. via a
  * symlinked file committed in a pull request) turns a build step into an
@@ -36,7 +37,12 @@ import { resolve, sep } from "node:path";
 export function isWithinBase(baseDir: string, candidate: string): boolean {
   const base = resolve(baseDir);
   const target = resolve(candidate);
-  return target === base || target.startsWith(base + sep);
+  if (target === base) return true;
+  // A filesystem root already ends with the separator ("/" on POSIX, "C:\" on
+  // Windows): appending another one would double it and reject every valid
+  // descendant of the root.
+  const prefix = base.endsWith(sep) ? base : base + sep;
+  return target.startsWith(prefix);
 }
 
 /**
@@ -99,6 +105,10 @@ export interface ListFilesWithinBaseOptions {
  *
  * @param options - Base directory, glob pattern and required extension
  * @returns Absolute, sorted paths of the matching files
+ * @throws When `baseDir` does not exist or cannot be resolved. Callers that
+ *          treat "no files" as a valid result (e.g. scripts/find-ready-posts.ts,
+ *          whose documented contract is to always print an empty list) must
+ *          handle that themselves.
  */
 export function listFilesWithinBase(options: ListFilesWithinBaseOptions): string[] {
   const base = resolve(options.baseDir);

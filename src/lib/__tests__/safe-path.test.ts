@@ -18,13 +18,18 @@ import {
  *   - symlinks pointing outside the trusted base directory
  */
 
+let root: string;
 let base: string;
 let outside: string;
+let outsideRoot: string;
 
 beforeAll(() => {
-  const root = mkdtempSync(join(tmpdir(), "safe-path-"));
+  root = mkdtempSync(join(tmpdir(), "safe-path-"));
   base = join(root, "content");
   outside = join(root, "outside");
+  // A second temp directory OUTSIDE `root`, so a symlinked content root can be
+  // tested against `root` as the trusted (repository-root) boundary.
+  outsideRoot = mkdtempSync(join(tmpdir(), "safe-path-outside-root-"));
 
   mkdirSync(base, { recursive: true });
   mkdirSync(outside, { recursive: true });
@@ -39,10 +44,14 @@ beforeAll(() => {
   symlinkSync(join(outside, "secret.mdx"), join(base, "linked.mdx"));
   // A symlinked directory inside the content tree that points outside it.
   symlinkSync(outside, join(base, "linked-dir"));
+  // A symlinked content root inside `root` that points outside `root` —
+  // simulates a symlinked src/content/blog.
+  symlinkSync(outsideRoot, join(root, "linked-root"));
 });
 
 afterAll(() => {
   rmSync(resolve(base, ".."), { recursive: true, force: true });
+  rmSync(outsideRoot, { recursive: true, force: true });
 });
 
 describe("isWithinBase", () => {
@@ -73,11 +82,29 @@ describe("assertWithinBase", () => {
 
 describe("assertRealPathWithinBase", () => {
   it("accepts a real file inside the base directory", () => {
-    expect(assertRealPathWithinBase(base, join(base, "a.mdx"))).toBe(join(base, "a.mdx"));
+    // Compare against the canonical realpath (not the lexical join): on hosts
+    // where the temp root sits behind a symlink (e.g. macOS /tmp →
+    // /private/tmp) the helper returns the resolved realpath.
+    expect(assertRealPathWithinBase(base, join(base, "a.mdx"))).toBe(
+      realpathSync(join(base, "a.mdx")),
+    );
   });
 
   it("rejects a symlink that points outside the base directory", () => {
     expect(() => assertRealPathWithinBase(base, join(base, "linked.mdx"))).toThrow(/outside/);
+  });
+
+  it("rejects a content root that is a symlink pointing outside the trusted base", () => {
+    // Simulates a symlinked src/content/blog: the walk in listFilesWithinBase
+    // computes its containment boundary from realpath(baseDir), so the content
+    // scripts validate the resolved root against the repository root (as this
+    // call does) before listing — otherwise the link target becomes its own
+    // trusted boundary.
+    expect(() => assertRealPathWithinBase(root, join(root, "linked-root"))).toThrow(/outside/);
+  });
+
+  it("returns the real path for a content root inside the trusted base", () => {
+    expect(assertRealPathWithinBase(root, base)).toBe(realpathSync(base));
   });
 });
 
@@ -100,7 +127,9 @@ describe("listFilesWithinBase", () => {
     });
 
     expect(files).not.toContain(join(base, "linked.mdx"));
-    expect(files.some((file) => realpathSync(file).startsWith(outside))).toBe(false);
+    // realpath(outside) so the comparison is meaningful on hosts where the
+    // temp root sits behind a symlink (e.g. macOS /tmp → /private/tmp).
+    expect(files.some((file) => realpathSync(file).startsWith(realpathSync(outside)))).toBe(false);
   });
 
   it("does not descend into symlinked directories", () => {

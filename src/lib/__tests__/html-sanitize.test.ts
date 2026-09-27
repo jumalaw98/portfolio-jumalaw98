@@ -211,10 +211,11 @@ describe("sanitizeExternalHtml — XSS prevention", () => {
     </figure>`;
     const clean = sanitizeExternalHtml(unsanitizedHtml);
     // Sanitizer preserves children; figure is not emptied.
-    // Use plain string to avoid Prettier "completing" the html`...` template tag.
+    // Plain string literals so Prettier cannot "complete" or reformat the
+    // asserted fragment (same reason the assertions above use plain strings).
     expect(clean).toContain("<figure>");
-    expect(clean).toContain(html`<figcaption>Caption</figcaption>`);
-    expect(clean).toContain(html`<img src="https://example.com/img.jpg" alt="Alt" />`);
-    expect(clean).toContain(html`Caption`);
+    expect(clean).toContain("<figcaption>Caption</figcaption>");
+    expect(clean).toContain('<img src="https://example.com/img.jpg" alt="Alt" />');
+    expect(clean).toContain("Caption");
   });
 });
