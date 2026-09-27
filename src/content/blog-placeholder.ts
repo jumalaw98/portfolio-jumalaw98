@@ -1,6 +1,7 @@
 import type { BlogPostDetail } from "@/types/blogPost";
 import { PROJECT_IMAGES } from "@/lib/project-images";
 import { generateShortId } from "@/lib/shortId";
+import { sanitizeExternalHtml } from "@/lib/html-sanitize";
 
 // Placeholder-only demo posts, shown when HASHNODE_PUBLICATION_HOST isn't set
 // yet (see lib/hashnode/posts.ts) so /blog and /blog/[slug] aren't empty
@@ -32,7 +33,10 @@ export const placeholderBlogPosts: BlogPostDetail[] = [
     ],
     author: AUTHOR,
     ogImageUrl: PROJECT_IMAGES.blogFallback[0],
-    contentHtml: `
+    // Author-written placeholder markup. It still goes through the sanitizer so
+    // that every HTML value rendered by ArticleContent is `SanitizedHtml` and
+    // the trust boundary stays uniform (see src/lib/html-sanitize.ts).
+    contentHtml: sanitizeExternalHtml(`
       <p>This is placeholder content standing in for a real Hashnode article. Once <code>HASHNODE_PUBLICATION_HOST</code> is set, this page renders your actual published HTML instead.</p>
       <h2 id="the-problem">The problem</h2>
       <p>Paid CFP platforms are fine until you want full control over submission workflows and scheduling — and until the invoices start adding up.</p>
@@ -48,7 +52,7 @@ docker compose up -d --build</code></pre>
       </ul>
       <h2 id="takeaways">Takeaways</h2>
       <p>Ownership is a trade — more control, more responsibility. Worth it when the cost savings and flexibility outweigh the operational overhead.</p>
-    `,
+    `),
   },
   {
     slug: "placeholder-community-building",
@@ -67,7 +71,7 @@ docker compose up -d --build</code></pre>
     ],
     author: AUTHOR,
     ogImageUrl: PROJECT_IMAGES.blogFallback[1],
-    contentHtml: `
+    contentHtml: sanitizeExternalHtml(`
       <p>Placeholder article — swap this out once your Hashnode publication is connected.</p>
       <h2 id="deadlines-that-dont-move">Deadlines that don't move</h2>
       <p>A conference date is immovable in a way most software deadlines aren't. That constraint teaches triage fast.</p>
@@ -75,7 +79,7 @@ docker compose up -d --build</code></pre>
       <p>Running a community means you hear immediately when something doesn't work — there's no staging environment for a live event.</p>
       <h2 id="the-same-skill-twice">The same skill, twice</h2>
       <p>Planning for failure, communicating under pressure, and shipping on a deadline — these show up identically whether you're organizing a summit or a sprint.</p>
-    `,
+    `),
   },
   {
     slug: "placeholder-react-nextjs",
@@ -94,7 +98,7 @@ docker compose up -d --build</code></pre>
     ],
     author: AUTHOR,
     ogImageUrl: PROJECT_IMAGES.blogFallback[2],
-    contentHtml: `
+    contentHtml: sanitizeExternalHtml(`
       <p>Placeholder article content for local development and design review.</p>
       <h2 id="why-next">Why Next.js</h2>
       <p>SSR and ISR solved real problems a plain React SPA couldn't for SEO-sensitive, content-driven sites.</p>
@@ -103,6 +107,6 @@ docker compose up -d --build</code></pre>
       <p>Server Components by default meant shipping meaningfully less client-side JavaScript without changing how the app was structured.</p>
       <h2 id="lessons">Lessons</h2>
       <p>Data fetching close to where it's used, colocated with the component that needs it, made the codebase easier to reason about than a single global fetch layer.</p>
-    `,
+    `),
   },
 ];

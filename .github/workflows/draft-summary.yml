@@ -21,6 +21,10 @@ jobs:
           node-version: "24"
 
       # Generate summaries for posts that need them
+      # NODE_OPTIONS: the AI helper modules import "server-only" — they must never
+      # be bundled for the client, and that guard throws unless the process
+      # resolves the react-server condition. Without it this step crashes on
+      # import before doing any work (verified: scripts/generate-summaries.ts).
       - name: Generate summaries
         id: generate
         run: |
@@ -28,6 +32,7 @@ jobs:
           npx --no-install tsx scripts/generate-summaries.ts >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         env:
+          NODE_OPTIONS: "--conditions=react-server"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 

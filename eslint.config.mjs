@@ -5,6 +5,24 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // Runtime code generation is a security boundary, not a style choice.
+      // The only permitted use site is Velite's compiled-MDX evaluator
+      // (src/components/blog/MdxContent.tsx), which carries a narrow,
+      // documented disable directive with justification.
+      "no-new-func": "error",
+    },
+  },
+  {
+    // MdxContent's disable directive also names
+    // @typescript-eslint/no-implied-eval so that Codacy's ESLint engine (which
+    // enables that typed rule) honours it. This project lints without
+    // type-aware rules, so that half of the directive is intentionally unused
+    // here — keep the warning off for this one file instead of project-wide.
+    files: ["src/components/blog/MdxContent.tsx"],
+    linterOptions: { reportUnusedDisableDirectives: "off" },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

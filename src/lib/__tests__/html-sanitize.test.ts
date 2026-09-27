@@ -134,20 +134,26 @@ describe("sanitizeExternalHtml — XSS prevention", () => {
       </table>
     `;
     const clean = sanitizeExternalHtml(safe);
-    expect(clean).toContain(html`<h2`);
-    expect(clean).toContain(html`<p></p>`);
-    expect(clean).toContain(html`<strong></strong>`);
-    expect(clean).toContain(html`<em></em>`);
-    expect(clean).toContain(html`<a`);
-    expect(clean).toContain(html`<img`);
-    expect(clean).toContain(html`<pre></pre>`);
-    expect(clean).toContain(html`<code`);
-    expect(clean).toContain(html`<blockquote></blockquote>`);
-    expect(clean).toContain(html`<ul></ul>`);
-    expect(clean).toContain(html`<ol></ol>`);
-    expect(clean).toContain(html`<table></table>`);
-    expect(clean).toContain(html`https://example.com`);
-    expect(clean).toContain(html`https://images.example.com/photo.jpg`);
+    // NOTE: assertions use plain string literals instead of the `html` tag.
+    // Prettier formats `html`-tagged templates as embedded HTML and "completes"
+    // incomplete fragments (e.g. `<h2 id="x">` → `<h2 id="x"></h2>`), which
+    // silently changes what is being asserted.
+    expect(clean).toContain('<h2 id="section-1">Section Title</h2>');
+    expect(clean).toContain(
+      "<p>This is a <strong>bold</strong> and <em>italic</em> paragraph.</p>",
+    );
+    // target/rel are intentionally stripped; href/title survive.
+    expect(clean).toContain('<a href="https://example.com" title="Example">Link</a>');
+    expect(clean).toContain(
+      '<img src="https://images.example.com/photo.jpg" alt="Photo" loading="lazy" />',
+    );
+    expect(clean).toContain('<pre><code class="language-typescript">const x = 1;</code></pre>');
+    expect(clean).toContain("<blockquote><p>Quoted text</p></blockquote>");
+    expect(clean).toContain("<ul>");
+    expect(clean).toContain("<ol>");
+    expect(clean).toContain("<table>");
+    expect(clean).toContain("https://example.com");
+    expect(clean).toContain("https://images.example.com/photo.jpg");
   });
 
   it("handles empty input gracefully", () => {
@@ -157,8 +163,9 @@ describe("sanitizeExternalHtml — XSS prevention", () => {
   it("handles malformed HTML gracefully", () => {
     const unsanitizedHtml = html`<p>Unclosed <strong>bold <em>mixed</p>`;
     const clean = sanitizeExternalHtml(unsanitizedHtml);
-    expect(clean).toContain(html`<p></p>`);
-    expect(clean).toContain(html`Unclosed`);
+    // Unclosed inline tags are balanced rather than dropped, and text survives.
+    expect(clean).toContain("<p>Unclosed <strong>bold <em>mixed</em></strong></p>");
+    expect(clean).toContain("Unclosed");
   });
 
   it("removes protocol-relative URLs in links", () => {
@@ -190,8 +197,11 @@ describe("sanitizeExternalHtml — XSS prevention", () => {
       </tr>
     </table>`;
     const clean = sanitizeExternalHtml(unsanitizedHtml);
-    expect(clean).toContain(html`<colgroup></colgroup>`);
-    expect(clean).toContain(html`<col`);
+    expect(clean).toContain("<colgroup>");
+    expect(clean).toContain("<col />");
+    // `span` is not an allowed attribute on <col>, so it is stripped.
+    expect(clean).not.toContain("span=");
+    expect(clean).toContain("<td>A</td>");
   });
 
   it("preserves figure and figcaption for image captions", () => {
@@ -200,8 +210,11 @@ describe("sanitizeExternalHtml — XSS prevention", () => {
       <figcaption>Caption</figcaption>
     </figure>`;
     const clean = sanitizeExternalHtml(unsanitizedHtml);
-    expect(clean).toContain(html`<figure></figure>`);
-    expect(clean).toContain(html`<figcaption></figcaption>`);
+    // Sanitizer preserves children; figure is not emptied.
+    // Use plain string to avoid Prettier "completing" the html`...` template tag.
+    expect(clean).toContain("<figure>");
+    expect(clean).toContain(html`<figcaption>Caption</figcaption>`);
+    expect(clean).toContain(html`<img src="https://example.com/img.jpg" alt="Alt" />`);
     expect(clean).toContain(html`Caption`);
   });
 });

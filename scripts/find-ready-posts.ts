@@ -19,14 +19,19 @@
  * Exit code is always 0 — an empty list is a valid result.
  */
 
-import { readFileSync, readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseFrontmatterObject } from "@/lib/frontmatter";
+import { assertRealPathWithinBase, listFilesWithinBase } from "@/lib/safe-path";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const BLOG_DIR = resolve("src/content/blog");
+/**
+ * Blog content root, derived from this file's location so the scan is always
+ * confined to the repository's content tree (never the current directory).
+ */
+const BLOG_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", "src", "content", "blog");
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -47,28 +52,14 @@ interface Frontmatter {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Collect all `.mdx` file paths recursively under a directory.
+ * Collect every `.mdx` file under BLOG_DIR.
+ *
+ * Uses the shared hardened walk (src/lib/safe-path.ts): symlinked directories
+ * are not followed and symlinked files are skipped, so a committed symlink
+ * cannot pull files from outside the content tree into the publish pipeline.
  */
-function collectMdxFiles(dir: string): string[] {
-  const files: string[] = [];
-  let entries;
-
-  try {
-    entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return files;
-  }
-
-  for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...collectMdxFiles(fullPath));
-    } else if (entry.name.endsWith(".mdx")) {
-      files.push(fullPath);
-    }
-  }
-
-  return files.sort((a, b) => a.localeCompare(b));
+function collectMdxFiles(): string[] {
+  return listFilesWithinBase({ baseDir: BLOG_DIR, pattern: "**/*.mdx", extension: ".mdx" });
 }
 
 /**
@@ -97,14 +88,16 @@ function parseFrontmatter(content: string): Frontmatter | null {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 function run(): void {
-  const filePaths = collectMdxFiles(BLOG_DIR);
+  const filePaths = collectMdxFiles();
   const publish: ReadyPost[] = [];
 
   for (const filePath of filePaths) {
     let content: string;
 
     try {
-      content = readFileSync(filePath, "utf-8");
+      // Re-verify the real path before reading (fail closed for scripts: if a
+      // path escaped the content tree, this throws instead of leaking the file).
+      content = readFileSync(assertRealPathWithinBase(BLOG_DIR, filePath), "utf-8");
     } catch {
       // Skip unreadable files
       continue;

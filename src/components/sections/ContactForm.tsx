@@ -3,39 +3,12 @@
 import { useState, useId, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { validateContactForm, INTENT_OPTIONS } from "@/lib/validation";
-import type { ValidationError } from "@/lib/validation";
+import { errorsToMap, parseApiErrors, parseApiErrorMessage } from "@/lib/contact-form-errors";
+import type { FieldErrors, FieldName } from "@/lib/contact-form-errors";
 
 type SubmitState = "idle" | "submitting" | "success" | "error";
 
-type FieldErrors = Partial<Record<"name" | "email" | "intent" | "message", string>>;
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function errorsToMap(errors: ValidationError[]): FieldErrors {
-  const map: FieldErrors = {};
-  for (const e of errors) {
-    map[e.field] = e.message;
-  }
-  return map;
-}
-
-/** Extract field-level errors from an API error response body. */
-interface ApiErrorBody {
-  error?: string;
-  fields?: Record<string, string | undefined>;
-}
-
-function parseApiErrors(body: unknown): FieldErrors | null {
-  if (!body || typeof body !== "object") return null;
-  const b = body as ApiErrorBody;
-  if (!b.fields) return null;
-  const result: FieldErrors = {};
-  for (const key of ["name", "email", "intent", "message"] as const) {
-    const msg = b.fields[key];
-    if (msg) result[key] = msg;
-  }
-  return Object.keys(result).length > 0 ? result : null;
-}
+const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again or email directly.";
 
 // ─── Submit helpers ───────────────────────────────────────────────────────────
 
@@ -62,11 +35,7 @@ async function submitToApi(
       if (serverFields) {
         return { status: "field-error", fields: serverFields };
       }
-      const msg =
-        parsed && typeof parsed === "object" && "error" in parsed
-          ? String((parsed as ApiErrorBody).error)
-          : "Something went wrong. Please try again or email directly.";
-      return { status: "error", message: msg };
+      return { status: "error", message: parseApiErrorMessage(parsed) ?? GENERIC_ERROR_MESSAGE };
     }
 
     form.reset();
@@ -74,7 +43,7 @@ async function submitToApi(
   } catch {
     return {
       status: "error",
-      message: "Something went wrong. Please try again or email directly.",
+      message: GENERIC_ERROR_MESSAGE,
     };
   }
 }
@@ -252,8 +221,15 @@ export function ContactForm() {
 
   // ── Form state ─────────────────────────────────────────────────────────
   const isSubmitting = state === "submitting";
-  const describeField = (field: keyof typeof fieldIds & keyof typeof errorIds) =>
-    fieldErrors[field] ? errorIds[field] : undefined;
+
+  // Resolved statically (one named property per field) so nothing indexes an
+  // object with a variable key.
+  const describedBy: Record<FieldName, string | undefined> = {
+    name: fieldErrors.name ? errorIds.name : undefined,
+    email: fieldErrors.email ? errorIds.email : undefined,
+    intent: fieldErrors.intent ? errorIds.intent : undefined,
+    message: fieldErrors.message ? errorIds.message : undefined,
+  };
 
   return (
     <>
@@ -286,7 +262,7 @@ export function ContactForm() {
           label="Name"
           type="text"
           error={fieldErrors.name}
-          describedby={describeField("name")}
+          describedby={describedBy.name}
         />
 
         <ContactField
@@ -296,7 +272,7 @@ export function ContactForm() {
           label="Email"
           type="email"
           error={fieldErrors.email}
-          describedby={describeField("email")}
+          describedby={describedBy.email}
         />
 
         <ContactField
@@ -306,7 +282,7 @@ export function ContactForm() {
           label="What's this about?"
           type="select"
           error={fieldErrors.intent}
-          describedby={describeField("intent")}
+          describedby={describedBy.intent}
           options={INTENT_OPTIONS}
         />
 
@@ -317,7 +293,7 @@ export function ContactForm() {
           label="Message"
           type="textarea"
           error={fieldErrors.message}
-          describedby={describeField("message")}
+          describedby={describedBy.message}
           rows={5}
         />
 

@@ -1,6 +1,7 @@
 node_modules/
 .next/
 .velite/
+.codacy/
 out/
 build/
 coverage/
@@ -12,4 +13,3 @@ public/fallback-*.js
 *.tsbuildinfo
 next-env.d.ts
 package-lock.json
-.codacy/

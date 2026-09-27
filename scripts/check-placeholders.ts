@@ -11,9 +11,18 @@
  * Exits with code 0 if no violations, 1 otherwise.
  */
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { join, resolve } from "node:path";
+import { assertRealPathWithinBase, listFilesWithinBase } from "@/lib/safe-path";
+
+// ── Constants ────────────────────────────────────────────────────────────────
+
+/**
+ * Blog content root, derived from this file's location so the scan is always
+ * confined to the repository's content tree (never the current directory).
+ */
+const BLOG_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", "src", "content", "blog");
 
 // ── Pattern definitions ──────────────────────────────────────────────────────
 
@@ -44,38 +53,26 @@ export function checkContent(content: string): string[] {
 // ── File helpers (internal) ─────────────────────────────────────────────────
 
 /**
- * Recursively collect all `.mdx` file paths under a directory.
+ * Every `.mdx` file inside BLOG_DIR.
+ *
+ * Uses the shared hardened walk (src/lib/safe-path.ts): symlinked directories
+ * are not followed and symlinked files are skipped, so a committed symlink
+ * cannot make this CI gate read files from outside the content tree.
  */
-function collectMdxFiles(dir: string): string[] {
-  const files: string[] = [];
-  let entries;
-  try {
-    entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
-    // Directory doesn't exist or can't be read — return empty list
-    return files;
-  }
-  for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...collectMdxFiles(fullPath));
-    } else if (entry.name.endsWith(".mdx")) {
-      files.push(fullPath);
-    }
-  }
-  return files;
+function collectMdxFiles(): string[] {
+  return listFilesWithinBase({ baseDir: BLOG_DIR, pattern: "**/*.mdx", extension: ".mdx" });
 }
 
 // ── CLI entry point ──────────────────────────────────────────────────────────
 
 function run(): void {
-  const blogDir = resolve("src/content/blog");
-  const mdxFiles = collectMdxFiles(blogDir);
+  const mdxFiles = collectMdxFiles();
 
   const violations: Array<{ file: string; patterns: string[] }> = [];
 
   for (const file of mdxFiles) {
-    const content = readFileSync(file, "utf-8");
+    // Defence in depth: re-verify the real path before reading (fail closed).
+    const content = readFileSync(assertRealPathWithinBase(BLOG_DIR, file), "utf-8");
     const matched = checkContent(content);
     if (matched.length > 0) {
       violations.push({ file, patterns: matched });
