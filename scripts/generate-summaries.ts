@@ -29,14 +29,18 @@
  *       write, and a violation aborts the run rather than continuing
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 import { parseFrontmatterObject } from "@/lib/frontmatter";
 import { getSummary } from "@/lib/summary/getSummary";
 import { mdxToPlainText } from "../src/lib/mdx/strip-jsx";
-import { assertRealPathWithinBase, listFilesWithinBase } from "@/lib/safe-path";
+import {
+  assertRealPathWithinBase,
+  listFilesWithinBase,
+  readTextFileAtRealPath,
+  writeTextFileAtRealPath,
+} from "@/lib/safe-path";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -90,7 +94,7 @@ async function processFile(filePath: string): Promise<string | null> {
 
   let content;
   try {
-    content = readFileSync(safePath, "utf-8");
+    content = readTextFileAtRealPath(safePath);
   } catch (err) {
     console.error(`Failed to read ${safePath}:`, err);
     return null;
@@ -153,7 +157,7 @@ async function processFile(filePath: string): Promise<string | null> {
   // and let the run continue.
   const writePath = assertRealPathWithinBase(BLOG_DIR, safePath);
   try {
-    writeFileSync(writePath, updatedContent, "utf-8");
+    writeTextFileAtRealPath(writePath, updatedContent);
   } catch (err) {
     console.error(`Failed to write ${safePath}:`, err);
     return null;

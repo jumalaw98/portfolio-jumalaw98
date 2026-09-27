@@ -11,10 +11,13 @@
  * Exits with code 0 if no violations, 1 otherwise.
  */
 
-import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertRealPathWithinBase, listFilesWithinBase } from "@/lib/safe-path";
+import {
+  assertRealPathWithinBase,
+  listFilesWithinBase,
+  readTextFileAtRealPath,
+} from "@/lib/safe-path";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -83,7 +86,7 @@ function run(): void {
 
   for (const file of mdxFiles) {
     // Defence in depth: re-verify the real path before reading (fail closed).
-    const content = readFileSync(assertRealPathWithinBase(BLOG_DIR, file), "utf-8");
+    const content = readTextFileAtRealPath(assertRealPathWithinBase(BLOG_DIR, file));
     const matched = checkContent(content);
     if (matched.length > 0) {
       violations.push({ file, patterns: matched });

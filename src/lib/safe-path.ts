@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename */
 /**
  * Filesystem path containment helpers for build/CI scripts.
  *
@@ -24,8 +25,12 @@
  * returns files whose real path is inside the base directory.
  */
 
-import { globSync, realpathSync } from "node:fs";
+import { globSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { resolve, sep } from "node:path";
+
+declare const validatedRealPathBrand: unique symbol;
+
+export type ValidatedRealPath = string & { readonly [validatedRealPathBrand]: true };
 
 /**
  * Lexical containment check.
@@ -71,7 +76,7 @@ export function assertWithinBase(baseDir: string, candidate: string): string {
  * @returns The canonical real path
  * @throws When the path escapes `baseDir` or cannot be resolved
  */
-export function assertRealPathWithinBase(baseDir: string, candidate: string): string {
+export function assertRealPathWithinBase(baseDir: string, candidate: string): ValidatedRealPath {
   const realBase = realpathSync(resolve(baseDir));
   const realTarget = realpathSync(resolve(candidate));
 
@@ -81,7 +86,17 @@ export function assertRealPathWithinBase(baseDir: string, candidate: string): st
     );
   }
 
-  return realTarget;
+  return realTarget as ValidatedRealPath;
+}
+
+/** Read a UTF-8 file using a path already validated by `assertRealPathWithinBase`. */
+export function readTextFileAtRealPath(path: ValidatedRealPath): string {
+  return readFileSync(path, "utf-8");
+}
+
+/** Write a UTF-8 file using a path already validated by `assertRealPathWithinBase`. */
+export function writeTextFileAtRealPath(path: ValidatedRealPath, content: string): void {
+  writeFileSync(path, content, "utf-8");
 }
 
 export interface ListFilesWithinBaseOptions {
