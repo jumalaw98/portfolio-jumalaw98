@@ -23,7 +23,7 @@
  *
  * Do NOT add `"use client"` to this file.
  *
- * See docs/security.md → "MDX evaluation".
+ * See docs/security.md → "Content Trust Boundaries" (compiled MDX).
  */
 import "server-only";
 import * as runtime from "react/jsx-runtime";

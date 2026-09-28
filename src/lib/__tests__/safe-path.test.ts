@@ -132,7 +132,7 @@ describe("listFilesWithinBase", () => {
     expect(files.some((file) => realpathSync(file).startsWith(realpathSync(outside)))).toBe(false);
   });
 
-  it("does not descend into symlinked directories", () => {
+  it("does not return files reached through a symlinked directory", () => {
     const files = listFilesWithinBase({
       baseDir: base,
       pattern: "**/*.mdx",

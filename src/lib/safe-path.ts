@@ -20,9 +20,12 @@
  *     symlinks first, so a link *inside* the base directory that points outside
  *     it is rejected.
  *
- * {@link listFilesWithinBase} is the hardened directory walk used by scripts:
- * it never follows symlinked directories, never returns symlinks, and only
- * returns files whose real path is inside the base directory.
+ * {@link listFilesWithinBase} is the hardened directory walk used by scripts.
+ * Containment is enforced per result: symlinks and non-regular entries are
+ * skipped, and every remaining file is accepted only when its *real* path is
+ * inside the base directory. Asking the glob walk not to follow symlinked
+ * directories (`followSymlinks: false`) is defence in depth on top of that,
+ * not the guarantee — see the note on `listFilesWithinBase`.
  */
 
 import { globSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
@@ -111,12 +114,17 @@ export interface ListFilesWithinBaseOptions {
 /**
  * List regular files below `baseDir` that match `pattern`.
  *
- * Hardening:
- *   - glob runs with `followSymlinks: false`, so a symlinked directory inside
- *     the tree is never descended into
+ * Hardening (in order of what actually blocks an escape):
+ *   - each result is re-checked with its real path, so neither a symlinked
+ *     *file* nor a file reached through a symlinked *directory* can be returned
+ *     if the link target sits outside the base directory. This is the binding
+ *     control: it works on every Node release the scripts can run on.
  *   - symlinked entries and non-regular files are skipped
- *   - each result is re-checked with its real path, so a symlinked *file* that
- *     points outside the base directory can never be returned
+ *   - the glob is also asked to skip descending into symlinked directories
+ *     (`followSymlinks: false`). Defence in depth only, and deliberately not
+ *     relied on: `followSymlinks` is not supported by every Node line (Node 22
+ *     ignores it and walks the link), so its absence fails open to the
+ *     real-path re-check above, which still rejects the entries.
  *
  * @param options - Base directory, glob pattern and required extension
  * @returns Absolute, sorted paths of the matching files

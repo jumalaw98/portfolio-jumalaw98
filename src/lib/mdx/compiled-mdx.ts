@@ -15,7 +15,8 @@
  *
  * This is an artifact-integrity check, NOT a sandbox: it does not make
  * arbitrary JavaScript safe to evaluate, and it is not a substitute for the
- * branded type. See docs/security.md → "MDX evaluation".
+ * branded type. See docs/security.md → "Content Trust Boundaries" (compiled
+ * MDX).
  */
 
 /** Largest compiled body we are willing to evaluate (defence against a runaway artifact). */

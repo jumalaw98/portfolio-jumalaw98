@@ -192,12 +192,20 @@ file (summaries send the body to third-party AI APIs and write results back);
 `src/content/blog/<slug>.mdx`. All of them confine every path to the repo tree
 via `src/lib/safe-path.ts`:
 
-| Control                               | Purpose                                                                            |
-| ------------------------------------- | ---------------------------------------------------------------------------------- |
-| `BLOG_DIR` from the script's own path | Scan and writes are pinned to the repo tree, not `process.cwd()`                   |
-| `listFilesWithinBase()`               | `globSync(..., { followSymlinks: false })`; symlinks and non-regular files skipped |
-| `assertWithinBase()`                  | Lexical containment (`../`, absolute paths, sibling-prefix tricks rejected)        |
-| `assertRealPathWithinBase()`          | Symlink-resolved containment, re-checked immediately before read and write         |
+| Control                               | Purpose                                                                      |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
+| `BLOG_DIR` from the script's own path | Scan and writes are pinned to the repo tree, not `process.cwd()`             |
+| `listFilesWithinBase()`               | Every result re-checked by real path; symlinks and non-regular files skipped |
+| `assertWithinBase()`                  | Lexical containment (`../`, absolute paths, sibling-prefix tricks rejected)  |
+| `assertRealPathWithinBase()`          | Symlink-resolved containment, re-checked immediately before read and write   |
+
+`listFilesWithinBase()` also asks `globSync` not to follow symlinked directories
+(`followSymlinks: false`), but that is defence in depth, never the protection:
+the option is not supported by every Node line these scripts can run on (Node 22
+ignores it and walks into a linked directory), so what blocks an escape is the
+real-path re-check applied to every result — and again immediately before each
+read and write. A walk that does reach a link target therefore still yields
+nothing that resolves outside the base directory.
 
 Symlinks are the concrete risk: a symlinked `*.mdx` committed under
 `src/content/blog/` would otherwise be read (disclosing the target file's
