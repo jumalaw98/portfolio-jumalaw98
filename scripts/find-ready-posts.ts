@@ -19,14 +19,24 @@
  * Exit code is always 0 — an empty list is a valid result.
  */
 
-import { readFileSync, readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseFrontmatterObject } from "@/lib/frontmatter";
+import { assertRealPathWithinBase, listFilesWithinBase } from "@/lib/safe-path";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const BLOG_DIR = resolve("src/content/blog");
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+
+/** Repository root (the parent of `scripts/`), used to validate the blog root. */
+const REPO_ROOT = resolve(SCRIPT_DIR, "..");
+
+/**
+ * Blog content root, derived from this file's location so the scan is always
+ * confined to the repository's content tree (never the current directory).
+ */
+const BLOG_DIR = resolve(SCRIPT_DIR, "..", "src", "content", "blog");
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -47,28 +57,26 @@ interface Frontmatter {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Collect all `.mdx` file paths recursively under a directory.
+ * Collect every `.mdx` file under BLOG_DIR.
+ *
+ * Uses the shared hardened walk (src/lib/safe-path.ts): symlinked directories
+ * are not followed and symlinked files are skipped, so a committed symlink
+ * cannot pull files from outside the content tree into the publish pipeline.
+ *
+ * The blog root itself is validated against the repository tree first:
+ * `realpath(BLOG_DIR)` is the walk's containment boundary, so a symlinked
+ * `src/content/blog` would otherwise become its own trusted boundary. Any
+ * failure here (missing directory, root outside the repo) yields an empty
+ * list — the documented contract of this command: it always prints JSON and
+ * exits 0, and reading nothing from an untrusted tree is fail-closed.
  */
-function collectMdxFiles(dir: string): string[] {
-  const files: string[] = [];
-  let entries;
-
+function collectMdxFiles(): string[] {
   try {
-    entries = readdirSync(dir, { withFileTypes: true });
+    const blogRoot = assertRealPathWithinBase(REPO_ROOT, BLOG_DIR);
+    return listFilesWithinBase({ baseDir: blogRoot, pattern: "**/*.mdx", extension: ".mdx" });
   } catch {
-    return files;
+    return [];
   }
-
-  for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...collectMdxFiles(fullPath));
-    } else if (entry.name.endsWith(".mdx")) {
-      files.push(fullPath);
-    }
-  }
-
-  return files.sort((a, b) => a.localeCompare(b));
 }
 
 /**
@@ -97,14 +105,16 @@ function parseFrontmatter(content: string): Frontmatter | null {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 function run(): void {
-  const filePaths = collectMdxFiles(BLOG_DIR);
+  const filePaths = collectMdxFiles();
   const publish: ReadyPost[] = [];
 
   for (const filePath of filePaths) {
     let content: string;
 
     try {
-      content = readFileSync(filePath, "utf-8");
+      // Re-verify the real path before reading (fail closed for scripts: if a
+      // path escaped the content tree, this throws instead of leaking the file).
+      content = readFileSync(assertRealPathWithinBase(BLOG_DIR, filePath), "utf-8");
     } catch {
       // Skip unreadable files
       continue;

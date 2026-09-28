@@ -13,13 +13,34 @@
 import sanitize from "sanitize-html";
 
 /**
- * Template literal tag to explicitly mark a string as HTML content.
- * Used to satisfy security linting rules (xss_no-mixed-html) that require
- * HTML strings to be explicitly typed to prevent accidental XSS.
+ * Nominal brand for strings that have been through {@link sanitizeExternalHtml}.
+ *
+ * Rendering HTML with `dangerouslySetInnerHTML` is only safe when the value is
+ * sanitized. Typing the payload as `SanitizedHtml` makes that requirement
+ * machine-checked: components such as `ArticleContent` accept `SanitizedHtml`,
+ * so an unsanitized string is a compile error rather than a silent XSS.
+ *
+ * `sanitizeExternalHtml()` is the only producer of this type.
+ */
+declare const sanitizedHtmlBrand: unique symbol;
+
+interface SanitizedHtmlBrand {
+  readonly [sanitizedHtmlBrand]: "SanitizedHtml";
+}
+
+export type SanitizedHtml = string & SanitizedHtmlBrand;
+
+/**
+ * Template literal tag to explicitly mark a *literal* string as HTML content.
+ *
+ * IMPORTANT: this helper performs no sanitization and returns a plain `string`.
+ * It exists so that test fixtures (and static markup) read as HTML rather than
+ * as an opaque string. Never use it to render untrusted input — pass untrusted
+ * markup through {@link sanitizeExternalHtml} instead.
  *
  * @param strings - Template literal strings
  * @param values - Interpolated values
- * @returns The concatenated string marked as HTML
+ * @returns The concatenated string
  */
 export function html(strings: TemplateStringsArray, ...values: unknown[]): string {
   let result = "";
@@ -122,10 +143,17 @@ const ALLOWED_ATTRS: Record<string, string[]> = {
 /**
  * Sanitize HTML content from external sources (Hashnode, CMS, etc.).
  *
+ * This is the single trust boundary for HTML that is later rendered with
+ * `dangerouslySetInnerHTML`. Anything not passed through here is rendered as
+ * text by React.
+ *
  * @param dirty - Untrusted HTML string
- * @returns Sanitized HTML safe for rendering via dangerouslySetInnerHTML
+ * @returns Sanitized HTML, branded as `SanitizedHtml` so it can be handed to
+ *          the components that render raw HTML
  */
-export function sanitizeExternalHtml(dirty: string): string {
+export function sanitizeExternalHtml(dirty: string): SanitizedHtml {
+  // sanitize-html is typed as returning `string`; only this function may claim
+  // the sanitized brand, which is exactly why the cast lives here.
   return sanitize(dirty, {
     allowedTags: ALLOWED_TAGS,
     allowedAttributes: ALLOWED_ATTRS,
@@ -137,5 +165,11 @@ export function sanitizeExternalHtml(dirty: string): string {
     allowedStyles: {},
     allowProtocolRelative: false,
     disallowedTagsMode: "discard",
-  });
+  }) as SanitizedHtml;
 }
+
+/**
+ * Canonical empty value for content sources that carry no HTML (for example
+ * MDX posts, which are rendered from compiled code instead of HTML).
+ */
+export const EMPTY_SANITIZED_HTML: SanitizedHtml = sanitizeExternalHtml("");

@@ -115,6 +115,135 @@ rejected early to prevent coercion-based bypass.
 
 ---
 
+## Content Trust Boundaries
+
+Three kinds of content cross into this site, and each has exactly one enforced entry point.
+
+### 1. External HTML (Hashnode RSS) → `SanitizedHtml`
+
+`src/lib/html-sanitize.ts` is the only module that produces the nominal type
+`SanitizedHtml`. `sanitizeExternalHtml()` runs `sanitize-html` with an allowlist
+of article elements/attributes/schemes and returns the branded value.
+
+| Consumer                         | How it stays safe                                                                      |
+| -------------------------------- | -------------------------------------------------------------------------------------- |
+| `lib/hashnode/posts.ts`          | Sanitizes `content:encoded` from the RSS feed                                          |
+| `content/blog-placeholder.ts`    | Passes author-written placeholder markup through the same sanitizer (uniform boundary) |
+| `components/blog/ArticleContent` | Prop is typed `SanitizedHtml`; a raw `string` is a compile error                       |
+
+`ArticleContent` renders via `dangerouslySetInnerHTML` and highlights code
+blocks with Prism after paint. The post-render effect takes the `html` payload
+and a `contentId` (the slug) as its re-highlight triggers and reads the DOM
+through a ref — it never reads or transforms the payload itself, so updated
+HTML for the same slug (e.g. after `router.refresh()`) is re-highlighted too.
+
+### 2. Structured data → `serializeJsonLd()`
+
+`src/lib/json-ld.ts` is the only module that produces escaped JSON-LD, and
+`components/seo/JsonLd` is its only consumer. It accepts plain structured data
+(never `SanitizedHtml`) and renders `serializeJsonLd(data)` as the text child
+of a `<script type="application/ld+json">` element — deliberately not through
+`dangerouslySetInnerHTML`. React 19 renders text children of `<script>` as raw
+text (no entity escaping, so the payload stays valid JSON for search engines)
+and additionally neutralizes any `</script` sequence in the child.
+
+Article titles/briefs come from an external feed, so `<` is still escaped to
+`\u003c` by `serializeJsonLd()` as defence in depth — the payload remains
+valid JSON (the escape is decoded by `JSON.parse` and by search engines) but
+can no longer close the tag or open a new one, independently of React's own
+script-child protection.
+
+### 3. Compiled MDX → `CompiledMdxCode`
+
+Velite emits MDX as a JavaScript _function body_, which must be evaluated before
+React can render it. That evaluation is confined to one place:
+
+- `src/lib/mdx/compiled-mdx.ts` defines the `CompiledMdxCode` brand and
+  `asCompiledMdxCode()`, which validates artifact shape (string, non-empty,
+  ≤5 MB, MDX function-body marker) and is the only producer of the brand.
+- `src/lib/velite/index.ts` is the only caller: it brands the compiled body read
+  from Velite's build output (`.velite/posts.json`, generated from the `.mdx`
+  files committed to the repository). A post without a valid body fails loudly
+  instead of rendering nothing.
+- `components/blog/MdxContent.tsx` is `server-only` and evaluates the branded
+  value — **the single permitted `new Function` in the codebase**. ESLint runs
+  with `no-new-func` as an error, and this one line carries a narrow inline
+  disable directive with its justification.
+
+The artifact check is an integrity guard, **not a sandbox**: it cannot make
+arbitrary JavaScript safe to run. Nor does the `CompiledMdxCode` type itself
+prove provenance — the brand exists only at compile time and is erased at
+runtime, and `asCompiledMdxCode()` brands any string containing the marker
+regardless of its origin. Trust comes from the production call path instead:
+`src/lib/velite/index.ts` is the only caller, and it supplies the compiled form
+of the `.mdx` files committed to this repository. Removing runtime evaluation
+entirely would mean replacing Velite's MDX output with a pre-compiled component
+pipeline (e.g. `@next/mdx`) — an architectural change, tracked under _Known
+limitations_ below.
+
+---
+
+## Filesystem Access in Content Scripts
+
+`scripts/generate-summaries.ts`, `scripts/check-placeholders.ts` and
+`scripts/find-ready-posts.ts` walk `src/content/blog/` and read every `.mdx`
+file (summaries send the body to third-party AI APIs and write results back);
+`scripts/publish-devto.ts` reads and rewrites a single
+`src/content/blog/<slug>.mdx`. All of them confine every path to the repo tree
+via `src/lib/safe-path.ts`:
+
+| Control                               | Purpose                                                                      |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
+| `BLOG_DIR` from the script's own path | Scan and writes are pinned to the repo tree, not `process.cwd()`             |
+| `listFilesWithinBase()`               | Every result re-checked by real path; symlinks and non-regular files skipped |
+| `assertWithinBase()`                  | Lexical containment (`../`, absolute paths, sibling-prefix tricks rejected)  |
+| `assertRealPathWithinBase()`          | Symlink-resolved containment, re-checked immediately before read and write   |
+
+`listFilesWithinBase()` also asks `globSync` not to follow symlinked directories
+(`followSymlinks: false`), but that is defence in depth, never the protection:
+the option is not supported by every Node line these scripts can run on (Node 22
+ignores it and walks into a linked directory), so what blocks an escape is the
+real-path re-check applied to every result — and again immediately before each
+read and write. A walk that does reach a link target therefore still yields
+nothing that resolves outside the base directory.
+
+Symlinks are the concrete risk: a symlinked `*.mdx` committed under
+`src/content/blog/` would otherwise be read (disclosing the target file's
+contents to the AI providers) and then overwritten. The blog root itself is
+validated against the repository tree before listing, so a symlinked
+`src/content/blog` cannot become its own trusted boundary. A containment
+violation aborts the run (fail closed) rather than skipping quietly.
+
+---
+
+## Contact Form Response Handling
+
+`src/lib/contact-form-errors.ts` parses the `/api/contact` error response
+(untrusted input on the client):
+
+- keys come from a fixed allowlist (`name`, `email`, `intent`, `message`);
+  anything else — including `__proto__`, `constructor`, `prototype` — is ignored
+- values must be non-empty strings, so no objects/arrays/numbers reach form state
+- no dynamic key is written into an object: every assignment targets a named
+  property, which removes the object-injection sink rather than trusting it
+- regression tests: `src/lib/__tests__/contact-form-errors.test.ts`
+
+---
+
+## Known Limitations and Accepted Scanner Findings
+
+| Item                                                                           | Status                                                                                                                                                                        |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `new Function` in `MdxContent.tsx`                                             | Accepted. Inherent to MDX's function-body output; branded + shape-validated + one documented exception. See _Content Trust Boundaries_.                                       |
+| Non-literal paths in `readFileSync`/`writeFileSync`                            | Accepted. The set of files is data, so a literal path is impossible; containment is enforced by real-path checks instead (Codacy reports the non-literal fs argument).        |
+| Object-injection reports on closed-union keys                                  | Resolved by implementation change (`Map.get`, explicit `switch`), so no rule suppression is used.                                                                             |
+| `'unsafe-inline'` in `script-src`                                              | Accepted and documented in `next.config.ts`; removing it requires nonce-based CSP via middleware.                                                                             |
+| Sanitizer fixtures in `src/lib/__tests__/html-sanitize.test.ts`                | Adversarial HTML strings; excluded from Codacy's eslint-8 engine in `.codacy.yaml` (runtime coverage retained).                                                               |
+| `dangerouslySetInnerHTML` reports on `components/seo/JsonLd`                   | Resolved by implementation change (script text child instead of `dangerouslySetInnerHTML`; `serializeJsonLd()` escaping retained), so no rule suppression is used.            |
+| "Unencoded return value used in HTML context" on `content/blog-placeholder.ts` | Accepted. The reported value is already sanitized through the `SanitizedHtml` boundary (see _Content Trust Boundaries_); the taint engine cannot see the project's sanitizer. |
+
+---
+
 ## Dependency Security
 
 ### npm Audit

@@ -333,7 +333,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   if (portfolioPost) {
     contentElement = <MdxContent code={portfolioPost.mdxBody} />;
   } else if (hashnodePost) {
-    contentElement = <ArticleContent html={hashnodePost.contentHtml} />;
+    contentElement = <ArticleContent html={hashnodePost.contentHtml} contentId={post.slug} />;
   }
 
   return (

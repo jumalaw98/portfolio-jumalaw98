@@ -16,6 +16,9 @@ node_modules/
 # ─── Velite content build output ─────────────────────────────────────────────
 .velite/
 
+# ─── Codacy CLI cache ─────────────────────────────────────────────────────────
+.codacy/
+
 # ─── Next.js build output ────────────────────────────────────────────────────
 /.next/
 /out/
@@ -95,6 +98,8 @@ AGENTS.md
 .agents/
 .gemini/
 .kiro/
+.qodo/
+.antigravityignore
 
 # ─── Temporary files ─────────────────────────────────────────────────────────
 *.tmp

@@ -1,5 +1,8 @@
 import type { BlogPost, BlogPostDetail, BlogAuthor } from "@/types/blogPost";
 import { generateShortId } from "@/lib/shortId";
+import { EMPTY_SANITIZED_HTML } from "@/lib/html-sanitize";
+import { asCompiledMdxCode } from "@/lib/mdx/compiled-mdx";
+import type { CompiledMdxCode } from "@/lib/mdx/compiled-mdx";
 
 // ── Author constant ──────────────────────────────────────────────────────────
 const AUTHOR: BlogAuthor = {
@@ -75,6 +78,16 @@ async function loadPosts(): Promise<VeliteRaw[]> {
 
 /** Helper to map a raw Velite post to the complete PortfolioPostDetail. */
 function toPortfolioDetail(p: VeliteRaw): PortfolioPostDetail {
+  // Compiled MDX is validated before it is branded: only Velite output for a
+  // real content file reaches the evaluator in MdxContent. See
+  // src/lib/mdx/compiled-mdx.ts.
+  const mdxBody = asCompiledMdxCode(p.body);
+  if (mdxBody === null) {
+    throw new Error(
+      `Velite post "${p.slug}" has no evaluable compiled MDX body — refusing to render it.`,
+    );
+  }
+
   return {
     source: "portfolio",
     slug: p.slug,
@@ -89,8 +102,10 @@ function toPortfolioDetail(p: VeliteRaw): PortfolioPostDetail {
     tags: p.tags.map(toTag),
     author: AUTHOR,
     ogImageUrl: p.coverImage?.src ?? null,
-    contentHtml: "",
-    mdxBody: p.body,
+    // MDX posts have no HTML payload; the field is required by BlogPostDetail,
+    // so use the canonical sanitized empty value rather than a raw string.
+    contentHtml: EMPTY_SANITIZED_HTML,
+    mdxBody,
   };
 }
 
@@ -116,7 +131,8 @@ export async function getPortfolioPosts(): Promise<(BlogPost & { source: "portfo
  */
 export interface PortfolioPostDetail extends BlogPostDetail {
   source: "portfolio";
-  mdxBody: string;
+  /** Velite-compiled MDX, validated and branded by `asCompiledMdxCode`. */
+  mdxBody: CompiledMdxCode;
 }
 
 /** Look up a single Velite post by slug for the article page. */

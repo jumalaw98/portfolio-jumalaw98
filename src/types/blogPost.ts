@@ -1,3 +1,5 @@
+import type { SanitizedHtml } from "@/lib/html-sanitize";
+
 export interface BlogTag {
   name: string;
   slug: string;
@@ -24,6 +26,13 @@ export interface BlogPost {
 }
 
 export interface BlogPostDetail extends BlogPost {
-  contentHtml: string;
+  /**
+   * Article HTML that has passed through `sanitizeExternalHtml()`.
+   *
+   * `SanitizedHtml` is a nominal brand, so this field can only be populated by
+   * the sanitizer — see src/lib/html-sanitize.ts. Never assign a raw string
+   * here; that would reintroduce an XSS sink at `dangerouslySetInnerHTML`.
+   */
+  contentHtml: SanitizedHtml;
   ogImageUrl: string | null;
 }

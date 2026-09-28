@@ -18,6 +18,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseFrontmatterObject } from "@/lib/frontmatter";
+import { assertRealPathWithinBase } from "@/lib/safe-path";
 import { mdxToMarkdown } from "../src/lib/mdx/strip-jsx";
 
 // ── Interfaces & core publish function ──────────────────────────────────────
@@ -173,15 +174,40 @@ if (isEntryPoint) {
     SITE_URL = SITE_URL.slice(0, -1);
   }
 
+  // ── Blog content root, validated against the repository tree ────────────────
+  //
+  // Derived from this file's location — never `process.cwd()` — and validated
+  // with the shared hardening (src/lib/safe-path.ts): a symlinked
+  // src/content/blog (or a symlinked <slug>.mdx inside it) would otherwise be
+  // read (leaking the target's contents to dev.to) and then overwritten. A
+  // containment violation aborts the run (fail closed).
+  const BLOG_DIR = resolve(__filename, "..", "..", "src", "content", "blog");
+  const REPO_ROOT = resolve(__filename, "..", "..");
+
+  let blogRoot: string;
+  try {
+    blogRoot = assertRealPathWithinBase(REPO_ROOT, BLOG_DIR);
+  } catch (err) {
+    console.error(
+      "Blog content root is missing or outside the repository:",
+      err instanceof Error ? err.message : String(err),
+    );
+    process.exit(1);
+  }
+
   // ── Read & parse the MDX file ───────────────────────────────────────────────
 
-  const filePath = resolve("src/content/blog", `${SLUG}.mdx`); // NOSONAR:typescript:S5146 — slug validated above
+  const mdxPath = resolve(BLOG_DIR, `${SLUG}.mdx`);
 
   let content: string;
+  let filePath: string;
   try {
-    content = readFileSync(filePath, "utf-8"); // NOSONAR:typescript:S5146 — path validated above
+    // Symlink-aware containment before any I/O: a symlinked <slug>.mdx that
+    // points outside the content tree is rejected instead of being read.
+    filePath = assertRealPathWithinBase(blogRoot, mdxPath);
+    content = readFileSync(filePath, "utf-8"); // NOSONAR:typescript:S5146 — path validated by assertRealPathWithinBase
   } catch {
-    console.error(`File not found: ${filePath}`);
+    console.error(`File not found (or outside the content tree): ${mdxPath}`);
     process.exit(1);
   }
 
@@ -275,7 +301,11 @@ if (isEntryPoint) {
           process.exit(1);
         }
 
-        writeFileSync(filePath, updatedContent, "utf-8"); // NOSONAR:typescript:S5146 — path validated above
+        // Re-assert containment immediately before the write (TOCTOU re-check):
+        // a violation here means the file was swapped after the read — the
+        // surrounding catch exits(1), so it aborts the run instead of
+        // continuing with an unvalidated path.
+        writeFileSync(assertRealPathWithinBase(blogRoot, filePath), updatedContent, "utf-8"); // NOSONAR:typescript:S5146 — path validated by assertRealPathWithinBase
         console.log("✏️  devToId written to frontmatter");
       }
     } catch (err) {

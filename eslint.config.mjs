@@ -5,6 +5,44 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // Runtime code generation is a security boundary, not a style choice.
+      // The only permitted use site is Velite's compiled-MDX evaluator
+      // (src/components/blog/MdxContent.tsx), which carries a narrow,
+      // documented disable directive with justification.
+      "no-new-func": "error",
+    },
+  },
+  {
+    // MdxContent's disable directive also names
+    // @typescript-eslint/no-implied-eval so that Codacy's ESLint engine (which
+    // enables that typed rule) honours it. This project lints without
+    // type-aware rules, so that half of the directive is intentionally unused
+    // here — keep the warning off for this one file instead of project-wide.
+    files: ["src/components/blog/MdxContent.tsx"],
+    linterOptions: { reportUnusedDisableDirectives: "off" },
+  },
+  {
+    // safe-path.ts opens with a file-level disable for
+    // security/detect-non-literal-fs-filename, a rule that only exists in
+    // Codacy's ESLint engine (eslint-plugin-security is not a dependency here).
+    // Two things are needed to keep the file fully linted locally rather than
+    // ignored: a stand-in definition so the directive's rule name resolves —
+    // without it ESLint rejects the whole file with "Definition for rule ...
+    // was not found" — and the unused-directive warning off for this file,
+    // since the disable is intentionally unused when only the stand-in is
+    // loaded. Every other rule still applies to this file.
+    files: ["src/lib/safe-path.ts"],
+    plugins: {
+      security: {
+        rules: {
+          "detect-non-literal-fs-filename": { create: () => ({}) },
+        },
+      },
+    },
+    linterOptions: { reportUnusedDisableDirectives: "off" },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

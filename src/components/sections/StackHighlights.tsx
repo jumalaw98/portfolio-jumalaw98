@@ -21,48 +21,81 @@ interface TechDetail {
   readonly hoverGlow: string;
 }
 
-const TECH_DETAILS: Record<string, TechDetail> = {
-  React: {
-    Icon: ReactIcon,
-    colorClass: "hover:text-[#61dafb] hover:scale-110",
-    hoverGlow: "rgba(97, 218, 251, 0.15)",
-  },
-  "Next.js": {
-    Icon: NextjsIcon,
-    colorClass: "hover:text-brand-blue-dark hover:scale-110 dark:hover:text-white",
-    hoverGlow: "rgba(28, 118, 181, 0.15)",
-  },
-  TypeScript: {
-    Icon: TypeScriptIcon,
-    colorClass: "hover:text-[#3178c6] hover:scale-110",
-    hoverGlow: "rgba(49, 120, 198, 0.15)",
-  },
-  Tailwind: {
-    Icon: TailwindIcon,
-    colorClass: "hover:text-[#38bdf8] hover:scale-110",
-    hoverGlow: "rgba(56, 189, 248, 0.15)",
-  },
-  Docker: {
-    Icon: DockerIcon,
-    colorClass: "hover:text-[#2496ed] hover:scale-110",
-    hoverGlow: "rgba(36, 150, 237, 0.15)",
-  },
-  Azure: {
-    Icon: AzureIcon,
-    colorClass: "hover:text-[#0078d4] hover:scale-110",
-    hoverGlow: "rgba(0, 120, 212, 0.15)",
-  },
-  Cloudflare: {
-    Icon: CloudflareIcon,
-    colorClass: "hover:text-[#f38020] hover:scale-110",
-    hoverGlow: "rgba(243, 128, 32, 0.15)",
-  },
-  "GitHub Actions": {
-    Icon: GithubActionsIcon,
-    colorClass: "hover:text-[#2088ff] hover:scale-110",
-    hoverGlow: "rgba(32, 136, 255, 0.15)",
-  },
-};
+/**
+ * Tech-name → presentation details.
+ *
+ * Deliberately a `Map` rather than an object literal: lookups with a dynamic
+ * key (`details[name]`) can walk the prototype chain, so an unexpected key such
+ * as `__proto__` or `constructor` would resolve to a non-detail value. `Map.get`
+ * compares keys by value and only ever returns what was registered here, and it
+ * keeps the dynamic-key lookup out of the object-injection sink category.
+ */
+const TECH_DETAILS: ReadonlyMap<string, TechDetail> = new Map<string, TechDetail>([
+  [
+    "React",
+    {
+      Icon: ReactIcon,
+      colorClass: "hover:text-[#61dafb] hover:scale-110",
+      hoverGlow: "rgba(97, 218, 251, 0.15)",
+    },
+  ],
+  [
+    "Next.js",
+    {
+      Icon: NextjsIcon,
+      colorClass: "hover:text-brand-blue-dark hover:scale-110 dark:hover:text-white",
+      hoverGlow: "rgba(28, 118, 181, 0.15)",
+    },
+  ],
+  [
+    "TypeScript",
+    {
+      Icon: TypeScriptIcon,
+      colorClass: "hover:text-[#3178c6] hover:scale-110",
+      hoverGlow: "rgba(49, 120, 198, 0.15)",
+    },
+  ],
+  [
+    "Tailwind",
+    {
+      Icon: TailwindIcon,
+      colorClass: "hover:text-[#38bdf8] hover:scale-110",
+      hoverGlow: "rgba(56, 189, 248, 0.15)",
+    },
+  ],
+  [
+    "Docker",
+    {
+      Icon: DockerIcon,
+      colorClass: "hover:text-[#2496ed] hover:scale-110",
+      hoverGlow: "rgba(36, 150, 237, 0.15)",
+    },
+  ],
+  [
+    "Azure",
+    {
+      Icon: AzureIcon,
+      colorClass: "hover:text-[#0078d4] hover:scale-110",
+      hoverGlow: "rgba(0, 120, 212, 0.15)",
+    },
+  ],
+  [
+    "Cloudflare",
+    {
+      Icon: CloudflareIcon,
+      colorClass: "hover:text-[#f38020] hover:scale-110",
+      hoverGlow: "rgba(243, 128, 32, 0.15)",
+    },
+  ],
+  [
+    "GitHub Actions",
+    {
+      Icon: GithubActionsIcon,
+      colorClass: "hover:text-[#2088ff] hover:scale-110",
+      hoverGlow: "rgba(32, 136, 255, 0.15)",
+    },
+  ],
+]);
 
 export function StackHighlights() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -75,7 +108,7 @@ export function StackHighlights() {
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-6">
           {STACK_HIGHLIGHTS.map((tech, index) => {
-            const details = TECH_DETAILS[tech];
+            const details = TECH_DETAILS.get(tech);
             if (!details) return null;
             const { Icon, colorClass, hoverGlow } = details;
 
