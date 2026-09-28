@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { asCompiledMdxCode } from "@/lib/mdx/compiled-mdx";
 
@@ -105,10 +105,8 @@ interface GeneratedPost {
  * against an empty or missing file.
  */
 async function loadGeneratedPosts(): Promise<GeneratedPost[]> {
-  if (!existsSync(VELITE_POSTS_PATH)) {
-    const { build } = await import("velite");
-    await build({ logLevel: "silent" });
-  }
+  const { build } = await import("velite");
+  await build({ logLevel: "silent" });
   return JSON.parse(readFileSync(VELITE_POSTS_PATH, "utf-8")) as GeneratedPost[];
 }
 
