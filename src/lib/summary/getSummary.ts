@@ -34,9 +34,16 @@ interface GetSummaryInput {
 export async function getSummary(input: GetSummaryInput): Promise<SummaryResult> {
   try {
     return await resolveSummary(input);
-  } catch {
-    // Absolute last resort — should not be reachable since the fallback chain
-    // itself should never throw, but a defensive catch prevents surprises.
+  } catch (error) {
+    // Defensive net: `resolveSummary` is documented never to throw, so reaching
+    // this branch means an unexpected internal failure. Only the error *class*
+    // is reported — a provider error message can quote upstream response
+    // content, and nothing here should be able to leak it into CI logs. The
+    // caller still receives a usable excerpt-based hook.
+    console.warn(
+      "Summary generation failed unexpectedly, falling back to excerpt:",
+      error instanceof Error ? error.name : typeof error,
+    );
     return {
       hook: truncateAtWordBoundary(input.frontmatter.excerpt, X_TEXT_BUDGET),
       body: null,

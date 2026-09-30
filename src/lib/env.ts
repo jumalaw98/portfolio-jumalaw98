@@ -16,6 +16,18 @@
  * reading process.env directly.
  */
 
+import { isEmailAddress, normalizeMailbox, parseMailbox } from "@/lib/mailbox";
+
+/**
+ * Known-good defaults for the two sender identities.
+ *
+ * Both are Resend's shared test sender; production deployments are expected to
+ * override them with a verified sending domain.
+ */
+const DEFAULT_CONTACT_SENDER = "Portfolio Contact Form <onboarding@resend.dev>";
+const DEFAULT_MONITOR_SENDER = "Portfolio Monitor <onboarding@resend.dev>";
+const DEFAULT_CONTACT_RECEIVER = "jumalawrence98@gmail.com";
+
 function validateEnv() {
   const warnings: string[] = [];
 
@@ -42,11 +54,46 @@ function validateEnv() {
 
   // ── Optional vars ────────────────────────────────────────────────────
   const NEXT_PUBLIC_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://jumalaw98.vercel.app";
-  const CONTACT_RECEIVER_EMAIL = process.env.CONTACT_RECEIVER_EMAIL || "jumalawrence98@gmail.com";
+
+  // ── Mail header configuration ────────────────────────────────────────
+  // Every value below is copied into an outbound SMTP header (`from`, `to`,
+  // `reply_to`). Configuration is therefore parsed and re-serialised rather than
+  // trusted verbatim: a stray CR/LF in an environment variable would otherwise
+  // inject additional headers into the message. Invalid configuration degrades
+  // to the known-good default with a warning (see src/lib/mailbox.ts).
+  const rawContactReceiver = process.env.CONTACT_RECEIVER_EMAIL;
+  const CONTACT_RECEIVER_EMAIL =
+    rawContactReceiver && isEmailAddress(rawContactReceiver.trim())
+      ? rawContactReceiver.trim()
+      : DEFAULT_CONTACT_RECEIVER;
+  if (rawContactReceiver && CONTACT_RECEIVER_EMAIL !== rawContactReceiver.trim()) {
+    warnings.push(
+      "CONTACT_RECEIVER_EMAIL is not a valid, header-safe email address — using the default receiver",
+    );
+  }
+
+  const rawContactSender = process.env.CONTACT_SENDER_FROM;
+  const CONTACT_SENDER_FROM = normalizeMailbox(rawContactSender, DEFAULT_CONTACT_SENDER);
+  if (rawContactSender && !parseMailbox(rawContactSender)) {
+    warnings.push("CONTACT_SENDER_FROM is not a valid, header-safe mailbox — using the default sender");
+  }
+
   const MONITOR_WEBHOOK_URL = process.env.MONITOR_WEBHOOK_URL || null;
-  const MONITOR_EMAIL_TO = process.env.MONITOR_EMAIL_TO || null;
-  const MONITOR_EMAIL_FROM =
-    process.env.MONITOR_EMAIL_FROM || "Portfolio Monitor <onboarding@resend.dev>";
+
+  const rawMonitorEmailTo = process.env.MONITOR_EMAIL_TO;
+  const MONITOR_EMAIL_TO = rawMonitorEmailTo && isEmailAddress(rawMonitorEmailTo.trim())
+    ? rawMonitorEmailTo.trim()
+    : null;
+  if (rawMonitorEmailTo && MONITOR_EMAIL_TO === null) {
+    warnings.push("MONITOR_EMAIL_TO is not a valid, header-safe email address — alerts disabled");
+  }
+
+  const rawMonitorSender = process.env.MONITOR_EMAIL_FROM;
+  const MONITOR_EMAIL_FROM = normalizeMailbox(rawMonitorSender, DEFAULT_MONITOR_SENDER);
+  if (rawMonitorSender && !parseMailbox(rawMonitorSender)) {
+    warnings.push("MONITOR_EMAIL_FROM is not a valid, header-safe mailbox — using the default sender");
+  }
+
   const HASHNODE_PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST || null;
   const BUFFER_API_KEY = process.env.BUFFER_API_KEY || null;
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY || null;
@@ -68,6 +115,7 @@ function validateEnv() {
     UPSTASH_REDIS_REST_TOKEN: UPSTASH_REDIS_REST_TOKEN || null,
     NEXT_PUBLIC_SITE_URL,
     CONTACT_RECEIVER_EMAIL,
+    CONTACT_SENDER_FROM,
     MONITOR_WEBHOOK_URL,
     MONITOR_EMAIL_TO,
     MONITOR_EMAIL_FROM,

@@ -5,10 +5,19 @@ import { Button } from "@/components/ui/Button";
 import { validateContactForm, INTENT_OPTIONS } from "@/lib/validation";
 import { errorsToMap, parseApiErrors, parseApiErrorMessage } from "@/lib/contact-form-errors";
 import type { FieldErrors, FieldName } from "@/lib/contact-form-errors";
+import { classifyClientError, reportClientFailure } from "@/lib/client-errors";
 
 type SubmitState = "idle" | "submitting" | "success" | "error";
 
 const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again or email directly.";
+
+/**
+ * Shown when the request never reached the server (`fetch` rejects with a
+ * TypeError). This is an operational failure the visitor can act on, and it
+ * exposes nothing about the backend.
+ */
+const OFFLINE_ERROR_MESSAGE =
+  "You appear to be offline. Check your connection and try again, or email directly.";
 
 // ─── Submit helpers ───────────────────────────────────────────────────────────
 
@@ -40,10 +49,19 @@ async function submitToApi(
 
     form.reset();
     return { status: "success" };
-  } catch {
+  } catch (error) {
+    // The rejection is bound and classified rather than dropped:
+    //   - `offline` — `fetch` could not reach the network at all (TypeError).
+    //     An expected operational failure the visitor can act on.
+    //   - anything else — unexpected; the visitor gets generic copy so no
+    //     backend detail is ever surfaced.
+    // `reportClientFailure` logs only the failure kind and only in development,
+    // so no request body or server response can leak into the console.
+    reportClientFailure("contact.submit", error);
     return {
       status: "error",
-      message: GENERIC_ERROR_MESSAGE,
+      message:
+        classifyClientError(error) === "offline" ? OFFLINE_ERROR_MESSAGE : GENERIC_ERROR_MESSAGE,
     };
   }
 }

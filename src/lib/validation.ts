@@ -4,6 +4,8 @@
  * No Node.js or browser-specific APIs, so it can be imported by either.
  */
 
+import { hasUnsafeHeaderChars } from "@/lib/mailbox";
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 export const NAME_MIN = 2;
@@ -106,6 +108,12 @@ function validateName(value: string): ValidationError | null {
     return { field: "name", message: `Name must be at least ${NAME_MIN} characters.` };
   if (trimmed.length > NAME_MAX)
     return { field: "name", message: `Name must be ${NAME_MAX} characters or fewer.` };
+  // The name is copied into the outbound Subject header. A CR, LF or other
+  // control character would terminate that header and start a new one (header
+  // injection), so names must be single-line plain text. The email field is
+  // already constrained: EMAIL_REGEX rejects whitespace entirely.
+  if (hasUnsafeHeaderChars(trimmed))
+    return { field: "name", message: "Please enter a valid name." };
   if (hasExcessiveRepeatedChars(trimmed))
     return { field: "name", message: "Please enter a valid name." };
   return null;
