@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as yaml from "js-yaml";
-import { parseFrontmatterObject } from "@/lib/frontmatter";
+import { parseFrontmatterObject, upsertFrontmatterField } from "@/lib/frontmatter";
 
 /**
  * Security tests for YAML frontmatter parsing.
@@ -15,6 +15,30 @@ import { parseFrontmatterObject } from "@/lib/frontmatter";
 const SAFE_OPTIONS = { schema: yaml.JSON_SCHEMA };
 
 describe("YAML frontmatter parsing — security", () => {
+  it("replaces a multiline field and safely serializes string controls", () => {
+    const content = [
+      "---",
+      "title: keep",
+      "summary: |-",
+      "  old first line",
+      "  old second line",
+      "other: preserve",
+      "---",
+      "Body stays intact",
+    ].join("\n");
+    const value = 'first line\nsecond\t\u0001 "quoted" \\';
+    const updated = upsertFrontmatterField(content, "summary", value);
+
+    expect(updated).not.toBeNull();
+    const updatedContent = updated as string;
+    const frontmatter = updatedContent.split(/^---$/m)[1];
+    expect(parseFrontmatterObject(frontmatter).summary).toBe(value);
+    expect(updatedContent).toContain("other: preserve");
+    expect(updatedContent).toContain("Body stays intact");
+    expect(updatedContent).not.toContain("old first line");
+    expect(updatedContent).not.toContain("old second line");
+  });
+
   it("parses frontmatter through a strict helper and rejects dangerous tags", () => {
     const malicious = 'title: test\ncustom: !!js/function "function() { return process.exit(1); }"';
     expect(() => parseFrontmatterObject(malicious)).toThrow();

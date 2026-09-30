@@ -16,12 +16,10 @@
  *    that would let a non-numeric key escape a typed array index.
  */
 
-/** Default key for items whose random draw collides with another item's draw. */
-const TIE_BREAK_EPSILON = Number.EPSILON;
-
 interface Decorated<T> {
   readonly value: T;
   readonly rank: number;
+  readonly index: number;
 }
 
 /**
@@ -59,18 +57,11 @@ export function seededShuffle<T>(input: readonly T[], seed: string): T[] {
   const rand = mulberry32(seed);
 
   const decorated: Decorated<T>[] = [];
-  let previousRank = -1;
-  for (const value of input) {
-    // Ranks are strictly increasing, which keeps the result stable even if the
-    // PRNG produced two identical draws (the tie then falls back to the
-    // original order instead of depending on sort() internals).
-    const draw = rand();
-    const rank = draw > previousRank ? draw : previousRank + TIE_BREAK_EPSILON;
-    previousRank = rank;
-    decorated.push({ value, rank });
+  for (const [index, value] of input.entries()) {
+    decorated.push({ value, rank: rand(), index });
   }
 
-  decorated.sort((a, b) => a.rank - b.rank);
+  decorated.sort((a, b) => a.rank - b.rank || a.index - b.index);
 
   return decorated.map((entry) => entry.value);
 }

@@ -25,18 +25,17 @@ export function parseFrontmatterObject(rawYaml: string): Record<string, unknown>
  * Serialise a scalar for a frontmatter line.
  *
  * Numbers stay unquoted (the parser uses `JSON_SCHEMA`, where a quoted value is
- * a string — `devToId: "42"` would silently stop being numeric); strings are
- * double-quoted with backslashes and quotes escaped, which is valid JSON/YAML
- * for every input.
+ * a string — `devToId: "42"` would silently stop being numeric); strings use
+ * JSON quoting, which is also valid YAML and escapes line breaks and controls.
  */
 function serializeYamlScalar(value: string | number): string {
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
-      throw new Error(`Refusing to write non-finite frontmatter value: ${String(value)}`);
+      throw new TypeError(`Refusing to write non-finite frontmatter value: ${String(value)}`);
     }
     return String(value);
   }
-  return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
+  return JSON.stringify(value);
 }
 
 /**
@@ -73,10 +72,20 @@ export function upsertFrontmatterField(
   const nextLine = `${field}: ${serializeYamlScalar(value)}`;
 
   const lines = parts[1].trim().split("\n");
-  const hasField = lines.some((line) => line.startsWith(prefix));
-  const updatedLines = hasField
-    ? lines.map((line) => (line.startsWith(prefix) ? nextLine : line))
-    : [...lines, nextLine];
+  const fieldIndex = lines.findIndex((line) => line.startsWith(prefix));
+  let updatedLines: string[];
+  if (fieldIndex >= 0) {
+    let fieldEnd = fieldIndex + 1;
+    while (
+      fieldEnd < lines.length &&
+      (lines[fieldEnd].trim() === "" || /^\s/.test(lines[fieldEnd]))
+    ) {
+      fieldEnd += 1;
+    }
+    updatedLines = [...lines.slice(0, fieldIndex), nextLine, ...lines.slice(fieldEnd)];
+  } else {
+    updatedLines = [...lines, nextLine];
+  }
 
   const updatedFrontmatter = updatedLines.join("\n");
   const updatedParts = [...parts];

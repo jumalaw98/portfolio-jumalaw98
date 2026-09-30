@@ -50,11 +50,11 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): strin
     if (index < values.length) {
       // `values.at(index)` — an indexed read through a method call rather than
       // `values[index]`, which eslint-plugin-security reports as an
-      // object-injection sink (the index is a plain counter here). Template
-      // literal coercion is equivalent to String(). The actual XSS sanitization
+      // object-injection sink (the index is a plain counter here). Explicit
+      // conversion also handles symbols. The actual XSS sanitization
       // happens in sanitizeExternalHtml() which must be called on the result
       // before rendering via dangerouslySetInnerHTML.
-      result += `${values.at(index)}`;
+      result += String(values.at(index));
     }
     index += 1;
   }

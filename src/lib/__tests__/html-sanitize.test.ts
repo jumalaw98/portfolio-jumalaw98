@@ -2,6 +2,10 @@ import { describe, it, expect } from "vitest";
 import { sanitizeExternalHtml, html } from "@/lib/html-sanitize";
 
 describe("sanitizeExternalHtml — XSS prevention", () => {
+  it("converts symbol interpolations to strings", () => {
+    expect(html`value: ${Symbol("test")}`).toBe("value: Symbol(test)");
+  });
+
   it("removes <script> tags entirely", () => {
     const unsanitizedHtml = html`<p>Hello</p>
       <script>
