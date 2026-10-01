@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Link2, Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link2, Check, TriangleAlert } from "lucide-react";
 import { TwitterIcon, LinkedinIcon } from "@/components/ui/BrandIcons";
+import { reportClientFailure } from "@/lib/client-errors";
 
 interface ShareButtonsProps {
   title: string;
@@ -10,11 +11,37 @@ interface ShareButtonsProps {
   shortUrl?: string; // optional shortened URL (e.g. /s/abc123) for sharing
 }
 
+/** How long the copy feedback (success or failure) stays announced. */
+const COPY_FEEDBACK_MS = 2000;
+
+type CopyState = "idle" | "copied" | "failed";
+
 export function ShareButtons({ title, url, shortUrl }: ShareButtonsProps) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+  // One pending reset at a time: a new attempt replaces the previous timer so
+  // an early timeout from a failed attempt can't clear a later outcome's
+  // feedback before its full interval has elapsed.
+  const resetTimerRef = useRef<number | null>(null);
+  // Monotonic ticket handed to every click. `navigator.clipboard.writeText` is
+  // async and its settlement order does not follow the call order — the write
+  // is gated on focus/permission timing that differs per call — so a click made
+  // earlier can settle after a later one. Each attempt compares its ticket
+  // against this ref on completion, which keeps the slowest (older) write from
+  // publishing over the newest click's result.
+  const attemptRef = useRef(0);
 
   /** Use short URL for social sharing when available, fall back to canonical URL. */
   const shareUrl = shortUrl || url;
+
+  // Cancel any pending reset on unmount so no timer fires after the component
+  // is gone.
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current !== null) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
 
   const shareLinks = [
     {
@@ -29,15 +56,52 @@ export function ShareButtons({ title, url, shortUrl }: ShareButtonsProps) {
     },
   ];
 
+  function scheduleReset() {
+    if (resetTimerRef.current !== null) {
+      window.clearTimeout(resetTimerRef.current);
+    }
+    resetTimerRef.current = window.setTimeout(() => {
+      resetTimerRef.current = null;
+      setCopyState("idle");
+    }, COPY_FEEDBACK_MS);
+  }
+
+  /**
+   * Publish the result of the attempt holding `attempt`, unless a newer click
+   * has already superseded it. Stale attempts are dropped outright rather than
+   * queued: only the most recent click describes what the user last asked for,
+   * and replacing the reset timer does not undo a stale state write that has
+   * already overwritten the newer outcome.
+   */
+  function settleAttempt(attempt: number, outcome: Exclude<CopyState, "idle">) {
+    if (attempt !== attemptRef.current) return;
+    setCopyState(outcome);
+    scheduleReset();
+  }
+
   async function copyLink() {
+    const attempt = ++attemptRef.current;
     try {
       await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard API unavailable — silently ignore, link buttons still work.
+      settleAttempt(attempt, "copied");
+    } catch (error) {
+      // Clipboard writes legitimately fail: the API is unavailable on insecure
+      // origins and in older browsers, and the user may deny the permission.
+      // That is an expected operational failure, so it is reported as a
+      // recoverable state instead of a silent no-op. The rejection is bound and
+      // classified here (never re-thrown, never rendered) so no raw browser
+      // exception reaches the UI and no unhandled rejection can escape.
+      //
+      // Reported even for a superseded attempt: the write really did fail, and
+      // this is diagnostic logging rather than user-facing feedback.
+      reportClientFailure("share.copy", error);
+      settleAttempt(attempt, "failed");
     }
   }
+
+  const copied = copyState === "copied";
+  const failed = copyState === "failed";
+  const copyLabel = copied ? "Link copied" : failed ? "Copy failed" : "Copy link";
 
   return (
     <div className="flex items-center gap-3" aria-label="Share this article">
@@ -56,11 +120,21 @@ export function ShareButtons({ title, url, shortUrl }: ShareButtonsProps) {
       <button
         type="button"
         onClick={copyLink}
-        aria-label={copied ? "Link copied" : "Copy link"}
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-text-body transition-colors hover:border-brand-blue hover:text-brand-blue"
+        aria-label={copyLabel}
+        className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
+          failed
+            ? "border-red-400 text-red-600"
+            : "border-border text-text-body hover:border-brand-blue hover:text-brand-blue"
+        }`}
       >
-        {copied ? <Check size={16} /> : <Link2 size={16} />}
+        {copied ? <Check size={16} /> : failed ? <TriangleAlert size={16} /> : <Link2 size={16} />}
       </button>
+      {/* Screen-reader feedback for both outcomes, including the recovery hint
+          on failure — the social links above stay usable either way. */}
+      <span role="status" aria-live="polite" className="sr-only">
+        {copied ? "Link copied to clipboard." : null}
+        {failed ? "Couldn't copy automatically. Copy the address from your browser instead." : null}
+      </span>
     </div>
   );
 }

@@ -24,6 +24,8 @@ interface SendEmailParams {
   intent?: string;
   message: string;
   receiverEmail: string;
+  /** Normalised, header-safe sender (`Display Name <address>`), from env. */
+  senderFrom: string;
   resendApiKey: string;
   submissionId: string;
 }
@@ -32,9 +34,18 @@ interface SendEmailParams {
  * Send the contact email via the Resend API.
  * Returns a NextResponse on success or a known failure (non-2xx, timeout).
  * Unexpected fetch errors (network, DNS, etc.) are re-thrown to the caller.
+ *
+ * Header safety: every value placed in a header here is already constrained —
+ * `senderFrom` and `receiverEmail` are parsed/rebuilt by src/lib/mailbox.ts,
+ * `email` is a `reply_to` that the shared validator only accepts without
+ * whitespace or control characters, and `intent` comes from a closed allowlist
+ * (see src/lib/validation.ts). The visitor's `message` is only ever written to
+ * the plain-text body, and the message body is sent as `text` — never as HTML —
+ * so no form field can inject markup into a mail client.
  */
 async function sendViaResend(params: SendEmailParams): Promise<NextResponse> {
-  const { name, email, intent, message, receiverEmail, resendApiKey, submissionId } = params;
+  const { name, email, intent, message, receiverEmail, senderFrom, resendApiKey, submissionId } =
+    params;
 
   const controller = new AbortController();
   const TIMEOUT_MS = 10_000;
@@ -50,7 +61,7 @@ async function sendViaResend(params: SendEmailParams): Promise<NextResponse> {
         "Idempotency-Key": submissionId,
       },
       body: JSON.stringify({
-        from: "Portfolio Contact Form <onboarding@resend.dev>", // TODO: swap to a verified sending domain
+        from: senderFrom,
         to: receiverEmail,
         reply_to: email,
         subject: `New portfolio contact: ${intent || "General"} — ${name}`,
@@ -161,12 +172,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Validate email recipient ────────────────────────────────────────
+    // ── Configure delivery ──────────────────────────────────────────────
     const { name, email, intent, message } = validation.data;
     const resendApiKey = env.RESEND_API_KEY;
+    // `senderFrom` is parsed and re-serialised at startup
+    // (src/lib/env.ts → src/lib/mailbox.ts), so the header value contains no
+    // CR/LF. `receiverEmail` is a validated bare address, or null when a
+    // configured value was rejected — it never silently falls back to another
+    // inbox (src/lib/env.ts).
     const receiverEmail = env.CONTACT_RECEIVER_EMAIL;
+    const senderFrom = env.CONTACT_SENDER_FROM;
 
-    if (!resendApiKey) {
+    // No API key or no usable recipient → delivery is not configured. Failing
+    // here keeps a rejected recipient from turning into a successful response
+    // for a message that would go somewhere else.
+    if (!resendApiKey || !receiverEmail) {
       const isDev = process.env.NODE_ENV === "development";
       if (isDev) {
         return NextResponse.json({ ok: true, delivered: false });
@@ -192,6 +212,7 @@ export async function POST(request: Request) {
       intent,
       message,
       receiverEmail,
+      senderFrom,
       resendApiKey,
       submissionId,
     });

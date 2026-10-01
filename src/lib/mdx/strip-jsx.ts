@@ -43,7 +43,11 @@ export function mdxToPlainText(mdx: string): string {
 function isEscaped(markdown: string, index: number): boolean {
   let backslashCount = 0;
   let i = index - 1;
-  while (i >= 0 && markdown[i] === "\\") {
+  // `charAt` (rather than `markdown[i]`) keeps this a plain string read: the
+  // index is a numeric cursor, and `charAt` returns "" out of range instead of
+  // `undefined`, so the comparison stays type-safe without a dynamic property
+  // access.
+  while (i >= 0 && markdown.charAt(i) === "\\") {
     backslashCount += 1;
     i -= 1;
   }
@@ -104,7 +108,7 @@ function handleQuotedTitle(
   quoteChar: string,
 ): { newIndex: number; inQuotedTitle: string | null } {
   for (let i = index; i < markdown.length; i += 1) {
-    const ch = markdown[i];
+    const ch = markdown.charAt(i);
     if (ch === "\\") {
       i += 1; // skip escaped character inside title
       continue;
@@ -122,7 +126,7 @@ function findMarkdownDestinationEnd(markdown: string, startIndex: number): numbe
   let index = startIndex;
 
   while (index < markdown.length) {
-    const character = markdown[index];
+    const character = markdown.charAt(index);
 
     if (inQuotedTitle !== null) {
       const result = handleQuotedTitle(markdown, index, inQuotedTitle);

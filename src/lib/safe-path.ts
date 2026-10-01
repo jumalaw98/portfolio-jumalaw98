@@ -1,6 +1,15 @@
-/* eslint-disable security/detect-non-literal-fs-filename */
 /**
  * Filesystem path containment helpers for build/CI scripts.
+ *
+ * This module is the **single `node:fs` chokepoint** for the content scripts —
+ * they no longer syscall at all. Every path reaching `node:fs` below is either a
+ * trusted root derived from a script's own location, or a caller-supplied target
+ * asserted to be inside that root immediately before the call. Because the set
+ * of files is data (every `.mdx` under the content tree), a literal path is
+ * impossible, so each syscall carries a line-level
+ * `security/detect-non-literal-fs-filename` disable naming the guard that
+ * justifies it. A *file-level* disable would also cover any future syscall added
+ * to this file, which is precisely the property we do not want.
  *
  * Why this exists: content scripts (`scripts/generate-summaries.ts`,
  * `scripts/find-ready-posts.ts`, `scripts/publish-devto.ts`,
@@ -80,7 +89,9 @@ export function assertWithinBase(baseDir: string, candidate: string): string {
  * @throws When the path escapes `baseDir` or cannot be resolved
  */
 export function assertRealPathWithinBase(baseDir: string, candidate: string): ValidatedRealPath {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- caller-supplied base; the containment assertion is performed on the resolved results below (this call *is* the guard)
   const realBase = realpathSync(resolve(baseDir));
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- caller-supplied target; resolved here for the containment assertion immediately below
   const realTarget = realpathSync(resolve(candidate));
 
   if (!isWithinBase(realBase, realTarget)) {
@@ -92,13 +103,19 @@ export function assertRealPathWithinBase(baseDir: string, candidate: string): Va
   return realTarget as ValidatedRealPath;
 }
 
-/** Read a UTF-8 file using a path already validated by `assertRealPathWithinBase`. */
+/**
+ * Read a UTF-8 file using a path already validated by `assertRealPathWithinBase`.
+ *
+ * @param path - A `ValidatedRealPath`; the brand can only be produced by the containment check
+ */
 export function readTextFileAtRealPath(path: ValidatedRealPath): string {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- the parameter's `ValidatedRealPath` brand is only producible by assertRealPathWithinBase
   return readFileSync(path, "utf-8");
 }
 
 /** Write a UTF-8 file using a path already validated by `assertRealPathWithinBase`. */
 export function writeTextFileAtRealPath(path: ValidatedRealPath, content: string): void {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- the parameter's `ValidatedRealPath` brand is only producible by assertRealPathWithinBase
   writeFileSync(path, content, "utf-8");
 }
 
@@ -135,6 +152,7 @@ export interface ListFilesWithinBaseOptions {
  */
 export function listFilesWithinBase(options: ListFilesWithinBaseOptions): string[] {
   const base = resolve(options.baseDir);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- trusted base root supplied by the caller; used as the containment boundary for every result below
   const realBase = realpathSync(base);
 
   const entries = globSync(options.pattern, {

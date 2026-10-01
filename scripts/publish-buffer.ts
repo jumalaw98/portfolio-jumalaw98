@@ -22,24 +22,24 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { parseFrontmatterObject } from "@/lib/frontmatter";
+import { isSlugArgError, parseSlugArg } from "@/lib/cli-args";
+import { parseFrontmatterObject, upsertFrontmatterField } from "@/lib/frontmatter";
 import { getSummary } from "@/lib/summary/getSummary";
 import { buildXPost, buildLinkedInPost } from "@/lib/social/buildPosts";
 import { postToBuffer } from "@/lib/social/buffer";
 import { mdxToPlainText } from "../src/lib/mdx/strip-jsx";
 
 // ── CLI arg ──────────────────────────────────────────────────────────────────
+// Shared parser (src/lib/cli-args.ts): validates the slug before it reaches
+// any path construction, and prints the standard usage line on rejection.
 
-const SLUG = process.argv[2];
-if (!SLUG) {
-  console.error("Usage: tsx scripts/publish-buffer.ts <slug>");
+const slugArg = parseSlugArg(process.argv, "scripts/publish-buffer.ts");
+if (isSlugArgError(slugArg)) {
+  console.error(slugArg.reason);
+  console.error(slugArg.usage);
   process.exit(1);
 }
-// Validate slug to prevent path traversal (SonarCloud S5146)
-if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(SLUG)) {
-  console.error(`Invalid slug: "${SLUG}". Slug must be kebab-case (letters, numbers, hyphens).`);
-  process.exit(1);
-}
+const SLUG = slugArg.slug;
 
 // ── Environment ──────────────────────────────────────────────────────────────
 
@@ -161,24 +161,15 @@ if (!linkedInResult.success || !xResult.success) {
 // (dev.to will receive a harmless PUT update; Buffer will be attempted again).
 
 const postedAt = new Date().toISOString();
-const frontmatterLines = frontmatterYaml.split("\n");
-const bufferPostedAtIndex = frontmatterLines.findIndex((l) => l.startsWith("bufferPostedAt:"));
+// Shared updater (src/lib/frontmatter.ts) instead of a hand-rolled
+// findIndex + line assignment: the field is rewritten in place, every other
+// line (and the body) stays byte-for-byte intact, and null means nothing was
+// written — a hard failure rather than a success report for an unchanged file.
+const updatedContent = upsertFrontmatterField(content, "bufferPostedAt", postedAt);
 
-if (bufferPostedAtIndex >= 0) {
-  frontmatterLines[bufferPostedAtIndex] = `bufferPostedAt: "${postedAt}"`;
-} else {
-  frontmatterLines.push(`bufferPostedAt: "${postedAt}"`);
-}
-
-const updatedFrontmatter = frontmatterLines.join("\n");
-const updatedContent = content.replace(
-  /^---\n[\s\S]*?\n---\n/m,
-  `---\n${updatedFrontmatter}\n---\n`,
-);
-
-if (updatedContent === content) {
+if (updatedContent === null) {
   console.error(
-    "Failed to replace frontmatter in the file content. Frontmatter delimiter pattern did not match.",
+    "Failed to update frontmatter in the file content. Either the frontmatter block is missing, or the rewrite produced identical content (bufferPostedAt already holds this exact value).",
   );
   process.exit(1);
 }

@@ -42,6 +42,20 @@ describe("env — centralized environment validation", () => {
     expect(env.NEXT_PUBLIC_SITE_URL).toBe("https://custom.example.com");
   });
 
+  it("uses a valid CONTACT_RECEIVER_EMAIL when set", async () => {
+    process.env.CONTACT_RECEIVER_EMAIL = "  inbox@example.com  ";
+    const { env } = await import("@/lib/env");
+    expect(env.CONTACT_RECEIVER_EMAIL).toBe("inbox@example.com");
+  });
+
+  it("does not fall back to the default when CONTACT_RECEIVER_EMAIL is invalid", async () => {
+    // A rejected recipient must disable delivery instead of silently routing
+    // submissions to the hard-coded default inbox.
+    process.env.CONTACT_RECEIVER_EMAIL = "not-an-email\r\nBcc: attacker@example.com";
+    const { env } = await import("@/lib/env");
+    expect(env.CONTACT_RECEIVER_EMAIL).toBeNull();
+  });
+
   it("passes through MONITOR_WEBHOOK_URL when set", async () => {
     process.env.MONITOR_WEBHOOK_URL = "https://hooks.slack.com/test";
     const { env } = await import("@/lib/env");

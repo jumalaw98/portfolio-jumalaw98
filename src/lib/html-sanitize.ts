@@ -44,15 +44,19 @@ export type SanitizedHtml = string & SanitizedHtmlBrand;
  */
 export function html(strings: TemplateStringsArray, ...values: unknown[]): string {
   let result = "";
-  for (let i = 0; i < strings.length; i++) {
-    result += strings[i];
-    if (i < values.length) {
-      // Template literal coercion is equivalent to String() but avoids the
-      // security/detect-object-injection rule false positive. The actual XSS
-      // sanitization happens in sanitizeExternalHtml() which must be called on
-      // the result before rendering via dangerouslySetInnerHTML.
-      result += `${values[i]}`;
+  let index = 0;
+  for (const chunk of strings) {
+    result += chunk;
+    if (index < values.length) {
+      // `values.at(index)` — an indexed read through a method call rather than
+      // `values[index]`, which eslint-plugin-security reports as an
+      // object-injection sink (the index is a plain counter here). Explicit
+      // conversion also handles symbols. The actual XSS sanitization
+      // happens in sanitizeExternalHtml() which must be called on the result
+      // before rendering via dangerouslySetInnerHTML.
+      result += String(values.at(index));
     }
+    index += 1;
   }
   return result;
 }
