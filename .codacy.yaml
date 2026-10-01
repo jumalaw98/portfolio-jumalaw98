@@ -1,8 +1,18 @@
 ---
-# The sanitizer test deliberately constructs adversarial HTML strings. Exclude
-# it from Codacy's XSS string-literal heuristic while retaining analysis of all
-# application code and the test suite's runtime coverage.
-engines:
-  eslint-8:
-    exclude_paths:
-      - "src/lib/__tests__/html-sanitize.test.ts"
+# No global or per-engine exclude_paths are needed.
+#
+# This file previously excluded src/lib/__tests__/html-sanitize.test.ts from the
+# eslint-8 engine, to suppress Codacy's xss_no-mixed-html heuristic firing on the
+# test's deliberately adversarial HTML strings. That exclusion is retired:
+#
+#   1. The eslint-8 engine is no longer in .codacy/codacy.config.json. The repo
+#      lints with ESLint 9 via its own flat config (eslint.config.mjs), which
+#      reports 0 issues; eslint-8 was a duplicate engine running 118
+#      Codacy-managed patterns and produced 129 findings, 99 of them
+#      xss_no-mixed-html false positives on TSX.
+#   2. The exclusion was also ineffective: a baseline run still reported 71
+#      issues inside that exact file.
+#
+# Semgrep (the tool that now covers the security concerns eslint-8 duplicated)
+# reports no findings in this test file, so no exclusion is required.
+exclude_paths: []
