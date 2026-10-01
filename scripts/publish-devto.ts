@@ -17,7 +17,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseFrontmatterObject } from "@/lib/frontmatter";
+import { isSlugArgError, parseSlugArg } from "@/lib/cli-args";
+import { parseFrontmatterObject, upsertFrontmatterField } from "@/lib/frontmatter";
 import { assertRealPathWithinBase } from "@/lib/safe-path";
 import { mdxToMarkdown } from "../src/lib/mdx/strip-jsx";
 
@@ -148,17 +149,16 @@ const isEntryPoint = process.argv[1] === __filename;
 
 if (isEntryPoint) {
   // ── CLI arg ──────────────────────────────────────────────────────────────────
+  // Shared parser (src/lib/cli-args.ts): validates the slug before it reaches
+  // any path construction, and prints the standard usage line on rejection.
 
-  const SLUG = process.argv[2];
-  if (!SLUG) {
-    console.error("Usage: tsx scripts/publish-devto.ts <slug>");
+  const slugArg = parseSlugArg(process.argv, "scripts/publish-devto.ts");
+  if (isSlugArgError(slugArg)) {
+    console.error(slugArg.reason);
+    console.error(slugArg.usage);
     process.exit(1);
   }
-  // Validate slug to prevent path traversal (SonarCloud S5146)
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(SLUG)) {
-    console.error(`Invalid slug: "${SLUG}". Must be kebab-case.`);
-    process.exit(1);
-  }
+  const SLUG = slugArg.slug;
 
   // ── Environment ──────────────────────────────────────────────────────────────
 
@@ -278,23 +278,14 @@ if (isEntryPoint) {
       console.log(`\n✅ Published to dev.to: ${result.url}`);
 
       // If devToId was not originally present in frontmatter, persist devToId into frontmatter.
+      // The shared updater (src/lib/frontmatter.ts) rewrites the field in place,
+      // leaving the body and every other line untouched — and returns null when
+      // nothing was written, so the run aborts instead of reporting success for
+      // a file that never changed.
       if (!devToIdRaw) {
-        const frontmatterLines = frontmatterYaml.split("\n");
-        const devToIdIndex = frontmatterLines.findIndex((l) => l.startsWith("devToId:"));
+        const updatedContent = upsertFrontmatterField(content, "devToId", result.id);
 
-        if (devToIdIndex >= 0) {
-          frontmatterLines[devToIdIndex] = `devToId: ${result.id}`;
-        } else {
-          frontmatterLines.push(`devToId: ${result.id}`);
-        }
-
-        const updatedFrontmatter = frontmatterLines.join("\n");
-        const updatedContent = content.replace(
-          /^---\n[\s\S]*?\n---\n/m,
-          `---\n${updatedFrontmatter}\n---\n`,
-        );
-
-        if (updatedContent === content) {
+        if (updatedContent === null) {
           console.error(
             "Failed to replace frontmatter in the file content. Frontmatter delimiter pattern did not match.",
           );

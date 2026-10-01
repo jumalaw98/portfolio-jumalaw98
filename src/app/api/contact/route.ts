@@ -172,15 +172,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Validate email recipient ────────────────────────────────────────
+    // ── Configure delivery ──────────────────────────────────────────────
     const { name, email, intent, message } = validation.data;
     const resendApiKey = env.RESEND_API_KEY;
-    // Already parsed and re-serialised at startup (src/lib/env.ts →
-    // src/lib/mailbox.ts), so the header value contains no CR/LF.
+    // `senderFrom` is parsed and re-serialised at startup
+    // (src/lib/env.ts → src/lib/mailbox.ts), so the header value contains no
+    // CR/LF. `receiverEmail` is a validated bare address, or null when a
+    // configured value was rejected — it never silently falls back to another
+    // inbox (src/lib/env.ts).
     const receiverEmail = env.CONTACT_RECEIVER_EMAIL;
     const senderFrom = env.CONTACT_SENDER_FROM;
 
-    if (!resendApiKey) {
+    // No API key or no usable recipient → delivery is not configured. Failing
+    // here keeps a rejected recipient from turning into a successful response
+    // for a message that would go somewhere else.
+    if (!resendApiKey || !receiverEmail) {
       const isDev = process.env.NODE_ENV === "development";
       if (isDev) {
         return NextResponse.json({ ok: true, delivered: false });

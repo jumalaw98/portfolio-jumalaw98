@@ -62,28 +62,35 @@ function validateEnv() {
   // inject additional headers into the message. Invalid configuration degrades
   // to the known-good default with a warning (see src/lib/mailbox.ts).
   const rawContactReceiver = process.env.CONTACT_RECEIVER_EMAIL;
-  const CONTACT_RECEIVER_EMAIL =
-    rawContactReceiver && isEmailAddress(rawContactReceiver.trim())
-      ? rawContactReceiver.trim()
-      : DEFAULT_CONTACT_RECEIVER;
-  if (rawContactReceiver && CONTACT_RECEIVER_EMAIL !== rawContactReceiver.trim()) {
+  const trimmedContactReceiver = rawContactReceiver?.trim();
+  // A configured-but-invalid receiver must NOT fall back to the default inbox:
+  // the form would report success while the message silently lands at a
+  // different recipient. Only an absent value keeps the default; an invalid one
+  // becomes null so delivery fails closed (see src/app/api/contact/route.ts).
+  const CONTACT_RECEIVER_EMAIL = trimmedContactReceiver
+    ? isEmailAddress(trimmedContactReceiver)
+      ? trimmedContactReceiver
+      : null
+    : DEFAULT_CONTACT_RECEIVER;
+  if (trimmedContactReceiver && CONTACT_RECEIVER_EMAIL === null) {
     warnings.push(
-      "CONTACT_RECEIVER_EMAIL is not a valid, header-safe email address — using the default receiver",
+      "CONTACT_RECEIVER_EMAIL is not a valid, header-safe email address — contact delivery disabled",
     );
   }
 
   const rawContactSender = process.env.CONTACT_SENDER_FROM;
   const CONTACT_SENDER_FROM = normalizeMailbox(rawContactSender, DEFAULT_CONTACT_SENDER);
   if (rawContactSender && !parseMailbox(rawContactSender)) {
-    warnings.push("CONTACT_SENDER_FROM is not a valid, header-safe mailbox — using the default sender");
+    warnings.push(
+      "CONTACT_SENDER_FROM is not a valid, header-safe mailbox — using the default sender",
+    );
   }
 
   const MONITOR_WEBHOOK_URL = process.env.MONITOR_WEBHOOK_URL || null;
 
   const rawMonitorEmailTo = process.env.MONITOR_EMAIL_TO;
-  const MONITOR_EMAIL_TO = rawMonitorEmailTo && isEmailAddress(rawMonitorEmailTo.trim())
-    ? rawMonitorEmailTo.trim()
-    : null;
+  const MONITOR_EMAIL_TO =
+    rawMonitorEmailTo && isEmailAddress(rawMonitorEmailTo.trim()) ? rawMonitorEmailTo.trim() : null;
   if (rawMonitorEmailTo && MONITOR_EMAIL_TO === null) {
     warnings.push("MONITOR_EMAIL_TO is not a valid, header-safe email address — alerts disabled");
   }
@@ -91,7 +98,9 @@ function validateEnv() {
   const rawMonitorSender = process.env.MONITOR_EMAIL_FROM;
   const MONITOR_EMAIL_FROM = normalizeMailbox(rawMonitorSender, DEFAULT_MONITOR_SENDER);
   if (rawMonitorSender && !parseMailbox(rawMonitorSender)) {
-    warnings.push("MONITOR_EMAIL_FROM is not a valid, header-safe mailbox — using the default sender");
+    warnings.push(
+      "MONITOR_EMAIL_FROM is not a valid, header-safe mailbox — using the default sender",
+    );
   }
 
   const HASHNODE_PUBLICATION_HOST = process.env.HASHNODE_PUBLICATION_HOST || null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link2, Check, TriangleAlert } from "lucide-react";
 import { TwitterIcon, LinkedinIcon } from "@/components/ui/BrandIcons";
 import { reportClientFailure } from "@/lib/client-errors";
@@ -18,9 +18,23 @@ type CopyState = "idle" | "copied" | "failed";
 
 export function ShareButtons({ title, url, shortUrl }: ShareButtonsProps) {
   const [copyState, setCopyState] = useState<CopyState>("idle");
+  // One pending reset at a time: a new attempt replaces the previous timer so
+  // an early timeout from a failed attempt can't clear a later outcome's
+  // feedback before its full interval has elapsed.
+  const resetTimerRef = useRef<number | null>(null);
 
   /** Use short URL for social sharing when available, fall back to canonical URL. */
   const shareUrl = shortUrl || url;
+
+  // Cancel any pending reset on unmount so no timer fires after the component
+  // is gone.
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current !== null) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
 
   const shareLinks = [
     {
@@ -36,7 +50,13 @@ export function ShareButtons({ title, url, shortUrl }: ShareButtonsProps) {
   ];
 
   function scheduleReset() {
-    window.setTimeout(() => setCopyState("idle"), COPY_FEEDBACK_MS);
+    if (resetTimerRef.current !== null) {
+      window.clearTimeout(resetTimerRef.current);
+    }
+    resetTimerRef.current = window.setTimeout(() => {
+      resetTimerRef.current = null;
+      setCopyState("idle");
+    }, COPY_FEEDBACK_MS);
   }
 
   async function copyLink() {
@@ -96,4 +116,3 @@ export function ShareButtons({ title, url, shortUrl }: ShareButtonsProps) {
     </div>
   );
 }
-

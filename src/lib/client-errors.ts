@@ -36,7 +36,9 @@ function domExceptionName(error: unknown): string | null {
 
 /** True for aborts raised by an `AbortSignal` or a provider timeout. */
 function isAbortError(error: unknown): boolean {
-  return domExceptionName(error) === "AbortError" || (error as { name?: unknown })?.name === "AbortError";
+  return (
+    domExceptionName(error) === "AbortError" || (error as { name?: unknown })?.name === "AbortError"
+  );
 }
 
 /**

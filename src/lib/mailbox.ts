@@ -24,8 +24,11 @@
 /** C0 controls (CR, LF, TAB, …) plus DEL — the characters a header must not contain. */
 const UNSAFE_HEADER_CHARS = /[\u0000-\u001f\u007f]/;
 
-/** Longest mailbox this module accepts (address limit is 254 characters). */
+/** Longest mailbox this module accepts (320 chars structural limit for display+address). */
 export const MAILBOX_MAX_LENGTH = 320;
+
+/** Strict address length limit per RFC / Resend — 254 characters max. */
+export const EMAIL_ADDRESS_MAX_LENGTH = 254;
 
 /** Longest display name accepted, matching the contact form's NAME_MAX. */
 export const MAILBOX_NAME_MAX_LENGTH = 100;
@@ -35,7 +38,8 @@ export const MAILBOX_NAME_MAX_LENGTH = 100;
  * validator: header values require a dot-atom local part and a dotted domain.
  */
 const EMAIL_LOCAL_PART_PATTERN = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$/;
-const EMAIL_DOMAIN_PATTERN = /^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
+const EMAIL_DOMAIN_PATTERN =
+  /^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
 
 export interface Mailbox {
   /** Display name; empty string when the mailbox has none. */
@@ -51,7 +55,9 @@ export function hasUnsafeHeaderChars(value: string): boolean {
 
 /** True when `value` is a syntactically valid, header-safe bare address. */
 export function isEmailAddress(value: string): boolean {
-  if (value.length === 0 || value.length > MAILBOX_MAX_LENGTH) return false;
+  if (value.length === 0) return false;
+  if (value.length > EMAIL_ADDRESS_MAX_LENGTH) return false;
+  if (value.length > MAILBOX_MAX_LENGTH) return false;
   if (hasUnsafeHeaderChars(value)) return false;
   const separator = value.indexOf("@");
   if (separator < 1 || separator !== value.lastIndexOf("@")) return false;
@@ -129,9 +135,13 @@ export function parseMailbox(raw: string): Mailbox | null {
  */
 export function formatMailbox(mailbox: Mailbox): string {
   if (mailbox.name === "") return mailbox.address;
-  const requiresQuotes = /[(),:;@."\\<>]/.test(mailbox.name) || mailbox.name.includes('[') || mailbox.name.includes(']');
+  const requiresQuotes =
+    /[(),:;@."\\<>]/.test(mailbox.name) || mailbox.name.includes("[") || mailbox.name.includes("]");
+  // Escaping alone is not enough: a name containing a comma (or any other
+  // special) must also be wrapped in quotes, otherwise `Doe, Jane <a@b.c>` is
+  // parsed by the receiving MTA as two mailboxes and delivery can fail.
   const name = requiresQuotes
-    ? String.raw`${mailbox.name.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}`
+    ? `"${mailbox.name.replaceAll("\\", "\\\\").replaceAll('"', '"')}"`
     : mailbox.name;
   return `${name} <${mailbox.address}>`;
 }

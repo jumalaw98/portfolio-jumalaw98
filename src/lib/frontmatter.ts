@@ -97,4 +97,3 @@ export function upsertFrontmatterField(
   // rather than report success while the file on disk is unchanged.
   return updatedContent === content ? null : updatedContent;
 }
-
