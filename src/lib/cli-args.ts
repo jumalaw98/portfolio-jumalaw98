@@ -6,8 +6,8 @@
  * built. Two independent gates apply:
  *
  *   1. `isValidSlug()` — a closed character set, no path separators, no dots,
- *      no leading dash, so `../`, absolute paths and hidden files are
- *      impossible by construction;
+ *      no leading dash, and a length bound matching the content schema, so
+ *      `../`, absolute paths and hidden files are impossible by construction;
  *   2. `assertRealPathWithinBase()` in src/lib/safe-path.ts — the symlink-aware
  *      containment check performed immediately before the I/O.
  *
@@ -16,8 +16,16 @@
  * cannot exhibit catastrophic backtracking.
  */
 
-/** Longest accepted slug; content filenames are short by convention. */
-export const SLUG_MAX_LENGTH = 80;
+/**
+ * Longest accepted slug.
+ *
+ * Mirrors the bound the content schema already enforces — `s.slug("posts")` in
+ * velite.config.ts is `min(3).max(200)` — so publishing can never reject a post
+ * the content pipeline accepts. This is a sanity bound on the filename handed
+ * to the filesystem and to the public URL, **not** a path-traversal control:
+ * that comes from the closed character set plus `assertRealPathWithinBase()`.
+ */
+export const SLUG_MAX_LENGTH = 200;
 
 /** One kebab-case segment: lowercase letters and digits only. */
 const SLUG_SEGMENT_PATTERN = /^[a-z0-9]+$/;
@@ -81,7 +89,7 @@ export function parseSlugArg(argv: readonly string[], script: string): SlugArg |
 
   if (!isValidSlug(raw)) {
     return {
-      reason: `Invalid slug: ${JSON.stringify(raw)}. Must be kebab-case (lowercase letters, digits, hyphens).`,
+      reason: `Invalid slug: ${JSON.stringify(raw)}. Must be kebab-case (lowercase letters, digits, hyphens) and at most ${SLUG_MAX_LENGTH} characters.`,
       usage,
     };
   }

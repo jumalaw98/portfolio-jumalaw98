@@ -287,7 +287,7 @@ if (isEntryPoint) {
 
         if (updatedContent === null) {
           console.error(
-            "Failed to replace frontmatter in the file content. Frontmatter delimiter pattern did not match.",
+            "Failed to update frontmatter in the file content. Either the frontmatter block is missing, or the rewrite produced identical content (devToId already holds this exact value).",
           );
           process.exit(1);
         }

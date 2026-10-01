@@ -22,6 +22,13 @@ export function ShareButtons({ title, url, shortUrl }: ShareButtonsProps) {
   // an early timeout from a failed attempt can't clear a later outcome's
   // feedback before its full interval has elapsed.
   const resetTimerRef = useRef<number | null>(null);
+  // Monotonic ticket handed to every click. `navigator.clipboard.writeText` is
+  // async and its settlement order does not follow the call order — the write
+  // is gated on focus/permission timing that differs per call — so a click made
+  // earlier can settle after a later one. Each attempt compares its ticket
+  // against this ref on completion, which keeps the slowest (older) write from
+  // publishing over the newest click's result.
+  const attemptRef = useRef(0);
 
   /** Use short URL for social sharing when available, fall back to canonical URL. */
   const shareUrl = shortUrl || url;
@@ -59,10 +66,24 @@ export function ShareButtons({ title, url, shortUrl }: ShareButtonsProps) {
     }, COPY_FEEDBACK_MS);
   }
 
+  /**
+   * Publish the result of the attempt holding `attempt`, unless a newer click
+   * has already superseded it. Stale attempts are dropped outright rather than
+   * queued: only the most recent click describes what the user last asked for,
+   * and replacing the reset timer does not undo a stale state write that has
+   * already overwritten the newer outcome.
+   */
+  function settleAttempt(attempt: number, outcome: Exclude<CopyState, "idle">) {
+    if (attempt !== attemptRef.current) return;
+    setCopyState(outcome);
+    scheduleReset();
+  }
+
   async function copyLink() {
+    const attempt = ++attemptRef.current;
     try {
       await navigator.clipboard.writeText(shareUrl);
-      setCopyState("copied");
+      settleAttempt(attempt, "copied");
     } catch (error) {
       // Clipboard writes legitimately fail: the API is unavailable on insecure
       // origins and in older browsers, and the user may deny the permission.
@@ -70,10 +91,11 @@ export function ShareButtons({ title, url, shortUrl }: ShareButtonsProps) {
       // recoverable state instead of a silent no-op. The rejection is bound and
       // classified here (never re-thrown, never rendered) so no raw browser
       // exception reaches the UI and no unhandled rejection can escape.
+      //
+      // Reported even for a superseded attempt: the write really did fail, and
+      // this is diagnostic logging rather than user-facing feedback.
       reportClientFailure("share.copy", error);
-      setCopyState("failed");
-    } finally {
-      scheduleReset();
+      settleAttempt(attempt, "failed");
     }
   }
 

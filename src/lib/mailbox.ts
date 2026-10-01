@@ -139,9 +139,11 @@ export function formatMailbox(mailbox: Mailbox): string {
     /[(),:;@."\\<>]/.test(mailbox.name) || mailbox.name.includes("[") || mailbox.name.includes("]");
   // Escaping alone is not enough: a name containing a comma (or any other
   // special) must also be wrapped in quotes, otherwise `Doe, Jane <a@b.c>` is
-  // parsed by the receiving MTA as two mailboxes and delivery can fail.
+  // parsed by the receiving MTA as two mailboxes and delivery can fail. Inside
+  // the quotes, `\` and `"` must themselves be escaped — a bare `"` would
+  // terminate the quoted-string early.
   const name = requiresQuotes
-    ? `"${mailbox.name.replaceAll("\\", "\\\\").replaceAll('"', '"')}"`
+    ? `"${mailbox.name.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`
     : mailbox.name;
   return `${name} <${mailbox.address}>`;
 }

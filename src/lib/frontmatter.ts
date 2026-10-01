@@ -75,12 +75,24 @@ export function upsertFrontmatterField(
   const fieldIndex = lines.findIndex((line) => line.startsWith(prefix));
   let updatedLines: string[];
   if (fieldIndex >= 0) {
+    // Consume the field's continuation: indented lines of a multiline value,
+    // plus any blank lines that sit *inside* that value (e.g. an empty line in
+    // a block scalar). A blank line followed by a non-indented line is a
+    // separator between fields, not part of this one — swallowing it would
+    // silently rewrite frontmatter the caller never touched.
     let fieldEnd = fieldIndex + 1;
-    while (
-      fieldEnd < lines.length &&
-      (lines[fieldEnd].trim() === "" || /^\s/.test(lines[fieldEnd]))
-    ) {
-      fieldEnd += 1;
+    while (fieldEnd < lines.length) {
+      const line = lines[fieldEnd];
+      if (line.trim() !== "") {
+        if (!/^\s/.test(line)) break;
+        fieldEnd += 1;
+        continue;
+      }
+      let probe = fieldEnd;
+      while (probe < lines.length && lines[probe].trim() === "") probe += 1;
+      const nextContent = lines[probe];
+      if (nextContent === undefined || !/^\s/.test(nextContent)) break;
+      fieldEnd = probe;
     }
     updatedLines = [...lines.slice(0, fieldIndex), nextLine, ...lines.slice(fieldEnd)];
   } else {

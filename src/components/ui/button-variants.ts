@@ -20,9 +20,17 @@ export type Variant = (typeof BUTTON_VARIANTS)[number];
 /** Variant used when the prop is missing or not a known variant. */
 export const DEFAULT_BUTTON_VARIANT: Variant = "primary";
 
+/**
+ * Classes for {@link DEFAULT_BUTTON_VARIANT}. Kept as a named constant so the
+ * fallback below can reference it without a non-null assertion: the map is
+ * seeded with this same constant for the default key, so the fallback can
+ * never be stale relative to the default variant.
+ */
+const DEFAULT_CLASSES = "bg-brand-orange text-white hover:bg-brand-orange-dark";
+
 const VARIANT_CLASSES = new Map<Variant, string>([
   // Orange is reserved for the primary action per branding-guide.md color usage rules
-  ["primary", "bg-brand-orange text-white hover:bg-brand-orange-dark"],
+  [DEFAULT_BUTTON_VARIANT, DEFAULT_CLASSES],
   ["secondary", "bg-brand-blue text-white hover:bg-brand-blue-dark"],
   ["ghost", "border border-border text-text-body hover:border-brand-blue hover:text-brand-blue"],
 ]);
@@ -40,5 +48,5 @@ export function isButtonVariant(value: unknown): value is Variant {
  */
 export function resolveVariantClasses(variant: unknown): string {
   const resolved = isButtonVariant(variant) ? variant : DEFAULT_BUTTON_VARIANT;
-  return VARIANT_CLASSES.get(resolved) ?? VARIANT_CLASSES.get(DEFAULT_BUTTON_VARIANT)!;
+  return VARIANT_CLASSES.get(resolved) ?? DEFAULT_CLASSES;
 }
