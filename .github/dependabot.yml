@@ -41,6 +41,33 @@ updates:
           - "next"
           - "eslint-config-next"
           - "@next/bundle-analyzer"
+      # Grouped deliberately: typescript, eslint, and @typescript-eslint/* are
+      # coupled by peer ranges, so they must move together. Splitting this group
+      # would produce multiple partially-broken PRs instead of one clear failure.
+      #
+      # ⚠️ Two upgrades in this group are blocked by upstream peer ranges and are
+      #    pinned in package.json until the ecosystem catches up:
+      #
+      #    eslint ^10      — eslint-plugin-import, eslint-plugin-react, and
+      #                      eslint-plugin-jsx-a11y all cap their peer at ^9.
+      #                      On eslint 10, eslint-plugin-react@7.37.5 throws
+      #                      "context.getFilename is not a function" while
+      #                      loading the react/display-name rule.
+      #
+      #    typescript ^7   — typescript-eslint@8.71.0 (bundled by
+      #                      eslint-config-next) declares peer
+      #                      ">=4.8.4 <6.1.0" and refuses TS 7 at load.
+      #                      Tracked upstream:
+      #                      https://github.com/microsoft/typescript-eslint/issues/10940
+      #
+      #    Dependabot will keep proposing these. That is intentional: the PRs
+      #    fail fast at `npm ci` (see .npmrc strict-peer-deps) and start passing
+      #    on their own once upstream releases support. Do NOT add `ignore`
+      #    rules here — suppressing would go stale silently and would require a
+      #    human to remember to remove it. If these PRs become noise, prefer
+      #    lowering the update frequency for this group.
+      #
+      #    Re-check before removing either pin: `npm view <pkg> peerDependencies`
       typescript-eslint:
         patterns:
           - "typescript"
