@@ -7,6 +7,7 @@
  *
  * Used by:
  *   - instrument.ts (MONITOR_WEBHOOK_URL)
+ *   - hashnode/rss.ts (publication feed fetch — isBlockedHostname)
  */
 
 import { isIPv4, isIPv6 } from "node:net";
@@ -140,7 +141,12 @@ export function isPrivateIPv6(ip: string): boolean {
   return false;
 }
 
-function isBlockedHostname(hostname: string): boolean {
+/**
+ * True when a hostname must never be reached by an outbound request:
+ * loopback/local, private/reserved IP literals, or cloud metadata endpoints.
+ * Shared by every outbound-fetch guard (webhooks, RSS, …).
+ */
+export function isBlockedHostname(hostname: string): boolean {
   return isLocalhost(hostname) || isPrivateIpAddress(hostname) || isCloudMetadataHostname(hostname);
 }
 

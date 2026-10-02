@@ -1,4 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
+import { env } from "@/lib/env";
+import { isBlockedHostname } from "@/lib/ssrf";
 
 /**
  * Hashnode retired free GraphQL API access (2026-05-13). The publication's
@@ -51,6 +53,50 @@ const parser = new XMLParser({
   isArray: (name) => name === "category" || name === "item",
 });
 
+// ─── Egress allowlist (SSRF) ────────────────────────────────────────────────
+
+/** A bare, dotted DNS hostname — no scheme, path, port, or credentials. */
+const RSS_HOSTNAME_PATTERN =
+  /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/**
+ * Normalizes and validates the configured publication host before a URL is
+ * built from it. Accepts an operator-friendly value (" https://a.com/ ") but
+ * returns null for anything that is not a plain public hostname: injected
+ * schemes/paths/ports/credentials all fail the pattern, and loopback,
+ * private-range, and cloud-metadata targets are rejected even when they come
+ * from config — a mis-set env var must not reach the network.
+ */
+function normalizeRssHost(raw: string): string | null {
+  const host = raw
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "");
+
+  if (!RSS_HOSTNAME_PATTERN.test(host)) return null;
+  if (isBlockedHostname(host)) return null;
+  return host;
+}
+
+/**
+ * Hosts this fetcher is allowed to contact.
+ *
+ * `fetchHashnodeRss` is a public helper, so its `host` argument must never be
+ * able to aim `fetch` at an arbitrary destination (internal services, cloud
+ * metadata, …). Only hosts an operator explicitly configured are fetched —
+ * today that is the Hashnode publication host itself — and everything else
+ * fails closed with `fetch_failed`. An invalid configured host drops out of
+ * the allowlist too, so a bad env value can never be fetched. Adding a mirror
+ * feed later means adding its host here (or via config), not widening the
+ * fetch.
+ */
+const ALLOWED_RSS_HOSTS: ReadonlySet<string> = new Set(
+  (env.HASHNODE_PUBLICATION_HOST ? [env.HASHNODE_PUBLICATION_HOST] : [])
+    .map(normalizeRssHost)
+    .filter((host): host is string => host !== null),
+);
+
 /**
  * Extracts a plain-text string from a fast-xml-parser value node.
  * Handles CDATA blocks, #text nodes, primitives, and nested objects.
@@ -91,6 +137,9 @@ function extractObjectText(obj: Record<string, unknown>): string {
  * Returns a discriminated result so callers can tell "not configured" apart
  * from "the network/feed failed" — failures must be visible, never silently
  * swallowed into placeholder mode.
+ *
+ * The host is validated (bare public hostname) and checked against the egress
+ * allowlist before any request leaves the process — see ALLOWED_RSS_HOSTS.
  */
 export async function fetchHashnodeRss(
   host: string,
@@ -100,25 +149,40 @@ export async function fetchHashnodeRss(
     return { ok: false, error: "HASHNODE_PUBLICATION_HOST is not set", reason: "not_configured" };
   }
 
-  const url = `https://${host}/rss.xml`;
+  const hostname = normalizeRssHost(host);
+  if (!hostname) {
+    return { ok: false, error: "Blocked unsafe Hashnode RSS host", reason: "fetch_failed" };
+  }
+
+  const url = `https://${hostname}/rss.xml`;
   const { revalidate = 3600, tags } = options;
 
   try {
-    const response = await fetch(url, {
-      headers: { Accept: "application/xml, text/xml, application/rss+xml" },
-      next: { revalidate, tags },
-    });
+    // SSRF guard: the request is only issued from inside this allowlist check,
+    // so no caller-supplied host can reach `fetch` without being on it.
+    if (ALLOWED_RSS_HOSTS.has(hostname)) {
+      const response = await fetch(url, {
+        headers: { Accept: "application/xml, text/xml, application/rss+xml" },
+        next: { revalidate, tags },
+      });
 
-    if (!response.ok) {
-      return {
-        ok: false,
-        error: `Hashnode RSS request failed with status ${response.status}`,
-        reason: "fetch_failed",
-      };
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: `Hashnode RSS request failed with status ${response.status}`,
+          reason: "fetch_failed",
+        };
+      }
+
+      const xml = await response.text();
+      return { ok: true, data: xml };
     }
 
-    const xml = await response.text();
-    return { ok: true, data: xml };
+    return {
+      ok: false,
+      error: `Hashnode RSS host "${hostname}" is not on the egress allowlist`,
+      reason: "fetch_failed",
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return { ok: false, error: `Hashnode RSS request threw: ${message}`, reason: "fetch_failed" };

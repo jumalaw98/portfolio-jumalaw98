@@ -239,8 +239,13 @@ async function sendAlertEmail(event: {
     return; // Redis unavailable — skip alert silently
   }
 
-  // Build subject
-  const buildSubject = EMAIL_SUBJECTS[event.event as ContactEventName];
+  // Build subject — allowlist-guarded lookup. `Object.hasOwn` (not `in`)
+  // ensures only the explicitly registered event names can select a builder;
+  // prototype keys such as "constructor" or "toString" never resolve to a
+  // callable, so the dynamic key can't be steered into arbitrary code.
+  const buildSubject = Object.hasOwn(EMAIL_SUBJECTS, event.event)
+    ? EMAIL_SUBJECTS[event.event as ContactEventName]
+    : undefined;
   const subject = buildSubject ? buildSubject(event) : `[Portfolio] ${event.event}`;
 
   const bodyText = formatEmailBody(event);
