@@ -778,6 +778,12 @@
         },
         {
           "patternId": "Trivy_vulnerability_high"
+        },
+        {
+          "patternId": "Trivy_vulnerability_medium"
+        },
+        {
+          "patternId": "Trivy_vulnerability_minor"
         }
       ]
     },
