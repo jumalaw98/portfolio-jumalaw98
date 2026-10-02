@@ -27,6 +27,8 @@ permissions:
 
 jobs:
   codacy-security-scan:
+    # Show an explicit skipped job for fork and Dependabot PRs where the token is unavailable.
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
     permissions:
       contents: read # for actions/checkout to fetch code
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
@@ -41,9 +43,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # For trusted runs (not fork PRs), ensure the Codacy token is present
+      # For runs that are not skipped above, fail closed if the Codacy token is missing.
       - name: Ensure Codacy project token is set for trusted runs
-        if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
         run: |
           if [ -z "${CODACY_PROJECT_TOKEN}" ]; then
             echo "CODACY_PROJECT_TOKEN is not set. Failing trusted run to avoid non-gated results."
@@ -51,9 +52,7 @@ jobs:
           fi
 
       # Execute Codacy Analysis CLI and generate a SARIF output with the security issues identified during the analysis
-      # Skip on fork PRs where secrets are not available
       - name: Run Codacy Analysis CLI
-        if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
         uses: codacy/codacy-analysis-cli-action@562ee3e92b8e92df8b67e0a5ff8aa8e261919c08
         with:
           # Check https://github.com/codacy/codacy-analysis-cli#project-token to get your project token from your Codacy repository
@@ -71,12 +70,10 @@ jobs:
       # Codacy aggregates several tools into one SARIF file. GitHub requires
       # each run for a given tool in that file to have a distinct category.
       - name: Prepare SARIF for GitHub Code Scanning
-        if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
         run: node .github/scripts/prepare-codacy-sarif.mjs results.sarif
 
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file
-        if: github.event.pull_request == null || github.event.pull_request.head.repo.full_name == github.repository
         uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           sarif_file: results.sarif
