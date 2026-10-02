@@ -104,4 +104,111 @@ describe("fetchHashnodeRss — SSRF guard", () => {
     }
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  // The pattern alone accepts shorthand numeric hosts such as `127.1`, but the
+  // URL parser rewrites them into loopback literals (https://127.1/ → 127.0.0.1)
+  // that `isBlockedHostname` only recognises in their expanded form.
+  it("blocks shorthand numeric hosts that the URL parser expands to loopback", async () => {
+    const { fetchHashnodeRss } = await load();
+
+    for (const host of ["127.1", "0177.0.0.1", "0300.0250.0.1", "127.0.1"]) {
+      const result = await fetchHashnodeRss(host);
+      expect(result).toMatchObject({ ok: false, reason: "fetch_failed" });
+      if (!result.ok) expect(result.error).toContain("Blocked unsafe");
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks private destinations hidden behind wildcard-DNS aliases", async () => {
+    const { fetchHashnodeRss } = await load();
+
+    for (const host of [
+      "127.0.0.1.nip.io",
+      "10.0.0.1.sslip.io",
+      "169.254.169.254.nip.io",
+      "7f000001.nip.io",
+      "127-0-0-1.nip.io",
+      "192-168-0-1.example.com",
+    ]) {
+      const result = await fetchHashnodeRss(host);
+      expect(result).toMatchObject({ ok: false, reason: "fetch_failed" });
+      if (!result.ok) expect(result.error).toContain("Blocked unsafe");
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not follow redirects to a non-allowlisted host", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 302,
+      headers: new Headers({ location: "https://evil.example.org/rss.xml" }),
+      text: async () => "",
+    });
+    const { fetchHashnodeRss } = await load();
+
+    const result = await fetchHashnodeRss(CONFIGURED_HOST);
+
+    expect(result).toMatchObject({ ok: false, reason: "fetch_failed" });
+    if (!result.ok) expect(result.error).toContain("redirect");
+    // Only the original request was issued — the redirect target was never fetched.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ redirect: "manual" });
+  });
+
+  it("does not follow redirects to a private or loopback destination", async () => {
+    for (const location of [
+      "https://127.0.0.1/rss.xml",
+      "https://localhost/rss.xml",
+      "https://169.254.169.254/latest/meta-data/",
+      "https://127.0.0.1.nip.io/rss.xml",
+    ]) {
+      fetchMock.mockReset();
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 301,
+        headers: new Headers({ location }),
+        text: async () => "",
+      });
+      const { fetchHashnodeRss } = await load();
+
+      const result = await fetchHashnodeRss(CONFIGURED_HOST);
+
+      expect(result).toMatchObject({ ok: false, reason: "fetch_failed" });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("follows a redirect that stays on the allowlisted host", async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 301,
+        headers: new Headers({ location: "https://blog.example.com/feed/rss.xml" }),
+        text: async () => "",
+      })
+      .mockResolvedValueOnce({ ok: true, text: async () => "<rss>followed</rss>" });
+    const { fetchHashnodeRss } = await load();
+
+    const result = await fetchHashnodeRss(CONFIGURED_HOST);
+
+    expect(result).toEqual({ ok: true, data: "<rss>followed</rss>" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][0]).toBe("https://blog.example.com/feed/rss.xml");
+  });
+
+  it("stops after too many redirects", async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 302,
+      headers: new Headers({ location: "https://blog.example.com/rss.xml" }),
+      text: async () => "",
+    });
+    const { fetchHashnodeRss } = await load();
+
+    const result = await fetchHashnodeRss(CONFIGURED_HOST);
+
+    expect(result).toMatchObject({ ok: false, reason: "fetch_failed" });
+    if (!result.ok) expect(result.error).toContain("redirect");
+    expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(4);
+  });
 });

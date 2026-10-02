@@ -102,6 +102,11 @@ The feed URL is constructed from `HASHNODE_PUBLICATION_HOST`. When that variable
 is unset, the site falls back to `placeholderBlogPosts` from
 `src/content/blog-placeholder.ts`.
 
+The feed fetch is an egress allowlist: only the configured host is contacted,
+loopback/private/metadata/wildcard-DNS-alias targets are rejected, and
+redirects are followed manually (`redirect: "manual"`, at most 3 hops) so every
+destination is re-validated instead of being trusted implicitly.
+
 All blog routes use `revalidate = 3600` (ISR), so new posts appear within an
 hour of publication without a redeploy.
 

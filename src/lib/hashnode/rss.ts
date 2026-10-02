@@ -59,13 +59,49 @@ const parser = new XMLParser({
 const RSS_HOSTNAME_PATTERN =
   /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
+const RSS_FEED_PATH = "/rss.xml";
+
+/** Builds the HTTPS feed URL for an already-validated hostname. */
+function buildRssUrl(hostname: string): string {
+  return new URL(RSS_FEED_PATH, `https://${hostname}/`).toString();
+}
+
+/**
+ * True when a parsed URL is safe to contact: HTTPS, default port, and a
+ * hostname that is not a loopback/private/metadata/alias destination.
+ *
+ * Used for redirect targets, where there is no pre-validated string to compare
+ * against — the hostname is validated on its own merits.
+ */
+function isSafeRssTarget(url: URL): boolean {
+  if (url.protocol !== "https:") return false;
+  if (url.port) return false;
+  return !isBlockedHostname(url.hostname);
+}
+
+/**
+ * True when the parsed feed URL still addresses the exact hostname that was
+ * already validated, and that hostname is safe to contact.
+ *
+ * `RSS_HOSTNAME_PATTERN` accepts shorthand numeric forms such as `127.1` or
+ * `0300.0250.0.1`, but the URL parser rewrites those into dotted-quad literals
+ * (`https://127.1/rss.xml` → `127.0.0.1`) before the request is sent. Checking
+ * only the raw string would miss the loopback address the fetch actually
+ * contacts, so the parsed hostname is compared against the validated string —
+ * any parser rewrite means the URL no longer names the host that was vetted.
+ */
+function isValidatedRssUrl(url: URL, hostname: string): boolean {
+  if (url.hostname !== hostname) return false;
+  return isSafeRssTarget(url);
+}
+
 /**
  * Normalizes and validates the configured publication host before a URL is
  * built from it. Accepts an operator-friendly value (" https://a.com/ ") but
  * returns null for anything that is not a plain public hostname: injected
  * schemes/paths/ports/credentials all fail the pattern, and loopback,
- * private-range, and cloud-metadata targets are rejected even when they come
- * from config — a mis-set env var must not reach the network.
+ * private-range, cloud-metadata, and wildcard-DNS-alias targets are rejected
+ * even when they come from config — a mis-set env var must not reach the network.
  */
 function normalizeRssHost(raw: string): string | null {
   const host = raw
@@ -76,7 +112,17 @@ function normalizeRssHost(raw: string): string | null {
 
   if (!RSS_HOSTNAME_PATTERN.test(host)) return null;
   if (isBlockedHostname(host)) return null;
-  return host;
+
+  // Re-check through the URL parser so shorthand/alternate IP literals that
+  // only become a private address at parse time are caught too.
+  let url: URL;
+  try {
+    url = new URL(RSS_FEED_PATH, `https://${host}/`);
+  } catch {
+    return null;
+  }
+
+  return isValidatedRssUrl(url, host) ? host : null;
 }
 
 /**
@@ -132,11 +178,40 @@ function extractObjectText(obj: Record<string, unknown>): string {
   }
 }
 
+/** Maximum redirect hops followed for a feed before giving up. */
+const MAX_RSS_REDIRECTS = 3;
+
+/** HTTP statuses that carry a `Location` header. */
+const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308]);
+
 /**
- * Fetches the raw RSS XML for a publication host.
- * Returns a discriminated result so callers can tell "not configured" apart
- * from "the network/feed failed" — failures must be visible, never silently
- * swallowed into placeholder mode.
+ * Resolves and validates a redirect target.
+ *
+ * `fetch` follows redirects on its own by default, which would let an
+ * allowlisted host bounce the request to a private, metadata, or non-allowlisted
+ * destination — the guard would have vetted a host that is never contacted.
+ * Each hop is therefore resolved and re-checked against the same allowlist
+ * before it is issued. Returns null when the target is not safe to follow.
+ */
+function resolveRssRedirect(location: string, currentUrl: string): string | null {
+  let target: URL;
+  try {
+    target = new URL(location, currentUrl);
+  } catch {
+    return null;
+  }
+
+  if (!isSafeRssTarget(target)) return null;
+  if (!ALLOWED_RSS_HOSTS.has(target.hostname)) return null;
+
+  return target.toString();
+}
+
+/**
+ * Fetches the raw RSS XML for a publication host, following redirects manually
+ * so every hop is re-validated. Returns a discriminated result so callers can
+ * tell "not configured" apart from "the network/feed failed" — failures must
+ * be visible, never silently swallowed into placeholder mode.
  *
  * The host is validated (bare public hostname) and checked against the egress
  * allowlist before any request leaves the process — see ALLOWED_RSS_HOSTS.
@@ -154,28 +229,16 @@ export async function fetchHashnodeRss(
     return { ok: false, error: "Blocked unsafe Hashnode RSS host", reason: "fetch_failed" };
   }
 
-  const url = `https://${hostname}/rss.xml`;
   const { revalidate = 3600, tags } = options;
 
   try {
     // SSRF guard: the request is only issued from inside this allowlist check,
     // so no caller-supplied host can reach `fetch` without being on it.
     if (ALLOWED_RSS_HOSTS.has(hostname)) {
-      const response = await fetch(url, {
-        headers: { Accept: "application/xml, text/xml, application/rss+xml" },
-        next: { revalidate, tags },
-      });
+      const result = await fetchRssFeed(buildRssUrl(hostname), { revalidate, tags });
+      if (!result.ok) return result;
 
-      if (!response.ok) {
-        return {
-          ok: false,
-          error: `Hashnode RSS request failed with status ${response.status}`,
-          reason: "fetch_failed",
-        };
-      }
-
-      const xml = await response.text();
-      return { ok: true, data: xml };
+      return { ok: true, data: await result.response.text() };
     }
 
     return {
@@ -187,6 +250,60 @@ export async function fetchHashnodeRss(
     const message = error instanceof Error ? error.message : String(error);
     return { ok: false, error: `Hashnode RSS request threw: ${message}`, reason: "fetch_failed" };
   }
+}
+
+/**
+ * Issues the feed request with `redirect: "manual"` and follows at most
+ * MAX_RSS_REDIRECTS hops, re-validating every destination. Returns the
+ * successful response, or a failure result for a blocked/broken redirect chain.
+ */
+async function fetchRssFeed(
+  url: string,
+  init: { revalidate: number; tags?: string[] },
+): Promise<
+  { ok: true; response: Response } | { ok: false; error: string; reason: "fetch_failed" }
+> {
+  let current = url;
+
+  for (let hop = 0; hop <= MAX_RSS_REDIRECTS; hop += 1) {
+    const response = await fetch(current, {
+      headers: { Accept: "application/xml, text/xml, application/rss+xml" },
+      redirect: "manual",
+      next: { revalidate: init.revalidate, tags: init.tags },
+    });
+
+    if (REDIRECT_STATUSES.has(response.status)) {
+      const location = response.headers.get("location");
+      const next = location ? resolveRssRedirect(location, current) : null;
+
+      if (!next) {
+        return {
+          ok: false,
+          error: `Hashnode RSS redirect to a blocked or non-allowlisted host (status ${response.status})`,
+          reason: "fetch_failed",
+        };
+      }
+
+      current = next;
+      continue;
+    }
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        error: `Hashnode RSS request failed with status ${response.status}`,
+        reason: "fetch_failed",
+      };
+    }
+
+    return { ok: true, response };
+  }
+
+  return {
+    ok: false,
+    error: `Hashnode RSS exceeded ${MAX_RSS_REDIRECTS} redirects`,
+    reason: "fetch_failed",
+  };
 }
 
 /** Parses RSS XML into a normalized list of items. */

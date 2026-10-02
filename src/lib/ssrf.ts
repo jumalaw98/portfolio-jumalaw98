@@ -19,6 +19,10 @@ const CLOUD_METADATA_IPV4 = [169, 254, 169, 254].join(".");
 const GOOGLE_METADATA_HOSTNAME = "metadata.google.internal";
 const CLOUD_METADATA_NIP_IO_SUFFIX = `.${CLOUD_METADATA_IPV4}.nip.io`;
 
+/** Number of hex characters that can encode a full 32-bit address. */
+const HEX_IPV4_MIN_LENGTH = 6;
+const HEX_IPV4_MAX_LENGTH = 8;
+
 /**
  * IPv4 private/reserved ranges that must not be reachable from outbound requests.
  * Each entry defines the first octet and the inclusive range for the second octet.
@@ -143,11 +147,18 @@ export function isPrivateIPv6(ip: string): boolean {
 
 /**
  * True when a hostname must never be reached by an outbound request:
- * loopback/local, private/reserved IP literals, or cloud metadata endpoints.
+ * loopback/local, private/reserved IP literals, cloud metadata endpoints, or
+ * wildcard-DNS aliases that decode to any of the above.
  * Shared by every outbound-fetch guard (webhooks, RSS, …).
  */
 export function isBlockedHostname(hostname: string): boolean {
-  return isLocalhost(hostname) || isPrivateIpAddress(hostname) || isCloudMetadataHostname(hostname);
+  return (
+    isLocalhost(hostname) ||
+    isPrivateIpAddress(hostname) ||
+    isCloudMetadataHostname(hostname) ||
+    isWildcardDnsPrivateAlias(hostname) ||
+    isPrivateIpv4Alias(hostname)
+  );
 }
 
 function isLocalhost(hostname: string): boolean {
@@ -171,6 +182,86 @@ function isCloudMetadataHostname(hostname: string): boolean {
     hostname === GOOGLE_METADATA_HOSTNAME ||
     hostname.endsWith(CLOUD_METADATA_NIP_IO_SUFFIX)
   );
+}
+
+// ─── Wildcard-DNS aliases ───────────────────────────────────────────────────
+//
+// Public services (nip.io, sslip.io, …) resolve any hostname they are given
+// to the IP address encoded in the name, so `127.0.0.1.nip.io` is a perfectly
+// ordinary public hostname that `fetch` turns into a loopback connection.
+// A private address expressed that way therefore slips past both the hostname
+// pattern and `node:net`'s IP-literal check, so decode the alias before the
+// request leaves the process.
+
+/** Suffixes of the public wildcard-DNS resolvers that decode an embedded IP. */
+const WILDCARD_DNS_SUFFIXES: ReadonlySet<string> = new Set([
+  "nip.io",
+  "sslip.io",
+  "nip.xx",
+  "localtest.me",
+  "lvh.me",
+  "vcaps.me",
+]);
+
+/**
+ * True when a run of leading labels spells a private/reserved IPv4 address —
+ * either dotted (`127.0.0.1.nip.io`) or dash-joined (`127-0-0-1.example.com`).
+ * Both forms are resolved by wildcard DNS, and the dash form is checked for any
+ * host because a name that begins with a private address has no legitimate
+ * public use. Fails closed: a false positive only ever blocks a fetch.
+ */
+function isPrivateIpv4Alias(hostname: string): boolean {
+  const labels = hostname.split(".");
+
+  // Windows of 1–4 labels, dashes folded to dots, so `127-0-0-1` (one label)
+  // and `127.0.0.1` (four labels) are both recognised. Only a 4-octet result
+  // can be a valid IPv4 literal, so shorter windows simply never match.
+  for (let start = 0; start < labels.length; start += 1) {
+    for (let count = 1; start + count <= labels.length && count <= 4; count += 1) {
+      const candidate = labels
+        .slice(start, start + count)
+        .join(".")
+        .replaceAll("-", ".");
+
+      if (isIPv4(candidate) && isPrivateIPv4(candidate)) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * True when a hostname under a known wildcard-DNS resolver decodes — in dotted,
+ * dash-joined, or hex form — to a private/reserved address. The hex form
+ * (`7f000001.nip.io`) is only meaningful under those resolvers, so it is
+ * scoped to them to avoid matching ordinary domains with hex-looking labels.
+ */
+function isWildcardDnsPrivateAlias(hostname: string): boolean {
+  if (!WILDCARD_DNS_SUFFIXES.has(lastLabels(hostname, 2))) return false;
+
+  const label = hostname.split(".")[0]?.replaceAll("-", "") ?? "";
+  if (
+    label.length >= HEX_IPV4_MIN_LENGTH &&
+    label.length <= HEX_IPV4_MAX_LENGTH &&
+    /^[0-9a-f]+$/.test(label)
+  ) {
+    if (isPrivateIPv4(hexToIpv4(label))) return true;
+  }
+
+  return isPrivateIpv4Alias(hostname);
+}
+
+/** Last `count` labels of a hostname, or "" when it has too few labels. */
+function lastLabels(hostname: string, count: number): string {
+  const labels = hostname.split(".");
+  if (labels.length < count) return "";
+  return labels.slice(-count).join(".");
+}
+
+/** Expands a 1–8 digit hex address ("7f000001") to dotted-quad form. */
+function hexToIpv4(hex: string): string {
+  const value = Number.parseInt(hex, 16);
+  return [value >>> 24, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff].join(".");
 }
 
 function isValidIPv4Part(part: number): boolean {
