@@ -109,7 +109,15 @@ function buildRssUrl(hostname: string): string {
 function isSafeRssTarget(url: URL): boolean {
   if (url.protocol !== "https:") return false;
   if (url.port) return false;
-  return !isBlockedHostname(url.hostname);
+
+  // URL.hostname keeps brackets around IPv6 literals ("[::1]"), which
+  // node:net's isIPv6 rejects and none of the blocklist patterns match — so
+  // strip them (and a DNS root dot) before checking, as validateWebhookUrl
+  // already does. Failing open here would let an allowlisted host redirect to
+  // a bracketed loopback/private address.
+  const hostname = url.hostname.replaceAll("[", "").replaceAll("]", "").replace(/\.$/, "");
+
+  return !isBlockedHostname(hostname);
 }
 
 /**
@@ -300,9 +308,81 @@ export async function fetchHashnodeRss(
 }
 
 /**
+ * Parses one request destination and vets it on its own merits: HTTPS only,
+ * default port, and a hostname that is not loopback/private/metadata/aliased.
+ *
+ * Returns null when the value cannot be parsed or is not safe to contact, so
+ * a caller can fail closed before a request is issued.
+ */
+function parseRssDestination(value: string): URL | null {
+  let target: URL;
+  try {
+    target = new URL(value);
+  } catch {
+    return null;
+  }
+  return isSafeRssTarget(target) ? target : null;
+}
+
+/** Outcome of issuing one request to a single (already vetted) destination. */
+type RssHopOutcome =
+  | { kind: "done"; response: Response }
+  | { kind: "redirect"; next: string }
+  | { kind: "failed"; error: string };
+
+/**
+ * Issues one feed request to an already-vetted destination with
+ * `redirect: "manual"`, and classifies the response: a redirect target to
+ * follow, a usable response, or a terminal failure.
+ *
+ * Extracted from fetchRssFeed to keep both functions within the cognitive
+ * complexity budget while preserving the ordering that matters for SSRF: the
+ * allowlist check happens in this function, immediately before `fetch`, so no
+ * destination reaches the network unvetted — see ALLOWED_RSS_HOSTS.
+ */
+async function requestRssHop(
+  destination: URL,
+  init: { revalidate: number; tags?: string[] },
+): Promise<RssHopOutcome> {
+  if (!ALLOWED_RSS_HOSTS.has(destination.hostname)) {
+    return {
+      kind: "failed",
+      error: `Hashnode RSS host "${destination.hostname}" is not on the egress allowlist`,
+    };
+  }
+
+  const response = await fetch(destination.toString(), {
+    headers: { Accept: "application/xml, text/xml, application/rss+xml" },
+    redirect: "manual",
+    next: { revalidate: init.revalidate, tags: init.tags },
+  });
+
+  if (REDIRECT_STATUSES.has(response.status)) {
+    const location = response.headers.get("location");
+    const next = location ? resolveRssRedirect(location, destination.toString()) : null;
+
+    return next
+      ? { kind: "redirect", next }
+      : {
+          kind: "failed",
+          error: `Hashnode RSS redirect to a blocked or non-allowlisted host (status ${response.status})`,
+        };
+  }
+
+  if (!response.ok) {
+    return { kind: "failed", error: `Hashnode RSS request failed with status ${response.status}` };
+  }
+
+  return { kind: "done", response };
+}
+
+/**
  * Issues the feed request with `redirect: "manual"` and follows at most
  * MAX_RSS_REDIRECTS hops, re-validating every destination. Returns the
  * successful response, or a failure result for a blocked/broken redirect chain.
+ *
+ * Each hop is parsed (parseRssDestination) and checked against the egress
+ * allowlist (requestRssHop) before the request is issued.
  */
 async function fetchRssFeed(
   url: string,
@@ -313,37 +393,27 @@ async function fetchRssFeed(
   let current = url;
 
   for (let hop = 0; hop <= MAX_RSS_REDIRECTS; hop += 1) {
-    const response = await fetch(current, {
-      headers: { Accept: "application/xml, text/xml, application/rss+xml" },
-      redirect: "manual",
-      next: { revalidate: init.revalidate, tags: init.tags },
-    });
-
-    if (REDIRECT_STATUSES.has(response.status)) {
-      const location = response.headers.get("location");
-      const next = location ? resolveRssRedirect(location, current) : null;
-
-      if (!next) {
-        return {
-          ok: false,
-          error: `Hashnode RSS redirect to a blocked or non-allowlisted host (status ${response.status})`,
-          reason: "fetch_failed",
-        };
-      }
-
-      current = next;
-      continue;
-    }
-
-    if (!response.ok) {
+    const destination = parseRssDestination(current);
+    if (!destination) {
       return {
         ok: false,
-        error: `Hashnode RSS request failed with status ${response.status}`,
+        error: "Hashnode RSS request destination is not a valid safe URL",
         reason: "fetch_failed",
       };
     }
 
-    return { ok: true, response };
+    const outcome = await requestRssHop(destination, init);
+
+    if (outcome.kind === "redirect") {
+      current = outcome.next;
+      continue;
+    }
+
+    if (outcome.kind === "failed") {
+      return { ok: false, error: outcome.error, reason: "fetch_failed" };
+    }
+
+    return { ok: true, response: outcome.response };
   }
 
   return {

@@ -33,6 +33,29 @@ describe("fetchHashnodeRss — SSRF guard", () => {
 
   const load = () => import("./rss");
 
+  /** Queue a single 302 response pointing at `location` (undefined = no Location header). */
+  const mockSingleRedirect = (location: string | undefined) => {
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 302,
+      headers: new Headers(location === undefined ? {} : { location }),
+      text: async () => "",
+    });
+  };
+
+  /** Fetch once, expect the rejected redirect to fail before any second hop is requested. */
+  const expectRejectedSingleRedirect = async () => {
+    const { fetchHashnodeRss } = await load();
+
+    const result = await fetchHashnodeRss(CONFIGURED_HOST);
+
+    expect(result).toMatchObject({ ok: false, reason: "fetch_failed" });
+    if (!result.ok) expect(result.error).toContain("redirect");
+    // The disallowed hop was never requested — only the original call happened.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  };
+
   it("reports not_configured when no host is given", async () => {
     const { fetchHashnodeRss } = await load();
 
@@ -194,6 +217,29 @@ describe("fetchHashnodeRss — SSRF guard", () => {
     expect(result).toEqual({ ok: true, data: "<rss>followed</rss>" });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[1][0]).toBe("https://blog.example.com/feed/rss.xml");
+  });
+
+  it("does not follow redirects that downgrade to http or pin an explicit port", async () => {
+    for (const location of [
+      "http://blog.example.com/rss.xml",
+      "https://blog.example.com:8443/rss.xml",
+      "https://blog.example.com@evil.example.org/rss.xml",
+    ]) {
+      mockSingleRedirect(location);
+      await expectRejectedSingleRedirect();
+    }
+  });
+
+  it("rejects a redirect that carries no Location header", async () => {
+    mockSingleRedirect(undefined);
+    await expectRejectedSingleRedirect();
+  });
+
+  it("rejects a redirect to a bracketed IPv6 loopback literal", async () => {
+    // URL.hostname keeps the brackets ("[::1]") and node:net's isIPv6 rejects
+    // them, so without normalization this would slip past the blocklist.
+    mockSingleRedirect("https://[::1]/rss.xml");
+    await expectRejectedSingleRedirect();
   });
 
   it("stops after too many redirects", async () => {
