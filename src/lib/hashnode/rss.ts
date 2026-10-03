@@ -55,9 +55,42 @@ const parser = new XMLParser({
 
 // ─── Egress allowlist (SSRF) ────────────────────────────────────────────────
 
-/** A bare, dotted DNS hostname — no scheme, path, port, or credentials. */
-const RSS_HOSTNAME_PATTERN =
-  /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+/** RFC 1035 limits for a dotted DNS name and a single label. */
+const MAX_HOSTNAME_LENGTH = 253;
+const MAX_HOSTNAME_LABEL_LENGTH = 63;
+
+/**
+ * The legal character set of one DNS label: lowercase letters, digits, hyphen.
+ *
+ * Deliberately a single character-class repetition with anchors — it matches
+ * linearly. The label's first/last character rule and the dotted-label layout
+ * are checked separately so no expression ever nests a repetition inside
+ * another (which is what makes a hostname check backtrack super-linearly).
+ */
+const HOSTNAME_LABEL_CHARACTERS = /^[a-z0-9-]+$/;
+
+/** True when a single DNS label is well formed: legal chars, no edge hyphens. */
+function isValidHostnameLabel(label: string): boolean {
+  if (label.length < 1 || label.length > MAX_HOSTNAME_LABEL_LENGTH) return false;
+  if (!HOSTNAME_LABEL_CHARACTERS.test(label)) return false;
+  return !label.startsWith("-") && !label.endsWith("-");
+}
+
+/**
+ * True for a bare, dotted DNS hostname — no scheme, path, port, or credentials.
+ *
+ * Validated label by label (each label with a linear character-class test)
+ * rather than by one nested-quantifier regex over the whole name, which
+ * backtracks super-linearly on hostile input.
+ */
+function isDottedHostname(host: string): boolean {
+  if (host.length < 1 || host.length > MAX_HOSTNAME_LENGTH) return false;
+
+  const labels = host.split(".");
+  if (labels.length < 2) return false;
+
+  return labels.every(isValidHostnameLabel);
+}
 
 const RSS_FEED_PATH = "/rss.xml";
 
@@ -83,7 +116,7 @@ function isSafeRssTarget(url: URL): boolean {
  * True when the parsed feed URL still addresses the exact hostname that was
  * already validated, and that hostname is safe to contact.
  *
- * `RSS_HOSTNAME_PATTERN` accepts shorthand numeric forms such as `127.1` or
+ * `isDottedHostname` accepts shorthand numeric forms such as `127.1` or
  * `0300.0250.0.1`, but the URL parser rewrites those into dotted-quad literals
  * (`https://127.1/rss.xml` → `127.0.0.1`) before the request is sent. Checking
  * only the raw string would miss the loopback address the fetch actually
@@ -96,21 +129,35 @@ function isValidatedRssUrl(url: URL, hostname: string): boolean {
 }
 
 /**
+ * Drops trailing slashes from a host string.
+ *
+ * A plain loop rather than `/\/+$/`: the quantified-slash pattern is a
+ * super-linear backtracking shape (Sonar S8786), and a linear slice is both
+ * cheaper and easier to reason about for attacker-influenced input.
+ */
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end -= 1;
+  return value.slice(0, end);
+}
+
+/**
  * Normalizes and validates the configured publication host before a URL is
  * built from it. Accepts an operator-friendly value (" https://a.com/ ") but
  * returns null for anything that is not a plain public hostname: injected
- * schemes/paths/ports/credentials all fail the pattern, and loopback,
+ * schemes/paths/ports/credentials all fail validation, and loopback,
  * private-range, cloud-metadata, and wildcard-DNS-alias targets are rejected
  * even when they come from config — a mis-set env var must not reach the network.
  */
 function normalizeRssHost(raw: string): string | null {
-  const host = raw
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/+$/, "");
+  const host = stripTrailingSlashes(
+    raw
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, ""),
+  );
 
-  if (!RSS_HOSTNAME_PATTERN.test(host)) return null;
+  if (!isDottedHostname(host)) return null;
   if (isBlockedHostname(host)) return null;
 
   // Re-check through the URL parser so shorthand/alternate IP literals that
