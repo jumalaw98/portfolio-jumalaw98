@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isPrivateIPv4, isPrivateIPv6, validateWebhookUrl } from "@/lib/ssrf";
+import { isBlockedHostname, isPrivateIPv4, isPrivateIPv6, validateWebhookUrl } from "@/lib/ssrf";
 
 describe("validateWebhookUrl — SSRF prevention", () => {
   it("accepts a valid HTTPS URL", () => {
@@ -131,5 +131,48 @@ describe("validateWebhookUrl — SSRF prevention", () => {
     expect(isPrivateIPv6("fcff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")).toBe(true);
     expect(isPrivateIPv6("::ffff:127.0.0.1")).toBe(true);
     expect(isPrivateIPv6("::ffff:192.168.0.1")).toBe(true);
+  });
+});
+
+describe("isBlockedHostname — wildcard-DNS aliases", () => {
+  it("blocks aliases that encode a loopback address", () => {
+    expect(isBlockedHostname("127.0.0.1.nip.io")).toBe(true);
+    expect(isBlockedHostname("127.0.0.1.sslip.io")).toBe(true);
+    expect(isBlockedHostname("127.0.0.1.nip.xx")).toBe(true);
+    expect(isBlockedHostname("127.0.0.1.localtest.me")).toBe(true);
+    expect(isBlockedHostname("127.0.0.1.lvh.me")).toBe(true);
+  });
+
+  it("blocks aliases that encode a private or link-local address", () => {
+    expect(isBlockedHostname("10.0.0.1.nip.io")).toBe(true);
+    expect(isBlockedHostname("192.168.1.1.sslip.io")).toBe(true);
+    expect(isBlockedHostname("172.16.0.5.nip.io")).toBe(true);
+    expect(isBlockedHostname("169.254.169.254.sslip.io")).toBe(true);
+  });
+
+  it("blocks dash-joined address aliases", () => {
+    expect(isBlockedHostname("127-0-0-1.nip.io")).toBe(true);
+    expect(isBlockedHostname("192-168-0-1.example.com")).toBe(true);
+    expect(isBlockedHostname("10-0-0-1.sslip.io")).toBe(true);
+  });
+
+  it("blocks hex-encoded address aliases under wildcard DNS", () => {
+    // 7f000001 → 127.0.0.1, 0a000001 → 10.0.0.1, a9fea9fe → 169.254.169.254
+    expect(isBlockedHostname("7f000001.nip.io")).toBe(true);
+    expect(isBlockedHostname("0a000001.nip.io")).toBe(true);
+    expect(isBlockedHostname("a9fea9fe.nip.io")).toBe(true);
+  });
+
+  it("does not block public addresses or ordinary hostnames", () => {
+    expect(isBlockedHostname("8.8.8.8.nip.io")).toBe(false);
+    expect(isBlockedHostname("jumalaw98.hashnode.dev")).toBe(false);
+    expect(isBlockedHostname("blog.example.com")).toBe(false);
+    // Hex-looking labels on an ordinary domain must not be decoded.
+    expect(isBlockedHostname("7f000001.example.com")).toBe(false);
+    expect(isBlockedHostname("cafe.example.com")).toBe(false);
+  });
+
+  it("applies the alias check to the webhook validator too", () => {
+    expect(validateWebhookUrl("https://127.0.0.1.nip.io/api")).toBeNull();
   });
 });
